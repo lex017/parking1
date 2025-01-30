@@ -3,7 +3,6 @@ import 'dart:async';
 
 import 'package:parking1/cash/payPage.dart';
 
-
 class QrPay extends StatefulWidget {
   const QrPay({super.key});
 
@@ -80,64 +79,71 @@ class _QrPayState extends State<QrPay> {
         centerTitle: true,
         backgroundColor: Colors.blue,
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(),
-                )
-              : imageUrl == null
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              isLoading
                   ? const Center(
-                      child: Text(
-                        "Failed to load image",
-                        style: TextStyle(fontSize: 18, color: Colors.red),
-                      ),
+                      child: CircularProgressIndicator(),
                     )
-                  : Center(
-                      child: Image.network(
-                        imageUrl!,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-          const SizedBox(height: 20),
-          // แสดงเวลาที่เหลือ
-          const Text(
-            "Remaining Time",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  : imageUrl == null
+                      ? const Center(
+                          child: Text(
+                            "Failed to load image",
+                            style: TextStyle(fontSize: 18, color: Colors.red),
+                          ),
+                        )
+                      : Center(
+                          child: Image.network(
+                            imageUrl!,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+              const SizedBox(height: 20),
+              // แสดงเวลาที่เหลือ
+              const Text(
+                "Remaining Time",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                formatTime(_remainingTime),
+                style: const TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: selectedHours == null
+                    ? null
+                    : () {
+                        _timer.cancel(); // Cancel the timer before navigating
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (c) => PayPage(
+                                packageHours:
+                                    selectedHours!), // Pass selectedHours
+                          ),
+                        );
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      selectedHours == null ? Colors.grey : Colors.blue,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  textStyle: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                child: const Text("Pay Now"),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            formatTime(_remainingTime),
-            style: const TextStyle(
-              fontSize: 40,
-              fontWeight: FontWeight.bold,
-              color: Colors.red,
-            ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: selectedHours == null
-                ? null
-                : () {
-                    _timer.cancel(); // Cancel the timer before navigating
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (c) => PayPage(
-                            packageHours: selectedHours!), // Pass selectedHours
-                      ),
-                    );
-                  },
-            style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  selectedHours == null ? Colors.grey : Colors.blue,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              textStyle:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            child: const Text("Pay Now"),
-          ),
-        ],
+        ),
       ),
     );
   }

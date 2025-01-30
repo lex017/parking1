@@ -11,7 +11,7 @@ class map_api extends StatefulWidget {
 
 class _MapApiWebState extends State<map_api> {
   late GoogleMapController _mapController;
-  LatLng _initialPosition = const LatLng(18.026093, 102.614067); // Default location
+  LatLng _initialPosition = const LatLng(17.972937, 102.621275); // Default location
   LatLng? _currentPosition;
   Set<Marker> _markers = {};
 
