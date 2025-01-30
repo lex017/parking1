@@ -70,6 +70,7 @@ dependencies:
   google_maps_flutter_web: ^0.5.10
   flutter_map_cancellable_tile_provider: ^3.0.2
   google_maps: ^8.1.1
+  geocoding: ^3.0.0
 
 
 flutter_native_splash:
