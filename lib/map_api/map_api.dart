@@ -1,103 +1,262 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:sliding_up_panel/sliding_up_panel.dart';
+import 'package:parking1/map_api/btnlocation.dart';
 
 class map_api extends StatefulWidget {
   const map_api({Key? key}) : super(key: key);
 
   @override
-  State<map_api> createState() => _MapApiWebState();
+  State<map_api> createState() => _MapApiState();
 }
 
-class _MapApiWebState extends State<map_api> {
+class _MapApiState extends State<map_api> {
   late GoogleMapController _mapController;
-  LatLng _initialPosition = const LatLng(17.972937, 102.621275); // Default location
+  LatLng _initialPosition = const LatLng(17.972937, 102.621275);
+  final Set<Marker> _markers = {};
   LatLng? _currentPosition;
-  Set<Marker> _markers = {};
+  LatLng? _searchPosition;
+  String? selectedDocId;
+
+  final PanelController _panelController = PanelController();
+  double _searchRadius = 500.0; 
 
   @override
   void initState() {
     super.initState();
     _determinePosition();
+    _loadMarkersFromFirebase();
   }
 
-  // Determine the current location
   Future<void> _determinePosition() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // Check if location services are enabled
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Location services are disabled.")),
-      );
+      _showSnackBar("Location services are disabled.");
       return;
     }
 
-    // Check for location permissions
-    permission = await Geolocator.checkPermission();
+    LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Location permissions are denied.")),
-        );
+        _showSnackBar("Location permissions are denied.");
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Location permissions are permanently denied.")),
-      );
+      _showSnackBar("Location permissions are permanently denied.");
       return;
     }
 
-    // Get current location
     Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
 
     setState(() {
       _currentPosition = LatLng(position.latitude, position.longitude);
-      _markers = {
+      _searchPosition = _currentPosition; // Initialize search position
+      _markers.add(
         Marker(
           markerId: const MarkerId("currentLocation"),
           position: _currentPosition!,
           infoWindow: const InfoWindow(title: "You are here"),
         ),
-      };
+      );
     });
 
-    // Move camera to current position
-    if (_mapController != null && _currentPosition != null) {
-      _mapController.animateCamera(
-        CameraUpdate.newLatLng(_currentPosition!),
+    _mapController.animateCamera(
+      CameraUpdate.newLatLng(_currentPosition!),
+    );
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _loadMarkersFromFirebase() async {
+    FirebaseFirestore.instance
+        .collection('Locations')
+        .snapshots()
+        .listen((snapshot) {
+      Set<Marker> newMarkers = snapshot.docs
+          .map((doc) {
+            GeoPoint? geoPoint = doc['location'];
+            String address = doc['address'] ?? "Unknown Location";
+
+            if (geoPoint != null) {
+              return Marker(
+                markerId: MarkerId(doc.id),
+                position: LatLng(geoPoint.latitude, geoPoint.longitude),
+                infoWindow: InfoWindow(title: address),
+                onTap: () {
+                  setState(() {
+                    selectedDocId = doc.id;
+                  });
+                  _panelController.open();
+                },
+              );
+            }
+            return null;
+          })
+          .whereType<Marker>()
+          .toSet();
+
+      setState(() {
+        _markers.addAll(newMarkers);
+      });
+    });
+  }
+
+
+  void _searchInRadius() {
+    if (_searchPosition == null) return;
+
+    Set<Marker> filteredMarkers = _markers.where((marker) {
+      double distance = Geolocator.distanceBetween(
+        _searchPosition!.latitude,
+        _searchPosition!.longitude,
+        marker.position.latitude,
+        marker.position.longitude,
       );
-    }
+      return distance <= _searchRadius;
+    }).toSet();
+
+    setState(() {
+      _markers.clear();
+      _markers.addAll(filteredMarkers);
+    });
+
+    _mapController.animateCamera(
+      CameraUpdate.newLatLng(_searchPosition!),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Map for Flutter Web')),
-      body: GoogleMap(
-        initialCameraPosition: CameraPosition(
-          target: _initialPosition,
-          zoom: 13,
-        ),
-        markers: _markers,
-        onMapCreated: (GoogleMapController controller) {
-          _mapController = controller;
-        },
-        myLocationEnabled: true, // Enable blue dot for user's location
-        myLocationButtonEnabled: true, // Enable button to center on user's location
+      appBar: AppBar(title: const Text('Map with Firebase Markers')),
+      body: Stack(
+        children: [
+          GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: _initialPosition,
+              zoom: 13,
+            ),
+            markers: _markers,
+            circles: {
+              if (_searchPosition != null)
+                Circle(
+                  circleId: const CircleId("searchRadius"),
+                  center: _searchPosition!,
+                  radius: _searchRadius,
+                  fillColor: Colors.blue.withOpacity(0.2),
+                  strokeColor: Colors.blue,
+                  strokeWidth: 2,
+                ),
+            },
+            onMapCreated: (GoogleMapController controller) {
+              _mapController = controller;
+            },
+          ),
+          SlidingUpPanel(
+            controller: _panelController,
+            minHeight: 0,
+            maxHeight: 350,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            panel: selectedDocId != null
+                ? parkLocation(selectedDocId!)
+                : const Center(child: Text("Select a parking location")),
+          ),
+          Positioned(
+            top: 20,
+            right: 20,
+            child: FloatingActionButton(
+              backgroundColor: Colors.white,
+              onPressed: _determinePosition,
+              child: const Icon(Icons.my_location, color: Colors.blue),
+            ),
+          ),
+          Positioned(
+            bottom: 20,
+            right: 20,
+            child: FloatingActionButton(
+              backgroundColor: Colors.blue,
+              onPressed: _searchInRadius,
+              child: const Icon(Icons.search, color: Colors.white),
+            ),
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _determinePosition,
-        child: const Icon(Icons.location_searching),
-      ),
+    );
+  }
+
+  Widget parkLocation(String docId) {
+    return FutureBuilder<DocumentSnapshot>(
+      future:
+          FirebaseFirestore.instance.collection('Locations').doc(docId).get(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError ||
+            !snapshot.hasData ||
+            !snapshot.data!.exists) {
+          return const Center(child: Text("Error loading location details"));
+        }
+
+        final data = snapshot.data!.data() as Map<String, dynamic>;
+        final locationName = data['nameLocation'] ?? 'Unknown Location';
+        final addressName = data['address'] ?? 'Unknown Address';
+        final carSlot = data['car_slot'] ?? 'Unknown';
+        final imageUrl = data['imageUrl'] ?? '';
+
+        return Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+          elevation: 4,
+          margin: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  locationName,
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                if (imageUrl.isNotEmpty)
+                  Image.network(imageUrl,
+                      height: 120, width: double.infinity, fit: BoxFit.cover),
+                const SizedBox(height: 20),
+                Text("Address: $addressName",
+                    style: const TextStyle(fontSize: 14)),
+                const SizedBox(height: 10),
+                Text("Car Slots: 0/$carSlot",
+                    style: const TextStyle(fontSize: 14)),
+                const SizedBox(height: 15),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.map),
+                  label: const Text("Next"),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => btnLocation(documentId: docId),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

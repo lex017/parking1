@@ -8,17 +8,24 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:parking1/chose/ownerMain.dart';
 
-
 class BtnaddParking extends StatefulWidget {
-  const BtnaddParking({super.key});
+  final String address;
+  final double latitude;
+  final double longitude;
+
+  const BtnaddParking({
+    Key? key,
+    required this.address,
+    required this.latitude,
+    required this.longitude,
+  }) : super(key: key);
 
   @override
   State<BtnaddParking> createState() => _BtnaddParkingState();
 }
 
 class _BtnaddParkingState extends State<BtnaddParking> {
-  final String cloudinaryUrl =
-      "https://api.cloudinary.com/v1_1/doiq3nkso/image/upload";
+  final String cloudinaryUrl = "https://api.cloudinary.com/v1_1/doiq3nkso/image/upload";
   final String uploadPreset = "parking";
   File? _selectedImage;
   Uint8List? _imageBytes;
@@ -26,8 +33,7 @@ class _BtnaddParkingState extends State<BtnaddParking> {
 
   Future<void> _pickImage() async {
     try {
-      final XFile? pickedFile =
-          await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
       if (pickedFile != null) {
         if (kIsWeb) {
           final Uint8List bytes = await pickedFile.readAsBytes();
@@ -59,8 +65,7 @@ class _BtnaddParkingState extends State<BtnaddParking> {
 
       if (_imageBytes != null) {
         request.files.add(
-          http.MultipartFile.fromBytes('file', _imageBytes!,
-              filename: 'image.jpg'),
+          http.MultipartFile.fromBytes('file', _imageBytes!, filename: 'image.jpg'),
         );
       } else if (_selectedImage != null) {
         request.files.add(
@@ -86,7 +91,7 @@ class _BtnaddParkingState extends State<BtnaddParking> {
     }
   }
 
-  Future<void> _addLocationWithImage(String name, String address, String url,
+  Future<void> _addLocationWithImage(String name, String address,
       String description, int carSlot) async {
     try {
       final String? imageUrl = await _uploadImageToCloudinary();
@@ -99,21 +104,20 @@ class _BtnaddParkingState extends State<BtnaddParking> {
         await collection.doc(newId).set({
           'nameLocation': name,
           'address': address,
-          'url': url,
           'description': description,
           'car_slot': carSlot,
           'imageUrl': imageUrl,
+          'location': GeoPoint(widget.latitude, widget.longitude), // Save location
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Location added successfully with ID: $newId')),
+          SnackBar(content: Text('Location added successfully with ID: $newId')),
         );
 
         // Navigate back to the previous screen
         Navigator.of(context).pop();
         MaterialPageRoute route =
-        MaterialPageRoute(builder: (c) => ownerMain());
+            MaterialPageRoute(builder: (c) => ownerMain());
         Navigator.of(context).push(route);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -131,8 +135,7 @@ class _BtnaddParkingState extends State<BtnaddParking> {
   Widget _addLocationForm() {
     final _formKey = GlobalKey<FormState>();
     final _nameController = TextEditingController();
-    final _addressController = TextEditingController();
-    final _urlController = TextEditingController();
+    final _addressController = TextEditingController(text: widget.address);
     final _descriptionController = TextEditingController();
     final _carSlotController = TextEditingController();
 
@@ -175,20 +178,6 @@ class _BtnaddParkingState extends State<BtnaddParking> {
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return "Please enter the address";
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _urlController,
-                  decoration: const InputDecoration(
-                    labelText: "Google Maps URL",
-                    prefixIcon: Icon(Icons.link),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Please enter the Google Maps URL";
                     }
                     return null;
                   },
@@ -244,13 +233,11 @@ class _BtnaddParkingState extends State<BtnaddParking> {
                       if (_formKey.currentState?.validate() ?? false) {
                         final name = _nameController.text.trim();
                         final address = _addressController.text.trim();
-                        final url = _urlController.text.trim();
                         final description = _descriptionController.text.trim();
-                        final carSlot =
-                            int.parse(_carSlotController.text.trim());
+                        final carSlot = int.parse(_carSlotController.text.trim());
 
                         await _addLocationWithImage(
-                            name, address, url, description, carSlot);
+                            name, address, description, carSlot);
                       }
                     },
                     child: const Text("Add Location"),

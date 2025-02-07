@@ -102,41 +102,85 @@ class _PayPageState extends State<PayPage> {
 
   // Save Payment Data to Firestore
   Future<void> _savePaymentData() async {
-    if (_selectedImage == null && _imageBytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please upload an image before proceeding.")),
-      );
-      return;
-    }
-
-    String? imageUrl = await _uploadImageToCloudinary();
-    if (imageUrl == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Image upload failed.")),
-      );
-      return;
-    }
-
-    FirebaseFirestore.instance.collection('payments').add({
-      "accountNumber": accountController.text,
-      "expiryDate": expiryController.text,
-      "name": nameController.text,
-      "packageHours": widget.packageHours,
-      "totalAmount": widget.packageHours * 5000,
-      "imageUrl": imageUrl,
-      "timestamp": FieldValue.serverTimestamp(),
-    }).then((value) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Payment successful!")),
-      );
-      Navigator.of(context).push(MaterialPageRoute(builder: (c) => const BillPage()));
-    }).catchError((error) {
-      print("Error saving payment: $error");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Payment failed. Try again.")),
-      );
-    });
+  if (_selectedImage == null && _imageBytes == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Please upload an image before proceeding.")),
+    );
+    return;
   }
+
+  String? imageUrl = await _uploadImageToCloudinary();
+  if (imageUrl == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Image upload failed.")),
+    );
+    return;
+  }
+
+  // Save payment data and listen for verification
+  FirebaseFirestore.instance.collection('payments').add({
+    "accountNumber": accountController.text,
+    "expiryDate": expiryController.text,
+    "name": nameController.text,
+    "packageHours": widget.packageHours,
+    "totalAmount": widget.packageHours * 5000,
+    "imageUrl": imageUrl,
+    "status": "pending",  // Initial status as pending
+    "timestamp": FieldValue.serverTimestamp(),
+  }).then((docRef) {
+    _showWaitingDialog();  // Show waiting dialog
+
+    // Listen for status change in Firestore
+    FirebaseFirestore.instance
+        .collection('payments')
+        .doc(docRef.id)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        String status = snapshot.data()?['status'] ?? "pending";
+
+        if (status == "verified") {
+          Navigator.pop(context); // Close waiting dialog
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Payment Verified!")),
+          );
+          Navigator.of(context).push(MaterialPageRoute(builder: (c) => const BillPage()));
+        } else if (status == "rejected") {
+          Navigator.pop(context); // Close waiting dialog
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Payment Rejected. Please try again.")),
+          );
+        }
+      }
+    });
+  }).catchError((error) {
+    print("Error saving payment: $error");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Payment failed. Try again.")),
+    );
+  });
+}
+
+
+void _showWaitingDialog() {
+  showDialog(
+    context: context,
+    barrierDismissible: false, // Prevent dismissing by tapping outside
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text("Waiting for Verification"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            CircularProgressIndicator(),
+            SizedBox(height: 20),
+            Text("Your payment is being verified. Please wait..."),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {

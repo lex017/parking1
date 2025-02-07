@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:parking1/chose/ownerMain.dart';
 import 'package:parking1/model/ownerdata.dart';
 
-
 class OwnerSave extends StatefulWidget {
   const OwnerSave({super.key});
 
@@ -13,14 +12,13 @@ class OwnerSave extends StatefulWidget {
   State<OwnerSave> createState() => _OwnerSaveState();
 }
 
-
 class _OwnerSaveState extends State<OwnerSave> {
   final formkey = GlobalKey<FormState>();
   OwnerPlace myOwner = OwnerPlace();
   final Future<FirebaseApp> firebase = Firebase.initializeApp();
-  
 
-  CollectionReference _OwnerCollection = FirebaseFirestore.instance.collection("Owner");
+  CollectionReference _OwnerCollection =
+      FirebaseFirestore.instance.collection("Owner");
 
   Widget showText() {
     return Text(
@@ -117,80 +115,88 @@ class _OwnerSaveState extends State<OwnerSave> {
     );
   }
 
- Widget SaveButton() {
-  return SizedBox(
-    width: 120,
-    height: 50,
-    child: ElevatedButton(
-      onPressed: () async {
-        final User? user = FirebaseAuth.instance.currentUser;
+  Widget SaveButton() {
+    return SizedBox(
+      width: 120,
+      height: 50,
+      child: ElevatedButton(
+        onPressed: () async {
+          final User? user = FirebaseAuth.instance.currentUser;
 
-        if (user == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("User not logged in.")),
-          );
-          return;
-        }
-
-        String userEmail = user.email ?? "";
-
-        if (formkey.currentState?.validate() ?? false) {
-          formkey.currentState?.save();
-
-          
-          if (myOwner.fname.isEmpty ||
-              myOwner.lname.isEmpty ||
-              myOwner.age.isEmpty ||
-              myOwner.idcard.isEmpty) {
+          if (user == null) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Please fill all fields.")),
+              const SnackBar(content: Text("User not logged in.")),
             );
             return;
           }
 
-          try {
-            await _OwnerCollection.add({
-              "email": userEmail, 
-              "fname": myOwner.fname,
-              "lname": myOwner.lname,
-              "age": myOwner.age,
-              "idcard": myOwner.idcard,
-            });
+          String userEmail = user.email ?? "";
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Data saved successfully!")),
-            );
-            formkey.currentState?.reset();
+          if (formkey.currentState?.validate() ?? false) {
+            formkey.currentState?.save();
 
-            
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => ownerMain()),
-            );
-          } catch (e) {
+            if (myOwner.fname.isEmpty ||
+                myOwner.lname.isEmpty ||
+                myOwner.age.isEmpty ||
+                myOwner.idcard.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Please fill all fields.")),
+              );
+              return;
+            }
+
+            try {
+              // Get the total number of documents to generate a custom ID
+              final snapshot = await _OwnerCollection.get();
+              final newOwnerId =
+                  "owner${snapshot.docs.length + 1}"; // e.g., owner1, owner2, etc.
+
+              await _OwnerCollection.doc(newOwnerId).set({
+                "email": userEmail,
+                "fname": myOwner.fname,
+                "lname": myOwner.lname,
+                "age": myOwner.age,
+                "idcard": myOwner.idcard,
+                "created_at":
+                    Timestamp.now(), // Optional: Track when data was saved
+              });
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content:
+                        Text("Data saved successfully with ID: $newOwnerId")),
+              );
+
+              formkey.currentState?.reset();
+
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => ownerMain()),
+              );
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Error saving data: $e")),
+              );
+            }
+          } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Error saving data: $e")),
+              const SnackBar(
+                  content: Text("Please fill all fields correctly.")),
             );
           }
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Please fill all fields correctly.")),
-          );
-        }
-      },
-      child: Text(
-        "Save",
-        style: TextStyle(
-          color: Colors.black,
-          fontWeight: FontWeight.bold,
-          fontSize: 20.0,
+        },
+        child: const Text(
+          "Save",
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 20.0,
+          ),
         ),
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
       ),
-      style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-    ),
-  );
-}
-
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -208,37 +214,44 @@ class _OwnerSaveState extends State<OwnerSave> {
             appBar: AppBar(
               title: Text("Error"),
             ),
-            body: Center(child: Text("Firebase initialization failed: ${snapshot.error}")),
+            body: Center(
+                child:
+                    Text("Firebase initialization failed: ${snapshot.error}")),
           );
         }
 
         if (snapshot.connectionState == ConnectionState.done) {
           return Scaffold(
             body: Center(
-              child: Container(
-                width: double.infinity,
-                height: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                ),
-                child: Form(
-                  key: formkey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 40.0),
-                      showText(),
-                      const SizedBox(height: 40.0),
-                      FnameInput(),
-                      const SizedBox(height: 20.0),
-                      LnameInput(),
-                      const SizedBox(height: 20.0),
-                      AgeInput(),
-                      const SizedBox(height: 20.0),
-                      IDInput(),
-                      const SizedBox(height: 400.0),
-                      SaveButton(),
-                    ],
+              child: SingleChildScrollView(
+                // Wrap content inside a SingleChildScrollView
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                  ),
+                  child: Form(
+                    key: formkey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 40.0),
+                        showText(),
+                        const SizedBox(height: 40.0),
+                        FnameInput(),
+                        const SizedBox(height: 20.0),
+                        LnameInput(),
+                        const SizedBox(height: 20.0),
+                        AgeInput(),
+                        const SizedBox(height: 20.0),
+                        IDInput(),
+                        const SizedBox(
+                            height:
+                                20.0), // Adjusted the space for better balance
+                        SaveButton(),
+                      ],
+                    ),
                   ),
                 ),
               ),

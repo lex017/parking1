@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "D:/futt/parking1/linux"
+    "cmake.sourceDirectory": "D:/futt/parking1/linux",
+    "liveServer.settings.port": 5501
 }

@@ -22,8 +22,6 @@ import 'package:parking1/menu/employeescan.dart';
 import 'package:parking1/menu/history.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-
-
 class drawer_menu extends StatefulWidget {
   const drawer_menu({super.key});
 
@@ -152,7 +150,8 @@ class _DrawerMenuState extends State<drawer_menu> {
             accountName: FutureBuilder<DocumentSnapshot>(
               future: FirebaseFirestore.instance
                   .collection('users')
-                  .doc(auth.currentUser?.uid)
+                  .doc(auth.currentUser
+                      ?.uid) // Get the user's document based on their UID
                   .get(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -190,7 +189,7 @@ class _DrawerMenuState extends State<drawer_menu> {
               },
             ),
             accountEmail: Text(
-              auth.currentUser?.email ?? '',
+              auth.currentUser?.email ?? '', // Display the current user's email
               style: const TextStyle(
                 color: Colors.black,
                 fontSize: 18.0,
@@ -336,7 +335,6 @@ class _DrawerMenuState extends State<drawer_menu> {
                   fontFamily: 'Roboto',
                 ),
               ),
-              
               onTap: () {
                 Navigator.of(context).pop();
                 MaterialPageRoute route =
@@ -484,11 +482,10 @@ class _DrawerMenuState extends State<drawer_menu> {
           ),
           TextButton(
             onPressed: () async {
-              await logout(); 
+              await logout();
             },
             child: ListTile(
-              leading: const Icon(Icons.logout,
-                  color: Colors.black), 
+              leading: const Icon(Icons.logout, color: Colors.black),
               title: const Text(
                 'Logout',
                 style: TextStyle(
@@ -505,4 +502,3 @@ class _DrawerMenuState extends State<drawer_menu> {
     );
   }
 }
-

@@ -7,7 +7,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:parking1/chose/mapapi.dart';
 import 'package:parking1/data_save/btnadd_parking.dart';
+import 'package:parking1/map_api/map_api.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
@@ -205,7 +207,8 @@ class _OwnerMainState extends State<ownerMain> {
 
       if (_imageBytes != null) {
         request.files.add(
-          http.MultipartFile.fromBytes('file', _imageBytes!, filename: 'image.jpg'),
+          http.MultipartFile.fromBytes('file', _imageBytes!,
+              filename: 'image.jpg'),
         );
       } else if (_selectedImage != null) {
         request.files.add(
@@ -231,14 +234,14 @@ class _OwnerMainState extends State<ownerMain> {
     }
   }
 
-  Future<void> _addLocationWithImage(String name, String address, String url, String description, int carSlot) async {
+  Future<void> _addLocationWithImage(String name, String address, String url,
+      String description, int carSlot) async {
     final String? imageUrl = await _uploadImageToCloudinary();
 
     if (imageUrl != null) {
       await FirebaseFirestore.instance.collection('Locations').add({
         'nameLocation': name,
         'address': address,
-        'url': url,
         'description': description,
         'car_slot': carSlot,
         'imageUrl': imageUrl,
@@ -252,329 +255,330 @@ class _OwnerMainState extends State<ownerMain> {
       );
     }
   }
+
   Widget parkLocation() {
-  return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance.collection('Locations').snapshots(),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(
-          child: CircularProgressIndicator(),
-        );
-      } else if (snapshot.hasError || !snapshot.hasData) {
-        return const Center(
-          child: Text(
-            'Error loading locations',
-            style: TextStyle(fontSize: 18, color: Colors.red),
-          ),
-        );
-      } else if (snapshot.data!.docs.isEmpty) {
-        return const Center(
-          child: Text(
-            'No parking locations available',
-            style: TextStyle(fontSize: 18, color: Colors.grey),
-          ),
-        );
-      } else {
-        final locations = snapshot.data!.docs;
-
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: locations.length,
-          itemBuilder: (context, index) {
-            final locationData =
-                locations[index].data() as Map<String, dynamic>;
-            final locationName =
-                locationData['nameLocation'] ?? 'Unknown Location';
-            final addressName = locationData['address'] ?? 'Unknown Address';
-            final locationUrl = locationData['url'] ?? '';
-            final description =
-                locationData['description'] ?? 'No Description Available';
-            final carSlot = locationData['car_slot'] ?? 'Unknown';
-            final imageUrl = locationData['imageUrl'] ?? '';
-
-            return Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              elevation: 4,
-              margin: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Parking Location ${index + 1}",
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (imageUrl.isNotEmpty)
-                      Image.network(
-                        imageUrl,
-                        height: 150,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Text("Failed to load image"),
-                      ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Location: $locationName",
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Address: $addressName",
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Car Slots: 0/$carSlot",
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.map),
-                      label: const Text("Open in Maps"),
-                      onPressed: locationUrl.isNotEmpty
-                          ? () => _launchLocation(locationUrl)
-                          : null,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      }
-    },
-  );
-}
- void _showAddLocationDialog() {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _addressController = TextEditingController();
-  final _urlController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _carSlotController = TextEditingController();
-
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.0),
-        ),
-        title: Row(
-          children: const [
-            Icon(Icons.add_location_alt, color: Colors.blue, size: 30),
-            SizedBox(width: 8),
-            Text(
-              "Add New Location",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('Locations').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        } else if (snapshot.hasError || !snapshot.hasData) {
+          return const Center(
+            child: Text(
+              'Error loading locations',
+              style: TextStyle(fontSize: 18, color: Colors.red),
             ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: "Location Name",
-                    prefixIcon:
-                        const Icon(Icons.location_on, color: Colors.blue),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Please enter the location name";
-                    }
-                    return null;
-                  },
+          );
+        } else if (snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Text(
+              'No parking locations available',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+          );
+        } else {
+          final locations = snapshot.data!.docs;
+
+          return ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: locations.length,
+            itemBuilder: (context, index) {
+              final locationData =
+                  locations[index].data() as Map<String, dynamic>;
+              final locationName =
+                  locationData['nameLocation'] ?? 'Unknown Location';
+              final addressName = locationData['address'] ?? 'Unknown Address';
+              final description =
+                  locationData['description'] ?? 'No Description Available';
+              final carSlot = locationData['car_slot'] ?? 'Unknown';
+              final imageUrl = locationData['imageUrl'] ?? '';
+
+              return Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.0),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _addressController,
-                  decoration: InputDecoration(
-                    labelText: "Address",
-                    prefixIcon:
-                        const Icon(Icons.location_on, color: Colors.blue),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Please enter the address";
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _urlController,
-                  decoration: InputDecoration(
-                    labelText: "Google Maps URL",
-                    prefixIcon: const Icon(Icons.link, color: Colors.blue),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Please enter the Google Maps URL";
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: InputDecoration(
-                    labelText: "Description",
-                    prefixIcon:
-                        const Icon(Icons.description, color: Colors.blue),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Please enter the description";
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _carSlotController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: "Car Slots (min 3)",
-                    prefixIcon:
-                        const Icon(Icons.directions_car, color: Colors.blue),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  ),
-                  validator: (value) {
-                    final carSlot = int.tryParse(value ?? '') ?? 0;
-                    if (carSlot < 3) {
-                      return "Car slots must be at least 3";
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton.icon(
-                  onPressed: _pickImage,
-                  icon: const Icon(Icons.image),
-                  label: const Text("Pick Image"),
-                ),
-                if (_selectedImage != null || _imageBytes != null)
-                  Column(
+                elevation: 4,
+                margin: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (_selectedImage != null)
-                        Image.file(
-                          _selectedImage!,
-                          height: 150,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        )
-                      else if (_imageBytes != null)
-                        Image.memory(
-                          _imageBytes!,
-                          height: 150,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
+                      Text(
+                        "Parking Location ${index + 1}",
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
                         ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        "Image picked and ready to upload.",
-                        style: TextStyle(color: Colors.green),
+                      ),
+                      const SizedBox(height: 8),
+                      if (imageUrl.isNotEmpty)
+                        Image.network(
+                          imageUrl,
+                          height: 150,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Text("Failed to load image"),
+                        ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Location: $locationName",
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Address: $addressName",
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Car Slots: 0/$carSlot",
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.map),
+                        label: const Text("Open in Maps"),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          MaterialPageRoute route =
+                              MaterialPageRoute(builder: (c) => map_api());
+                          Navigator.of(context).push(route);
+                        },
                       ),
                     ],
                   ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              "Cancel",
-              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.0),
-              ),
-            ),
-            onPressed: () async {
-              if (_formKey.currentState?.validate() ?? false) {
-                final name = _nameController.text.trim();
-                final address = _addressController.text.trim();
-                final url = _urlController.text.trim();
-                final description = _descriptionController.text.trim();
-                final carSlot = int.parse(_carSlotController.text.trim());
-                await _addLocationWithCustomId(
-                    name, address, url, description, carSlot);
-                Navigator.pop(context);
-              }
+                ),
+              );
             },
-            child: const Text(
-              "Add",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-Future<void> _addLocationWithCustomId(String name, String address, String url,
-    String description, int carSlot) async {
-  final collection = FirebaseFirestore.instance.collection('Locations');
-  final snapshot = await collection.get();
-  final newId = "location${snapshot.docs.length + 1}";
-
-  final imageUrl = await _uploadImageToCloudinary();
-
-  if (imageUrl != null) {
-    await collection.doc(newId).set({
-      'nameLocation': name,
-      'address': address,
-      'url': url,
-      'description': description,
-      'car_slot': carSlot,
-      'imageUrl': imageUrl,
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Location added successfully!')),
-    );
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Image upload failed')),
+          );
+        }
+      },
     );
   }
-}
 
+  void _showAddLocationDialog() {
+    final _formKey = GlobalKey<FormState>();
+    final _nameController = TextEditingController();
+    final _addressController = TextEditingController();
+    final _descriptionController = TextEditingController();
+    final _carSlotController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+          title: Row(
+            children: const [
+              Icon(Icons.add_location_alt, color: Colors.blue, size: 30),
+              SizedBox(width: 8),
+              Text(
+                "Add New Location",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: InputDecoration(
+                      labelText: "Location Name",
+                      prefixIcon:
+                          const Icon(Icons.location_on, color: Colors.blue),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return "Please enter the location name";
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _addressController,
+                    decoration: InputDecoration(
+                      labelText: "Address",
+                      prefixIcon:
+                          const Icon(Icons.location_on, color: Colors.blue),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return "Please enter the address";
+                      }
+                      return null;
+                    },
+                  ),
+                  // const SizedBox(height: 16),
+                  // TextFormField(
+                  //   controller: _urlController,
+                  //   decoration: InputDecoration(
+                  //     labelText: "Google Maps URL",
+                  //     prefixIcon: const Icon(Icons.link, color: Colors.blue),
+                  //     border: OutlineInputBorder(
+                  //       borderRadius: BorderRadius.circular(10.0),
+                  //     ),
+                  //   ),
+                  //   validator: (value) {
+                  //     if (value == null || value.isEmpty) {
+                  //       return "Please enter the Google Maps URL";
+                  //     }
+                  //     return null;
+                  //   },
+                  // ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _descriptionController,
+                    decoration: InputDecoration(
+                      labelText: "Description",
+                      prefixIcon:
+                          const Icon(Icons.description, color: Colors.blue),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return "Please enter the description";
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _carSlotController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: "Car Slots (min 3)",
+                      prefixIcon:
+                          const Icon(Icons.directions_car, color: Colors.blue),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                    ),
+                    validator: (value) {
+                      final carSlot = int.tryParse(value ?? '') ?? 0;
+                      if (carSlot < 3) {
+                        return "Car slots must be at least 3";
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.image),
+                    label: const Text("Pick Image"),
+                  ),
+                  if (_selectedImage != null || _imageBytes != null)
+                    Column(
+                      children: [
+                        if (_selectedImage != null)
+                          Image.file(
+                            _selectedImage!,
+                            height: 150,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          )
+                        else if (_imageBytes != null)
+                          Image.memory(
+                            _imageBytes!,
+                            height: 150,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          "Image picked and ready to upload.",
+                          style: TextStyle(color: Colors.green),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                "Cancel",
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+              ),
+              onPressed: () async {
+                if (_formKey.currentState?.validate() ?? false) {
+                  final name = _nameController.text.trim();
+                  final address = _addressController.text.trim();
+                  final description = _descriptionController.text.trim();
+                  final carSlot = int.parse(_carSlotController.text.trim());
+                  await _addLocationWithCustomId(
+                      name, address, description, carSlot);
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text(
+                "Add",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _addLocationWithCustomId(
+      String name, String address, String description, int carSlot) async {
+    final collection = FirebaseFirestore.instance.collection('Locations');
+    final snapshot = await collection.get();
+    final newId = "location${snapshot.docs.length + 1}";
+
+    final imageUrl = await _uploadImageToCloudinary();
+
+    if (imageUrl != null) {
+      await collection.doc(newId).set({
+        'nameLocation': name,
+        'address': address,
+        'description': description,
+        'car_slot': carSlot,
+        'imageUrl': imageUrl,
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Location added successfully!')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Image upload failed')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -596,11 +600,10 @@ Future<void> _addLocationWithCustomId(String name, String address, String url,
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.white,
-        onPressed: (){
+        onPressed: () {
           Navigator.of(context).pop();
-                MaterialPageRoute route =
-                    MaterialPageRoute(builder: (c) => BtnaddParking());
-                Navigator.of(context).push(route);
+          MaterialPageRoute route = MaterialPageRoute(builder: (c) => MapApi());
+          Navigator.of(context).push(route);
         },
         child: const Icon(
           Icons.add,
