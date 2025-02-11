@@ -234,8 +234,8 @@ class _OwnerMainState extends State<ownerMain> {
     }
   }
 
-  Future<void> _addLocationWithImage(String name, String address, String url,
-      String description, int carSlot) async {
+  Future<void> _addLocationWithImage(String name, String address, 
+      String description,int price, int carSlot) async {
     final String? imageUrl = await _uploadImageToCloudinary();
 
     if (imageUrl != null) {
@@ -243,6 +243,7 @@ class _OwnerMainState extends State<ownerMain> {
         'nameLocation': name,
         'address': address,
         'description': description,
+        'price': price,
         'car_slot': carSlot,
         'imageUrl': imageUrl,
       });
@@ -293,6 +294,7 @@ class _OwnerMainState extends State<ownerMain> {
               final addressName = locationData['address'] ?? 'Unknown Address';
               final description =
                   locationData['description'] ?? 'No Description Available';
+              final price = locationData['price'] ?? 'Unknown';
               final carSlot = locationData['car_slot'] ?? 'Unknown';
               final imageUrl = locationData['imageUrl'] ?? '';
 
@@ -340,6 +342,11 @@ class _OwnerMainState extends State<ownerMain> {
                         style: const TextStyle(fontSize: 14),
                       ),
                       const SizedBox(height: 8),
+                      Text(
+                        "Price: $price",
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      const SizedBox(height: 8),
                       ElevatedButton.icon(
                         icon: const Icon(Icons.map),
                         label: const Text("Open in Maps"),
@@ -366,6 +373,7 @@ class _OwnerMainState extends State<ownerMain> {
     final _nameController = TextEditingController();
     final _addressController = TextEditingController();
     final _descriptionController = TextEditingController();
+    final _priceController = TextEditingController();
     final _carSlotController = TextEditingController();
 
     showDialog(
@@ -426,23 +434,6 @@ class _OwnerMainState extends State<ownerMain> {
                       return null;
                     },
                   ),
-                  // const SizedBox(height: 16),
-                  // TextFormField(
-                  //   controller: _urlController,
-                  //   decoration: InputDecoration(
-                  //     labelText: "Google Maps URL",
-                  //     prefixIcon: const Icon(Icons.link, color: Colors.blue),
-                  //     border: OutlineInputBorder(
-                  //       borderRadius: BorderRadius.circular(10.0),
-                  //     ),
-                  //   ),
-                  //   validator: (value) {
-                  //     if (value == null || value.isEmpty) {
-                  //       return "Please enter the Google Maps URL";
-                  //     }
-                  //     return null;
-                  //   },
-                  // ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _descriptionController,
@@ -457,6 +448,23 @@ class _OwnerMainState extends State<ownerMain> {
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return "Please enter the description";
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _priceController,
+                    decoration: InputDecoration(
+                      labelText: "Price",
+                      prefixIcon: const Icon(Icons.link, color: Colors.blue),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return "Please enter price";
                       }
                       return null;
                     },
@@ -537,9 +545,10 @@ class _OwnerMainState extends State<ownerMain> {
                   final name = _nameController.text.trim();
                   final address = _addressController.text.trim();
                   final description = _descriptionController.text.trim();
+                  final price = int.parse(_priceController.text.trim());
                   final carSlot = int.parse(_carSlotController.text.trim());
                   await _addLocationWithCustomId(
-                      name, address, description, carSlot);
+                      name, address, description,price, carSlot);
                   Navigator.pop(context);
                 }
               },
@@ -555,7 +564,7 @@ class _OwnerMainState extends State<ownerMain> {
   }
 
   Future<void> _addLocationWithCustomId(
-      String name, String address, String description, int carSlot) async {
+      String name, String address, String description,int price, int carSlot) async {
     final collection = FirebaseFirestore.instance.collection('Locations');
     final snapshot = await collection.get();
     final newId = "location${snapshot.docs.length + 1}";
@@ -567,6 +576,7 @@ class _OwnerMainState extends State<ownerMain> {
         'nameLocation': name,
         'address': address,
         'description': description,
+        'price': price,
         'car_slot': carSlot,
         'imageUrl': imageUrl,
       });

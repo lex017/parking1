@@ -92,7 +92,7 @@ class _BtnaddParkingState extends State<BtnaddParking> {
   }
 
   Future<void> _addLocationWithImage(String name, String address,
-      String description, int carSlot) async {
+      String description,int price, int carSlot) async {
     try {
       final String? imageUrl = await _uploadImageToCloudinary();
 
@@ -105,6 +105,7 @@ class _BtnaddParkingState extends State<BtnaddParking> {
           'nameLocation': name,
           'address': address,
           'description': description,
+          'price': price,
           'car_slot': carSlot,
           'imageUrl': imageUrl,
           'location': GeoPoint(widget.latitude, widget.longitude), // Save location
@@ -137,6 +138,7 @@ class _BtnaddParkingState extends State<BtnaddParking> {
     final _nameController = TextEditingController();
     final _addressController = TextEditingController(text: widget.address);
     final _descriptionController = TextEditingController();
+    final _priceController = TextEditingController();
     final _carSlotController = TextEditingController();
 
     return SingleChildScrollView(
@@ -198,6 +200,20 @@ class _BtnaddParkingState extends State<BtnaddParking> {
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
+                  controller: _priceController,
+                  decoration: const InputDecoration(
+                    labelText: "price",
+                    prefixIcon: Icon(Icons.price_change),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "Please enter the description";
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
                   controller: _carSlotController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
@@ -234,10 +250,11 @@ class _BtnaddParkingState extends State<BtnaddParking> {
                         final name = _nameController.text.trim();
                         final address = _addressController.text.trim();
                         final description = _descriptionController.text.trim();
+                        final price = int.parse(_priceController.text.trim());
                         final carSlot = int.parse(_carSlotController.text.trim());
 
                         await _addLocationWithImage(
-                            name, address, description, carSlot);
+                            name, address, description,price, carSlot);
                       }
                     },
                     child: const Text("Add Location"),

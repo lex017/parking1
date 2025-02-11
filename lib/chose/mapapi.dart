@@ -20,6 +20,7 @@ class _MapApiState extends State<MapApi> {
   String? _selectedAddress;
   double? _selectedLatitude;
   double? _selectedLongitude;
+  String? selectedDocId; // Added this variable
 
   @override
   void initState() {
@@ -29,10 +30,7 @@ class _MapApiState extends State<MapApi> {
   }
 
   Future<void> _determinePosition() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Location services are disabled.")),
@@ -40,7 +38,7 @@ class _MapApiState extends State<MapApi> {
       return;
     }
 
-    permission = await Geolocator.checkPermission();
+    LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
@@ -53,8 +51,7 @@ class _MapApiState extends State<MapApi> {
 
     if (permission == LocationPermission.deniedForever) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Location permissions are permanently denied.")),
+        const SnackBar(content: Text("Location permissions are permanently denied.")),
       );
       return;
     }
@@ -77,16 +74,20 @@ class _MapApiState extends State<MapApi> {
   Future<void> _loadMarkersFromFirebase() async {
     FirebaseFirestore.instance.collection('Locations').snapshots().listen((snapshot) {
       Set<Marker> newMarkers = snapshot.docs.map((doc) {
-        GeoPoint? geoPoint = doc['location'];
-        String address = doc['address'] ?? "Unknown Location";
+        if (doc.data().containsKey('location')) {
+          GeoPoint geoPoint = doc['location'];
+          String address = doc['address'] ?? "Unknown Location";
 
-        if (geoPoint != null) {
           return Marker(
             markerId: MarkerId(doc.id),
             position: LatLng(geoPoint.latitude, geoPoint.longitude),
             infoWindow: InfoWindow(title: address),
             onTap: () {
-              _showLocationDetails(address, geoPoint.latitude, geoPoint.longitude);
+              setState(() {
+                selectedDocId = doc.id;
+              });
+              // If you are using _panelController, make sure it's initialized
+              // _panelController.open();
             },
           );
         }
@@ -94,26 +95,15 @@ class _MapApiState extends State<MapApi> {
       }).whereType<Marker>().toSet();
 
       setState(() {
+        _markers.clear();
         _markers.addAll(newMarkers);
       });
     });
   }
 
-  void _showLocationDetails(String address, double latitude, double longitude) {
-    setState(() {
-      _selectedAddress = address;
-      _selectedLatitude = latitude;
-      _selectedLongitude = longitude;
-    });
-  }
-
   Future<void> _getAddressFromLatLng(LatLng position) async {
     try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-
+      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
       Placemark place = placemarks.first;
       String address = "${place.name}, ${place.locality}, ${place.country}";
 
@@ -128,16 +118,21 @@ class _MapApiState extends State<MapApi> {
   }
 
   Future<void> _saveParkingLocation() async {
-    // Save the location to Firebase (this will trigger saving to parking_locations collection)
-    await FirebaseFirestore.instance.collection('parking_locations').add({
-      "location": GeoPoint(_centerMarkerPosition.latitude, _centerMarkerPosition.longitude),
-      "address": _currentAddress,
-      "timestamp": FieldValue.serverTimestamp(),
-    });
+    try {
+      await FirebaseFirestore.instance.collection('parking_locations').add({
+        "location": GeoPoint(_centerMarkerPosition.latitude, _centerMarkerPosition.longitude),
+        "address": _currentAddress,
+        "timestamp": FieldValue.serverTimestamp(),
+      });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Parking location saved successfully!")),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Parking location saved successfully!")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to save location: $e")),
+      );
+    }
   }
 
   @override
@@ -152,7 +147,9 @@ class _MapApiState extends State<MapApi> {
               zoom: 14,
             ),
             onMapCreated: (GoogleMapController controller) {
-              _mapController = controller;
+              setState(() {
+                _mapController = controller;
+              });
             },
             onCameraMove: (CameraPosition position) {
               setState(() {
@@ -162,11 +159,12 @@ class _MapApiState extends State<MapApi> {
             onCameraIdle: () {
               _getAddressFromLatLng(_centerMarkerPosition);
             },
+            markers: _markers, // Fixed: Set markers
             myLocationEnabled: true,
             myLocationButtonEnabled: false,
           ),
           Center(
-            child: Icon(
+            child: const Icon(
               Icons.location_on,
               size: 40,
               color: Colors.red,
@@ -209,7 +207,7 @@ class _MapApiState extends State<MapApi> {
             ),
           ),
           Positioned(
-            top: 40,
+            top: 20,
             right: 20,
             child: FloatingActionButton(
               backgroundColor: Colors.white,

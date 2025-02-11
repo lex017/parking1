@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:parking1/cash/receip.dart';
 
-
 class EmployeeScan extends StatefulWidget {
   const EmployeeScan({super.key});
 
@@ -122,10 +121,12 @@ class ScanResultPage extends StatelessWidget {
               const SizedBox(height: 30),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).pop();
-                MaterialPageRoute route =
-                    MaterialPageRoute(builder: (c) => BillPage());
-                Navigator.of(context).push(route);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>BillPage(transactionId: 'your_transaction_id'), // Pass transactionId here
+                    ),
+                  );
                 },
                 child: const Text("ຢືນຢັນ"),
               ),

@@ -21,7 +21,7 @@ class _MapApiState extends State<map_api> {
   String? selectedDocId;
 
   final PanelController _panelController = PanelController();
-  double _searchRadius = 500.0; 
+  double _searchRadius = 500.0;
 
   @override
   void initState() {
@@ -112,7 +112,6 @@ class _MapApiState extends State<map_api> {
     });
   }
 
-
   void _searchInRadius() {
     if (_searchPosition == null) return;
 
@@ -139,7 +138,7 @@ class _MapApiState extends State<map_api> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Map with Firebase Markers')),
+      appBar: AppBar(title: const Text('Map Markers')),
       body: Stack(
         children: [
           GoogleMap(
@@ -164,9 +163,10 @@ class _MapApiState extends State<map_api> {
             },
           ),
           SlidingUpPanel(
+            backdropColor: Colors.white,
             controller: _panelController,
             minHeight: 0,
-            maxHeight: 350,
+            maxHeight: 370,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             panel: selectedDocId != null
                 ? parkLocation(selectedDocId!)
@@ -182,12 +182,12 @@ class _MapApiState extends State<map_api> {
             ),
           ),
           Positioned(
-            bottom: 20,
+            top: 90,
             right: 20,
             child: FloatingActionButton(
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.white,
               onPressed: _searchInRadius,
-              child: const Icon(Icons.search, color: Colors.white),
+              child: const Icon(Icons.search, color: Colors.blue),
             ),
           ),
         ],
@@ -211,10 +211,12 @@ class _MapApiState extends State<map_api> {
         final data = snapshot.data!.data() as Map<String, dynamic>;
         final locationName = data['nameLocation'] ?? 'Unknown Location';
         final addressName = data['address'] ?? 'Unknown Address';
+        final price = data['price'] ?? 'Unknown Address';
         final carSlot = data['car_slot'] ?? 'Unknown';
         final imageUrl = data['imageUrl'] ?? '';
 
         return Card(
+          color: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12.0),
           ),
@@ -238,19 +240,28 @@ class _MapApiState extends State<map_api> {
                 Text("Address: $addressName",
                     style: const TextStyle(fontSize: 14)),
                 const SizedBox(height: 10),
+                Text("Price: $price kip", style: const TextStyle(fontSize: 14)),
+                const SizedBox(height: 10),
                 Text("Car Slots: 0/$carSlot",
                     style: const TextStyle(fontSize: 14)),
                 const SizedBox(height: 15),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.map),
-                  label: const Text("Next"),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => btnLocation(documentId: docId),
-                      ),
-                    );
-                  },
+                Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.end, // Moves button to the right
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.map),
+                      label: const Text("Next"),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                btnLocation(documentId: docId),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),

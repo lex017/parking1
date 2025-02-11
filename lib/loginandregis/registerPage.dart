@@ -202,6 +202,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   .set({
                 'username': myUser.username,
                 'email': myUser.email,
+                'password': myUser.passconfilm,
               });
 
               formkey.currentState?.reset();

@@ -72,6 +72,7 @@ dependencies:
   google_maps: ^8.1.1
   geocoding: ^3.0.0
   sliding_up_panel: ^2.0.0+1
+  firebase_messaging: ^15.2.2
   
 
 

@@ -23,8 +23,10 @@ class _PayPageState extends State<PayPage> {
   Uint8List? _imageBytes; // For web image bytes
   final ImagePicker _picker = ImagePicker();
 
+  final TextEditingController priceController = TextEditingController();
   final TextEditingController accountController = TextEditingController();
-  final TextEditingController expiryController = TextEditingController();
+  final TextEditingController expiryDateController = TextEditingController();
+  final TextEditingController expiryTimeController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
 
   final String cloudinaryUrl =
@@ -63,6 +65,39 @@ class _PayPageState extends State<PayPage> {
     }
   }
 
+  // Date Picker Function
+  Future<void> _pickDate() async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+
+    if (pickedDate != null) {
+      String formattedDate =
+          "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
+      setState(() {
+        expiryDateController.text = formattedDate;
+      });
+    }
+  }
+
+  // Time Picker Function
+  Future<void> _pickTime() async {
+    TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (pickedTime != null) {
+      String formattedTime = pickedTime.format(context);
+      setState(() {
+        expiryTimeController.text = formattedTime;
+      });
+    }
+  }
+
   // Upload Image to Cloudinary and Return URL
   Future<String?> _uploadImageToCloudinary() async {
     try {
@@ -75,8 +110,7 @@ class _PayPageState extends State<PayPage> {
 
       if (_imageBytes != null) {
         request.files.add(
-          http.MultipartFile.fromBytes('file', _imageBytes!,
-              filename: 'payment_receipt.jpg'),
+          http.MultipartFile.fromBytes('file', _imageBytes!),
         );
       } else if (_selectedImage != null) {
         request.files.add(
@@ -101,7 +135,7 @@ class _PayPageState extends State<PayPage> {
   }
 
   // Save Payment Data to Firestore
-  Future<void> _savePaymentData() async {
+Future<void> _savePaymentData() async {
   if (_selectedImage == null && _imageBytes == null) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Please upload an image before proceeding.")),
@@ -117,42 +151,30 @@ class _PayPageState extends State<PayPage> {
     return;
   }
 
-  // Save payment data and listen for verification
-  FirebaseFirestore.instance.collection('payments').add({
+  // ✅ Generate custom document ID (e.g., payment1234)
+  String documentId = "payment${DateTime.now().millisecondsSinceEpoch}";
+
+  // Save payment data with custom document ID
+  FirebaseFirestore.instance.collection('payments').doc(documentId).set({
+    "price": priceController.text,
     "accountNumber": accountController.text,
-    "expiryDate": expiryController.text,
+    "expiryDate": expiryDateController.text,
+    "expiryTime": expiryTimeController.text,
     "name": nameController.text,
     "packageHours": widget.packageHours,
     "totalAmount": widget.packageHours * 5000,
     "imageUrl": imageUrl,
-    "status": "pending",  // Initial status as pending
+    "status": "pending", // Initial status as pending
     "timestamp": FieldValue.serverTimestamp(),
-  }).then((docRef) {
-    _showWaitingDialog();  // Show waiting dialog
-
-    // Listen for status change in Firestore
-    FirebaseFirestore.instance
-        .collection('payments')
-        .doc(docRef.id)
-        .snapshots()
-        .listen((snapshot) {
-      if (snapshot.exists) {
-        String status = snapshot.data()?['status'] ?? "pending";
-
-        if (status == "verified") {
-          Navigator.pop(context); // Close waiting dialog
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Payment Verified!")),
-          );
-          Navigator.of(context).push(MaterialPageRoute(builder: (c) => const BillPage()));
-        } else if (status == "rejected") {
-          Navigator.pop(context); // Close waiting dialog
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Payment Rejected. Please try again.")),
-          );
-        }
-      }
-    });
+  }).then((_) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Payment successful!")),
+    );
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (c) => BillPage(transactionId: documentId), // ✅ Pass document ID
+      ),
+    );
   }).catchError((error) {
     print("Error saving payment: $error");
     ScaffoldMessenger.of(context).showSnackBar(
@@ -161,26 +183,6 @@ class _PayPageState extends State<PayPage> {
   });
 }
 
-
-void _showWaitingDialog() {
-  showDialog(
-    context: context,
-    barrierDismissible: false, // Prevent dismissing by tapping outside
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text("Waiting for Verification"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            CircularProgressIndicator(),
-            SizedBox(height: 20),
-            Text("Your payment is being verified. Please wait..."),
-          ],
-        ),
-      );
-    },
-  );
-}
 
   @override
   Widget build(BuildContext context) {
@@ -195,53 +197,77 @@ void _showWaitingDialog() {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Total Amount Section
-            const Text(
-              "Total Amount",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "${widget.packageHours * 5000} KIP",
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blue),
-            ),
-            const SizedBox(height: 20),
-
-            // Payment Details Section
             const Text(
               "Payment Details",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             TextField(
-              controller: accountController,
+              controller: priceController,
               decoration: InputDecoration(
-                labelText: "Account Number",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                labelText: "Price",
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 20),
             TextField(
-              controller: expiryController,
+              controller: accountController,
               decoration: InputDecoration(
-                labelText: "MM/YY",
-                hintText: "Expiry Date",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                labelText: "Account Number",
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              keyboardType: TextInputType.datetime,
+              keyboardType: TextInputType.number,
             ),
+            const SizedBox(height: 20),
+
+            // 📅 Date Picker Field
+            TextFormField(
+              controller: expiryDateController,
+              decoration: InputDecoration(
+                labelText: "Select Expiry Date",
+                hintText: "DD/MM/YY",
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.calendar_today),
+                  onPressed: _pickDate,
+                ),
+              ),
+              readOnly: true, // Prevent manual typing
+            ),
+
+            const SizedBox(height: 20),
+
+            // ⏰ Time Picker Field
+            TextFormField(
+              controller: expiryTimeController,
+              decoration: InputDecoration(
+                labelText: "Select Expiry Time",
+                hintText: "HH:MM AM/PM",
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.access_time),
+                  onPressed: _pickTime,
+                ),
+              ),
+              readOnly: true, // Prevent manual typing
+            ),
+
             const SizedBox(height: 20),
             TextField(
               controller: nameController,
               decoration: InputDecoration(
                 labelText: "Name",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
             const SizedBox(height: 20),
 
-            // Picture Picker
             const Text(
               "Upload Picture",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -264,22 +290,25 @@ void _showWaitingDialog() {
                     : _imageBytes != null
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(10),
-                            child: Image.memory(_imageBytes!, fit: BoxFit.cover),
+                            child:
+                                Image.memory(_imageBytes!, fit: BoxFit.cover),
                           )
                         : const Center(
-                            child: Text("Tap to upload", style: TextStyle(color: Colors.grey)),
+                            child: Text("Tap to upload",
+                                style: TextStyle(color: Colors.grey)),
                           ),
               ),
             ),
             const SizedBox(height: 40),
 
-            // Pay Button
             Center(
               child: ElevatedButton(
                 onPressed: _savePaymentData,
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                   backgroundColor: Colors.blue,
                 ),
                 child: const Text(
