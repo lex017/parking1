@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:parking1/cash/QrPay.dart';
+import 'package:parking1/chose/comment.dart';
 
 class btnLocation extends StatefulWidget {
   final String documentId;
@@ -15,6 +16,7 @@ class _BtnLocationState extends State<btnLocation> {
   int? selectedHours;
   int pricePerHour = 0;
   int availableSlots = 0;
+  bool isFavorite = false;
 
   void _showImagePopup(String imageUrl) {
     showDialog(
@@ -123,13 +125,33 @@ class _BtnLocationState extends State<btnLocation> {
               // Back Button
               Positioned(
                 top: 40,
-                left: 16,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back,
-                      color: Colors.white, size: 30),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
+                right: 16,
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.comment,
+                          color: Colors.white, size: 30),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const Comment()),
+                        );
+                      },
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: isFavorite ? Colors.red : Colors.white,
+                        size: 30,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          isFavorite = !isFavorite;
+                        });
+                      },
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -171,7 +193,6 @@ class _BtnLocationState extends State<btnLocation> {
                     data['description'] ?? 'No description available';
                 final price = data['price'] ?? 0;
                 final carSlot = data['car_slot'] ?? 0;
-
                 pricePerHour = price;
                 availableSlots = carSlot;
 
@@ -212,8 +233,6 @@ class _BtnLocationState extends State<btnLocation> {
                         ),
                       ),
                       const SizedBox(height: 20),
-
-                      // Display Price and Car Slots
                       Text(
                         "Price per hour: $pricePerHour LAK",
                         style: const TextStyle(
