@@ -125,33 +125,13 @@ class _BtnLocationState extends State<btnLocation> {
               // Back Button
               Positioned(
                 top: 40,
-                right: 16,
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.comment,
-                          color: Colors.white, size: 30),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const Comment()),
-                        );
-                      },
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: isFavorite ? Colors.red : Colors.white,
-                        size: 30,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          isFavorite = !isFavorite;
-                        });
-                      },
-                    ),
-                  ],
+                left: 16,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back,
+                      color: Colors.white, size: 30),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
                 ),
               ),
             ],
@@ -216,12 +196,51 @@ class _BtnLocationState extends State<btnLocation> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        nameLocation,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      // Name Location with Buttons on the Right
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              nameLocation,
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              // In your btnLocation widget:
+                              IconButton(
+                                icon: const Icon(Icons.comment,
+                                    color: Colors.black, size: 30),
+                                onPressed: () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => Comment(
+                                            documentId: widget.documentId),
+                                      ));
+                                },
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  isFavorite
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: isFavorite ? Colors.red : Colors.black,
+                                  size: 30,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    isFavorite = !isFavorite;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 10),
                       Text(
@@ -233,6 +252,7 @@ class _BtnLocationState extends State<btnLocation> {
                         ),
                       ),
                       const SizedBox(height: 20),
+
                       Text(
                         "Price per hour: $pricePerHour LAK",
                         style: const TextStyle(
