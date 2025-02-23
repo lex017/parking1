@@ -73,6 +73,10 @@ dependencies:
   geocoding: ^3.0.0
   sliding_up_panel: ^2.0.0+1
   firebase_messaging: ^15.2.2
+  board_datetime_picker: ^2.4.1
+  location: ^8.0.0
+  flutter_polyline_points: ^2.1.0
+  # mapbox_maps_flutter: ^2.6.0
   
 
 

@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:parking1/chose/mapapi.dart';
 import 'package:parking1/data_save/btnadd_parking.dart';
 import 'package:parking1/map_api/map_api.dart';
+import 'package:parking1/menu/emp_register.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
@@ -234,8 +235,8 @@ class _OwnerMainState extends State<ownerMain> {
     }
   }
 
-  Future<void> _addLocationWithImage(String name, String address, 
-      String description,int price, int carSlot) async {
+  Future<void> _addLocationWithImage(String name, String address,
+      String description, int price, int carSlot) async {
     final String? imageUrl = await _uploadImageToCloudinary();
 
     if (imageUrl != null) {
@@ -548,7 +549,7 @@ class _OwnerMainState extends State<ownerMain> {
                   final price = int.parse(_priceController.text.trim());
                   final carSlot = int.parse(_carSlotController.text.trim());
                   await _addLocationWithCustomId(
-                      name, address, description,price, carSlot);
+                      name, address, description, price, carSlot);
                   Navigator.pop(context);
                 }
               },
@@ -563,8 +564,8 @@ class _OwnerMainState extends State<ownerMain> {
     );
   }
 
-  Future<void> _addLocationWithCustomId(
-      String name, String address, String description,int price, int carSlot) async {
+  Future<void> _addLocationWithCustomId(String name, String address,
+      String description, int price, int carSlot) async {
     final collection = FirebaseFirestore.instance.collection('Locations');
     final snapshot = await collection.get();
     final newId = "location${snapshot.docs.length + 1}";
@@ -611,9 +612,41 @@ class _OwnerMainState extends State<ownerMain> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.white,
         onPressed: () {
-          Navigator.of(context).pop();
-          MaterialPageRoute route = MaterialPageRoute(builder: (c) => MapApi());
-          Navigator.of(context).push(route);
+          showModalBottomSheet(
+            context: context,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20.0)),
+            ),
+            builder: (BuildContext context) {
+              return Container(
+                padding: const EdgeInsets.all(16.0),
+                height: 200,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.map),
+                      title: const Text('Add Marker'),
+                      onTap: () {
+                        Navigator.pop(context); // Close the bottom sheet
+                        Navigator.of(context)
+                            .push(MaterialPageRoute(builder: (c) => MapApi()));
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.location_on),
+                      title: const Text('Add Employee'),
+                      onTap: () {
+                        Navigator.pop(context); // Close the bottom sheet
+                        Navigator.of(context)
+                            .push(MaterialPageRoute(builder: (c) => emp_register()));
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
         },
         child: const Icon(
           Icons.add,

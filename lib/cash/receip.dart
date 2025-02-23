@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parking1/map_api/navigator.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -48,6 +49,17 @@ class _BillPageState extends State<BillPage> {
         title: const Text("Bill", style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.maps_home_work_sharp, color: Colors.black),
+            onPressed: () {
+              Navigator.of(context).pop();
+                MaterialPageRoute route =
+                    MaterialPageRoute(builder: (c) => navigate());
+                Navigator.of(context).push(route);
+            },
+          ),
+        ],
       ),
       body: billData == null
           ? const Center(child: CircularProgressIndicator())
@@ -111,5 +123,22 @@ class _BillPageState extends State<BillPage> {
     if (timestamp == null) return "N/A";
     DateTime date = timestamp.toDate();
     return "${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}";
+  }
+}
+
+// Example Page to navigate to when the button is pressed
+class AnotherPage extends StatelessWidget {
+  const AnotherPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Another Page"),
+      ),
+      body: const Center(
+        child: Text("This is another page"),
+      ),
+    );
   }
 }

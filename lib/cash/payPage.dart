@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
 import 'package:parking1/cash/receip.dart';
 
 class PayPage extends StatefulWidget {
@@ -23,10 +22,10 @@ class _PayPageState extends State<PayPage> {
   Uint8List? _imageBytes; // For web image bytes
   final ImagePicker _picker = ImagePicker();
 
-  final TextEditingController priceController = TextEditingController();
+  final TextEditingController amountController = TextEditingController();
   final TextEditingController accountController = TextEditingController();
-  final TextEditingController expiryDateController = TextEditingController();
-  final TextEditingController expiryTimeController = TextEditingController();
+  final TextEditingController DateController = TextEditingController();
+  final TextEditingController TimeController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
 
   final String cloudinaryUrl =
@@ -78,7 +77,7 @@ class _PayPageState extends State<PayPage> {
       String formattedDate =
           "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
       setState(() {
-        expiryDateController.text = formattedDate;
+        DateController.text = formattedDate;
       });
     }
   }
@@ -93,7 +92,7 @@ class _PayPageState extends State<PayPage> {
     if (pickedTime != null) {
       String formattedTime = pickedTime.format(context);
       setState(() {
-        expiryTimeController.text = formattedTime;
+        TimeController.text = formattedTime;
       });
     }
   }
@@ -156,14 +155,11 @@ Future<void> _savePaymentData() async {
 
   // Save payment data with custom document ID
   FirebaseFirestore.instance.collection('payments').doc(documentId).set({
-    "price": priceController.text,
-    "accountNumber": accountController.text,
-    "expiryDate": expiryDateController.text,
-    "expiryTime": expiryTimeController.text,
+    "amount": amountController.text,
+    "Date": DateController.text,
+    "Time": TimeController.text,
     "name": nameController.text,
-    "packageHours": widget.packageHours,
-    "totalAmount": widget.packageHours * 5000,
-    "imageUrl": imageUrl,
+    "imageBill": imageUrl,
     "status": "pending", // Initial status as pending
     "timestamp": FieldValue.serverTimestamp(),
   }).then((_) {
@@ -203,19 +199,9 @@ Future<void> _savePaymentData() async {
             ),
             const SizedBox(height: 8),
             TextField(
-              controller: priceController,
+              controller: amountController,
               decoration: InputDecoration(
-                labelText: "Price",
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: accountController,
-              decoration: InputDecoration(
-                labelText: "Account Number",
+                labelText: "Amount",
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -225,9 +211,9 @@ Future<void> _savePaymentData() async {
 
             // 📅 Date Picker Field
             TextFormField(
-              controller: expiryDateController,
+              controller: DateController,
               decoration: InputDecoration(
-                labelText: "Select Expiry Date",
+                labelText: "Select Date",
                 hintText: "DD/MM/YY",
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -243,9 +229,9 @@ Future<void> _savePaymentData() async {
 
             // ⏰ Time Picker Field
             TextFormField(
-              controller: expiryTimeController,
+              controller: TimeController,
               decoration: InputDecoration(
-                labelText: "Select Expiry Time",
+                labelText: "Select Time",
                 hintText: "HH:MM AM/PM",
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -309,7 +295,7 @@ Future<void> _savePaymentData() async {
                       const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
-                  backgroundColor: Colors.blue,
+                  backgroundColor: Colors.white,
                 ),
                 child: const Text(
                   "Pay Now",

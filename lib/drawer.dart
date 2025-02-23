@@ -6,10 +6,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:parking1/bottombar/vechicle.dart';
 import 'package:parking1/chose/Owner.dart';
 import 'package:parking1/chose/mapapi.dart';
 import 'package:parking1/constant/CloudinaryUploader.dart';
-import 'package:parking1/data_save/vechicle.dart';
+import 'package:parking1/data_save/addvechicle.dart';
 import 'package:parking1/homepage.dart';
 
 import 'dart:convert';
@@ -19,6 +20,7 @@ import 'package:parking1/map_api/LocationPage.dart';
 import 'package:parking1/map_api/map_api.dart';
 import 'package:parking1/menu/Help.dart';
 import 'package:parking1/menu/Wallet.dart';
+import 'package:parking1/menu/employee_login.dart';
 import 'package:parking1/menu/employeescan.dart';
 import 'package:parking1/menu/history.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -359,7 +361,7 @@ class _DrawerMenuState extends State<drawer_menu> {
               onTap: () {
                 Navigator.of(context).pop();
                 MaterialPageRoute route =
-                    MaterialPageRoute(builder: (c) => EmployeeScan());
+                    MaterialPageRoute(builder: (c) => emp_login());
                 Navigator.of(context).push(route);
               },
             ),

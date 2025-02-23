@@ -1,21 +1,43 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:parking1/cash/QrPay.dart';
-import 'package:parking1/chose/comment.dart';
-import 'package:parking1/map_api/selectdetail.dart';
 
-class btnLocation extends StatefulWidget {
+
+class detailpay extends StatefulWidget {
   final String documentId;
 
-  const btnLocation({required this.documentId, super.key});
+  const detailpay({required this.documentId, super.key});
 
   @override
-  State<btnLocation> createState() => _BtnLocationState();
+  State<detailpay> createState() => _BtnLocationState();
 }
 
-class _BtnLocationState extends State<btnLocation> {
-  int availableSlots = 0;
-  bool isFavorite = false;
+
+class _BtnLocationState extends State<detailpay> {
+  int pricePerHour = 0;
+  TimeOfDay? selectedTime; // To store the selected time
+  String? selectedCar; // Store the selected car
+  List<String> carList = [];
+
+@override
+void initState() {
+  super.initState();
+  _fetchCarList(); 
+}
+
+  // Function to show the time picker
+  Future<void> _pickTime() async {
+    TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: selectedTime ?? TimeOfDay.now(),
+    );
+
+    if (picked != null && picked != selectedTime) {
+      setState(() {
+        selectedTime = picked;
+      });
+    }
+  }
 
   void _showImagePopup(String imageUrl) {
     showDialog(
@@ -37,6 +59,50 @@ class _BtnLocationState extends State<btnLocation> {
         ),
       ),
     );
+  }
+
+  // Fetch user's registered vehicles from Firestore
+  Future<void> _fetchCarList() async {
+    QuerySnapshot snapshot =
+        await FirebaseFirestore.instance.collection('vehicles').get();
+
+    setState(() {
+      carList = snapshot.docs.map((doc) => doc['brandName'] as String).toList();
+    });
+  }
+
+  // Function to select a car
+  Future<void> _selectCar() async {
+    String? selected = await showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Select a Car"),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: carList.isEmpty
+                ? const Center(child: Text("No vehicles found"))
+                : ListView.builder(
+                    itemCount: carList.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(carList[index]),
+                        onTap: () {
+                          Navigator.pop(context, carList[index]);
+                        },
+                      );
+                    },
+                  ),
+          ),
+        );
+      },
+    );
+
+    if (selected != null) {
+      setState(() {
+        selectedCar = selected;
+      });
+    }
   }
 
   @override
@@ -168,11 +234,8 @@ class _BtnLocationState extends State<btnLocation> {
 
                 final data = snapshot.data!.data() as Map<String, dynamic>;
                 final nameLocation = data['nameLocation'] ?? 'Unknown Name';
-                final description =
-                    data['description'] ?? 'No description available';
                 final price = data['price'] ?? 0;
-                final carSlot = data['car_slot'] ?? 0;
-                availableSlots = carSlot;
+                pricePerHour = price;
 
                 return Container(
                   padding: const EdgeInsets.all(20),
@@ -207,92 +270,130 @@ class _BtnLocationState extends State<btnLocation> {
                               ),
                             ),
                           ),
-                          Row(
-                            children: [
-                              // In your btnLocation widget:
-                              IconButton(
-                                icon: const Icon(Icons.comment,
-                                    color: Colors.black, size: 30),
-                                onPressed: () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => Comment(
-                                            documentId: widget.documentId),
-                                      ));
-                                },
-                              ),
-                              IconButton(
-                                icon: Icon(
-                                  isFavorite
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: isFavorite ? Colors.red : Colors.black,
-                                  size: 30,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    isFavorite = !isFavorite;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
                         ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        description,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          height: 1.6,
-                          color: Colors.grey,
-                        ),
                       ),
                       const SizedBox(height: 20),
 
-                      const SizedBox(height: 10),
                       Text(
-                        "Car Slots: $availableSlots",
+                        "Price: $pricePerHour LAK",
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.green,
                         ),
                       ),
+
                       const SizedBox(height: 20),
 
-                      const Spacer(),
-                      SizedBox(
-                        width: 500, // Set a fixed width
-                        height: 50, // Set a fixed height
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            // Correct way to pass the documentId to detailpay
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    detailpay(documentId: widget.documentId),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.arrow_forward,
-                              color: Colors.white),
-                          label: const Text(
-                            "Booking",
-                            style: TextStyle(fontSize: 18, color: Colors.white),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 14),
-                            backgroundColor: Colors.blue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
+                      // Button to pick time
+                      Row(
+                        children: [
+                          const Text(
+                            "Select Time: ",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      )
+                          const SizedBox(width: 10),
+                          TextButton(
+                            onPressed: _pickTime,
+                            child: Text(
+                              selectedTime != null
+                                  ? "${selectedTime!.hour}:${selectedTime!.minute.toString().padLeft(2, '0')} ${selectedTime!.period == DayPeriod.am ? 'AM' : 'PM'}"
+                                  : "Pick Time",
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              children: [
+                                const Text(
+                                  "Select Car: ",
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(width: 10),
+                                DropdownButton<String>(
+                                  value: selectedCar, // Currently selected car
+                                  hint: const Text("Choose a Car"),
+                                  onChanged: (String? newValue) {
+                                    setState(() {
+                                      selectedCar = newValue;
+                                    });
+                                  },
+                                  items: carList.map<DropdownMenuItem<String>>(
+                                      (String car) {
+                                    return DropdownMenuItem<String>(
+                                      value: car,
+                                      child: Text(car),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const Spacer(),
+
+                      // Total Price and Navigate Button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Total Price",
+                                style:
+                                    TextStyle(fontSize: 16, color: Colors.grey),
+                              ),
+                              Text(
+                                "$pricePerHour LAK",
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            ],
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: selectedTime == null
+                                ? null
+                                : () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (c) => QrPay(),
+                                      ),
+                                    );
+                                  },
+                            icon: const Icon(Icons.arrow_forward,
+                                color: Colors.white),
+                            label: const Text(
+                              "GO",
+                              style:
+                                  TextStyle(fontSize: 18, color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 14),
+                              backgroundColor: selectedTime == null
+                                  ? Colors.grey
+                                  : Colors.blue,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
+import 'package:parking1/bottombar/vechicle.dart';
 import 'package:parking1/map_api/LocationPage.dart';
 import 'package:parking1/menu/Help.dart';
 import 'package:parking1/menu/Wallet.dart';
@@ -186,11 +187,11 @@ class _MainPageState extends State<mainPage> {
             },
           ),
           dashboardButton(
-            icon: Icons.wallet,
-            label: 'Wallet',
+            icon: Icons.car_repair,
+            label: 'Vechicle',
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => Wallet()),
+                MaterialPageRoute(builder: (context) => Vechicle()),
               );
             },
           ),
