@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:parking1/cash/receip.dart';
+import 'package:parking1/menu/emp_check.dart';
 
 class EmployeeScan extends StatefulWidget {
   const EmployeeScan({super.key});
@@ -12,23 +13,42 @@ class EmployeeScan extends StatefulWidget {
 class _EmployeeScanState extends State<EmployeeScan> {
   bool _isProcessing = false;
 
-  void _handleScan(String code) async {
+  void _handleScan(String bookingId) async {
     if (_isProcessing) return;
 
     setState(() {
       _isProcessing = true;
     });
 
-    // Print the scanned QR code to the console
-    print("Scanned QR Code: $code");
+    try {
+      // Check Firestore if the ticket exists
+      final ticketRef =
+          FirebaseFirestore.instance.collection('bookings').doc(bookingId);
+      final ticketSnapshot = await ticketRef.get();
 
-    // Navigate to a new page with the scanned QR code
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ScanResultPage(qrCode: code),
-      ),
-    );
+      if (ticketSnapshot.exists) {
+        final ticketData = ticketSnapshot.data();
+        String status = ticketData?['parkingStatus'] ?? 'unknown';
+
+        // Navigate to confirmation page with actual status
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ScanCheck(bookingId: bookingId, status: status),
+          ),
+        );
+      } else {
+        // Show error message if ticket does not exist
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Ticket not found!")),
+        );
+      }
+    } catch (e) {
+      print("Error scanning ticket: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error fetching ticket.")),
+      );
+    }
 
     setState(() {
       _isProcessing = false;
@@ -46,11 +66,10 @@ class _EmployeeScanState extends State<EmployeeScan> {
       body: Stack(
         children: [
           MobileScanner(
-            onDetect: (BarcodeCapture barcodeCapture) {
-              for (final Barcode barcode in barcodeCapture.barcodes) {
+            onDetect: (barcodeCapture) {
+              for (final barcode in barcodeCapture.barcodes) {
                 if (barcode.rawValue != null && !_isProcessing) {
-                  final String code = barcode.rawValue!;
-                  _handleScan(code);
+                  _handleScan(barcode.rawValue!);
                 }
               }
             },
@@ -65,7 +84,7 @@ class _EmployeeScanState extends State<EmployeeScan> {
               ),
               child: const Center(
                 child: Text(
-                  "Align QR code here",
+                  "Align QR bookingId here",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -75,64 +94,7 @@ class _EmployeeScanState extends State<EmployeeScan> {
               ),
             ),
           ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: const Text(
-                "Point the camera at a QR code to scan.",
-                style: TextStyle(fontSize: 16, color: Colors.white),
-              ),
-            ),
-          ),
         ],
-      ),
-    );
-  }
-}
-
-class ScanResultPage extends StatelessWidget {
-  final String qrCode;
-
-  const ScanResultPage({Key? key, required this.qrCode}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Scan Result"),
-        backgroundColor: Colors.blue,
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Scanned QR Code:",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                qrCode,
-                style: TextStyle(fontSize: 18, color: Colors.black87),
-              ),
-              const SizedBox(height: 30),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>BillPage(transactionId: 'your_transaction_id'), // Pass transactionId here
-                    ),
-                  );
-                },
-                child: const Text("ຢືນຢັນ"),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

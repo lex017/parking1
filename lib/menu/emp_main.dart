@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:parking1/menu/employeescan.dart';
 
 class emp_main extends StatefulWidget {
   final String empId;
@@ -16,7 +17,8 @@ class emp_main extends StatefulWidget {
 }
 
 class _emp_mainState extends State<emp_main> {
-  final String cloudinaryUrl = "https://api.cloudinary.com/v1_1/doiq3nkso/image/upload";
+  final String cloudinaryUrl =
+      "https://api.cloudinary.com/v1_1/doiq3nkso/image/upload";
   final String uploadPreset = "parking";
   File? _selectedImage;
   Uint8List? _imageBytes;
@@ -39,7 +41,8 @@ class _emp_mainState extends State<emp_main> {
 
   Future<void> _pickImage() async {
     try {
-      final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? pickedFile =
+          await _picker.pickImage(source: ImageSource.gallery);
 
       if (pickedFile != null) {
         if (kIsWeb) {
@@ -49,11 +52,13 @@ class _emp_mainState extends State<emp_main> {
         }
         await _uploadImageToCloudinary();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No image selected')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('No image selected')));
       }
     } catch (e) {
       print("Error selecting image: $e");
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error selecting image')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Error selecting image')));
     }
   }
 
@@ -65,9 +70,11 @@ class _emp_mainState extends State<emp_main> {
         ..fields['upload_preset'] = uploadPreset;
 
       if (_imageBytes != null) {
-        request.files.add(http.MultipartFile.fromBytes('file', _imageBytes!, filename: 'profile_image.jpg'));
+        request.files.add(http.MultipartFile.fromBytes('file', _imageBytes!,
+            filename: 'profile_image.jpg'));
       } else if (_selectedImage != null) {
-        request.files.add(await http.MultipartFile.fromPath('file', _selectedImage!.path));
+        request.files.add(
+            await http.MultipartFile.fromPath('file', _selectedImage!.path));
       }
 
       final response = await request.send();
@@ -77,16 +84,22 @@ class _emp_mainState extends State<emp_main> {
         final data = jsonDecode(responseData.body);
         final imageUrl = data['secure_url'];
 
-        await FirebaseFirestore.instance.collection('employees').doc(emp_id).update({'profileImage': imageUrl});
+        await FirebaseFirestore.instance
+            .collection('employees')
+            .doc(emp_id)
+            .update({'profileImage': imageUrl});
 
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile image updated successfully!')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Profile image updated successfully!')));
       } else {
         print("Upload failed with status: ${response.statusCode}");
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to upload image.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to upload image.')));
       }
     } catch (e) {
       print("Error uploading image: $e");
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error uploading image.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error uploading image.')));
     }
   }
 
@@ -130,7 +143,8 @@ class _emp_mainState extends State<emp_main> {
             ),
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(vertical: 30.0, horizontal: 20.0),
+                padding: const EdgeInsets.symmetric(
+                    vertical: 30.0, horizontal: 20.0),
                 child: Column(
                   children: [
                     CircleAvatar(
@@ -154,7 +168,8 @@ class _emp_mainState extends State<emp_main> {
                     const SizedBox(height: 20),
                     Card(
                       elevation: 4.0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15)),
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
@@ -182,6 +197,19 @@ class _emp_mainState extends State<emp_main> {
                               title: const Text("Date of Birth"),
                               subtitle: Text(dateOfBirth),
                             ),
+                            const Divider(),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                MaterialPageRoute route = MaterialPageRoute(
+                                  builder: (c) => EmployeeScan(),
+                                );
+                                Navigator.of(context).push(route);
+                              },
+                              icon: const Icon(
+                                  Icons.qr_code_scanner),
+                              label: const Text("Scan"),
+                            )
                           ],
                         ),
                       ),
