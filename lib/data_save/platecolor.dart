@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:parking1/data_save/addvechicle.dart';
+import 'package:parking1/data_save/addvechicle.dart'; // Assuming this is your AddVehicle page
 
 class Platetype extends StatefulWidget {
   final String selectedCity;
@@ -10,79 +10,111 @@ class Platetype extends StatefulWidget {
 }
 
 class _PlatetypeState extends State<Platetype> {
-  String? selectedColor;
+  String? selectedPlate;
 
-  final List<String> plate = [
-    "ລັດບໍລິຫານ",
-    "ເອກະຊົນລາວ",
-    "ບໍລິສັດ/ທຸລະກິດ 100%",
-    "ບໍລິສັດ/ທຸລະກິດ 1%",
-    "ເອກະຊົນຕ່າງດ້າວ",
-    "ອົງການຈັດຕັ້ງສາກົນ(ນຳໃຊ້ສ່ວນຕົວ)",
-  ];
+  final Map<String, Map<String, Color>> plateColors = {
+    "ລັດບໍລິຫານ": {"background": Colors.blue, "text": Colors.white},
+    "ເອກະຊົນລາວ": {"background": Colors.yellow, "text": Colors.black},
+    "ບໍລິສັດ/ທຸລະກິດ 100%": {"background": Colors.white, "text": Colors.black},
+    "ບໍລິສັດ/ທຸລະກິດ 1%": {"background": Colors.white, "text": Colors.blue},
+    "ເອກະຊົນຕ່າງດ້າວ": {"background": Colors.yellow, "text": Colors.lightBlue},
+    "ອົງການຈັດຕັ້ງສາກົນ(ນຳໃຊ້ສ່ວນຕົວ)": {"background": Colors.white, "text": Colors.lightBlue},
+  };
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Select a Plate Type")),
+      appBar: AppBar(title: const Text("Select Plate")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              "Choose Your Plate",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
             const SizedBox(height: 20),
             Expanded(
               child: SingleChildScrollView(
                 child: Column(
-                  children: plate.map((plate) {
+                  children: plateColors.keys.map((plate) {
+                    final bool isSelected = selectedPlate == plate;
+                    final Color plateColor =
+                        plateColors[plate]?["background"] ?? Colors.grey;
+                    final Color textColor =
+                        plateColors[plate]?["text"] ?? Colors.black;
+
                     return GestureDetector(
                       onTap: () {
                         setState(() {
-                          selectedColor = plate;
+                          selectedPlate = plate;
                         });
-
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => AddVechicle(
-                              ownerName: "", 
-                              licensePlate: "", 
-                              selectedcolor: selectedColor!,
-                              selectedCity: widget.selectedCity, // Pass city here
-                            ),
-                          ),
-                        );
                       },
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         margin: const EdgeInsets.symmetric(vertical: 6),
                         decoration: BoxDecoration(
-                          color: selectedColor == plate ? Colors.blue : Colors.grey[300],
+                          color: plateColor,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: selectedColor == plate ? Colors.blueAccent : Colors.grey,
-                            width: 2,
+                            color: Colors.black,
+                            width: isSelected ? 3 : 1,
                           ),
+                          boxShadow: [
+                            if (isSelected)
+                              const BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 5,
+                                offset: Offset(0, 3),
+                              ),
+                          ],
                         ),
-                        child: Center(
-                          child: Text(
-                            plate,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: selectedColor == plate ? Colors.white : Colors.black,
+                        child: Column(
+                          children: [
+                            Text(
+                              widget.selectedCity,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: textColor,
+                              ),
                             ),
-                          ),
+              
+                            Text(
+                              plate,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: textColor,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );
                   }).toList(),
                 ),
               ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: selectedPlate != null
+                  ? () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => AddVechicle(
+                            ownerName: "",
+                            licensePlate: "",
+                            selectedcolor: selectedPlate!,
+                            selectedCity: widget.selectedCity,
+                          ),
+                        ),
+                      );
+                    }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: const Text("Next"),
             ),
           ],
         ),

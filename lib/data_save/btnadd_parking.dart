@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -92,46 +93,52 @@ class _BtnaddParkingState extends State<BtnaddParking> {
   }
 
   Future<void> _addLocationWithImage(String name, String address,
-      String description,int price, int carSlot) async {
-    try {
-      final String? imageUrl = await _uploadImageToCloudinary();
+    String description, int price, int carSlot) async {
+  try {
+    final String? imageUrl = await _uploadImageToCloudinary();
 
-      if (imageUrl != null) {
-        final collection = FirebaseFirestore.instance.collection('Locations');
-        final snapshot = await collection.get();
-        final newId = "location${snapshot.docs.length + 1}";
+    if (imageUrl != null) {
+      // Get the current user ID (owner)
+      User? currentUser = FirebaseAuth.instance.currentUser;
+      String ownerId = currentUser?.uid ?? 'unknown_owner'; // fallback in case of no user
 
-        await collection.doc(newId).set({
-          'nameLocation': name,
-          'address': address,
-          'description': description,
-          'price': price,
-          'car_slot': carSlot,
-          'imageUrl': imageUrl,
-          'location': GeoPoint(widget.latitude, widget.longitude), // Save location
-        });
+      final collection = FirebaseFirestore.instance.collection('Locations');
+      final snapshot = await collection.get();
+      final newId = "location${snapshot.docs.length + 1}";
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Location added successfully with ID: $newId')),
-        );
+      await collection.doc(newId).set({
+        'nameLocation': name,
+        'address': address,
+        'description': description,
+        'price': price,
+        'car_slot': carSlot,
+        'imageUrl': imageUrl,
+        'location': GeoPoint(widget.latitude, widget.longitude), // Save location
+        'ownerId': ownerId, // Save ownerId
+      });
 
-        // Navigate back to the previous screen
-        Navigator.of(context).pop();
-        MaterialPageRoute route =
-            MaterialPageRoute(builder: (c) => ownerMain());
-        Navigator.of(context).push(route);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image upload failed')),
-        );
-      }
-    } catch (e) {
-      print("Error adding location: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add location: $e')),
+        SnackBar(content: Text('Location added successfully with ID: $newId')),
+      );
+
+      // Navigate back to the previous screen
+      Navigator.of(context).pop();
+      MaterialPageRoute route =
+          MaterialPageRoute(builder: (c) => ownerMain());
+      Navigator.of(context).push(route);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Image upload failed')),
       );
     }
+  } catch (e) {
+    print("Error adding location: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to add location: $e')),
+    );
   }
+}
+
 
   Widget _addLocationForm() {
     final _formKey = GlobalKey<FormState>();

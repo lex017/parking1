@@ -259,115 +259,123 @@ class _OwnerMainState extends State<ownerMain> {
   }
 
   Widget parkLocation() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('Locations').snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        } else if (snapshot.hasError || !snapshot.hasData) {
-          return const Center(
-            child: Text(
-              'Error loading locations',
-              style: TextStyle(fontSize: 18, color: Colors.red),
-            ),
-          );
-        } else if (snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text(
-              'No parking locations available',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-          );
-        } else {
-          final locations = snapshot.data!.docs;
+  // Get the current user's ID (owner)
+  User? currentUser = FirebaseAuth.instance.currentUser;
+  String ownerId = currentUser?.uid ?? '';
 
-          return ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: locations.length,
-            itemBuilder: (context, index) {
-              final locationData =
-                  locations[index].data() as Map<String, dynamic>;
-              final locationName =
-                  locationData['nameLocation'] ?? 'Unknown Location';
-              final addressName = locationData['address'] ?? 'Unknown Address';
-              final description =
-                  locationData['description'] ?? 'No Description Available';
-              final price = locationData['price'] ?? 'Unknown';
-              final carSlot = locationData['car_slot'] ?? 'Unknown';
-              final imageUrl = locationData['imageUrl'] ?? '';
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance
+        .collection('Locations')
+        .where('ownerId', isEqualTo: ownerId) // Filter by ownerId
+        .snapshots(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(
+          child: CircularProgressIndicator(),
+        );
+      } else if (snapshot.hasError || !snapshot.hasData) {
+        return const Center(
+          child: Text(
+            'Error loading locations',
+            style: TextStyle(fontSize: 18, color: Colors.red),
+          ),
+        );
+      } else if (snapshot.data!.docs.isEmpty) {
+        return const Center(
+          child: Text(
+            'No parking locations available',
+            style: TextStyle(fontSize: 18, color: Colors.grey),
+          ),
+        );
+      } else {
+        final locations = snapshot.data!.docs;
 
-              return Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.0),
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: locations.length,
+          itemBuilder: (context, index) {
+            final locationData =
+                locations[index].data() as Map<String, dynamic>;
+            final locationName =
+                locationData['nameLocation'] ?? 'Unknown Location';
+            final addressName = locationData['address'] ?? 'Unknown Address';
+            final description =
+                locationData['description'] ?? 'No Description Available';
+            final price = locationData['price'] ?? 'Unknown';
+            final carSlot = locationData['car_slot'] ?? 'Unknown';
+            final imageUrl = locationData['imageUrl'] ?? '';
+
+            return Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              elevation: 4,
+              margin: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Parking Location ${index + 1}",
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    if (imageUrl.isNotEmpty)
+                      Image.network(
+                        imageUrl,
+                        height: 150,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Text("Failed to load image"),
+                      ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Location: $locationName",
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Address: $addressName",
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Car Slots: 0/$carSlot",
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Price: $price",
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.map),
+                      label: const Text("Open in Maps"),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        MaterialPageRoute route =
+                            MaterialPageRoute(builder: (c) => map_api());
+                        Navigator.of(context).push(route);
+                      },
+                    ),
+                  ],
                 ),
-                elevation: 4,
-                margin: const EdgeInsets.symmetric(vertical: 8.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Parking Location ${index + 1}",
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      if (imageUrl.isNotEmpty)
-                        Image.network(
-                          imageUrl,
-                          height: 150,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Text("Failed to load image"),
-                        ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Location: $locationName",
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Address: $addressName",
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Car Slots: 0/$carSlot",
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Price: $price",
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                      const SizedBox(height: 8),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.map),
-                        label: const Text("Open in Maps"),
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          MaterialPageRoute route =
-                              MaterialPageRoute(builder: (c) => map_api());
-                          Navigator.of(context).push(route);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        }
-      },
-    );
-  }
+              ),
+            );
+          },
+        );
+      }
+    },
+  );
+}
+
 
   void _showAddLocationDialog() {
     final _formKey = GlobalKey<FormState>();

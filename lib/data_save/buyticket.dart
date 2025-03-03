@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:parking1/bottombar/maingPage.dart';
 import 'package:parking1/homepage.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -97,28 +96,39 @@ class _BuyTicketState extends State<BuyTicket> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    "PARKING TICKET",
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  // Header with Icon and Title
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.local_parking, size: 40, color: Colors.black),
+                      SizedBox(width: 10),
+                      Text(
+                        "PARKING TICKET",
+                        style: TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 15),
-                  Icon(Icons.local_parking, size: 50, color: Colors.black),
-                  SizedBox(height: 10),
+                  SizedBox(height: 20),
+
+                  // QR Code
                   QrImageView(
                     data: qrData,
                     version: QrVersions.auto,
-                    size: 120,
+                    size: 150, // Increased QR code size
                   ),
-                  SizedBox(height: 10),
-                  Text("THANK YOU AND LUCKY ROAD!",
-                      style: TextStyle(fontSize: 14)),
-                  Divider(thickness: 1, color: Colors.black),
-                  Text(bookingDate,
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 10),
+                  SizedBox(height: 20),
+
+                  // Booking Date
+                  Text(
+                    bookingDate,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 15),
+
+                  // User and Time Information
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,9 +139,8 @@ class _BuyTicketState extends State<BuyTicket> {
                                   fontSize: 16, fontWeight: FontWeight.bold)),
                         ],
                       ),
-                      SizedBox(width: 10),
                       Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text("Time:", style: TextStyle(fontSize: 16)),
                           Text(bookingTime,
@@ -142,27 +151,31 @@ class _BuyTicketState extends State<BuyTicket> {
                     ],
                   ),
                   SizedBox(height: 20),
-                  Text("PAID: $amount\ Kip",
+
+                  // Amount Paid
+                  Text("PAID: $amount Kip",
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 20),
-                  Text("PARKING TICKET",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 20),
-                  Text("parkingStatus: $parkingStatus",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 15),
 
-                  // 🚀 Back to Main Page Button
+                  // Parking Status
+                  Text("Parking Status: $parkingStatus",
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   SizedBox(height: 20),
+
+                  // "Thank You" Message
+                  Text("THANK YOU AND HAVE A SAFE TRIP!",
+                      style: TextStyle(fontSize: 14)),
+                  SizedBox(height: 20),
+
+                  // Back to Main Page Button
                   ElevatedButton.icon(
                     onPressed: () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                            builder: (context) => const Homepage()),
-                      );
+                      Navigator.of(context).pushReplacement(MaterialPageRoute(
+                          builder: (context) => const Homepage()));
                     },
+                    icon: Icon(Icons.home),
                     label: Text("Main Page"),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,

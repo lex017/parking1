@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:parking1/data_save/addVechicle.dart';
-import 'package:parking1/data_save/platecolor.dart'; // Import addVechicle screen
+import 'package:parking1/data_save/platecolor.dart';
 
 class LicensePlate extends StatefulWidget {
   const LicensePlate({super.key});
-  
 
   @override
   State<LicensePlate> createState() => _LicensePlateState();
@@ -37,22 +35,54 @@ class _LicensePlateState extends State<LicensePlate> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Select a City")),
+      appBar: AppBar(
+        title: const Text("ເລືອກແຂວງ"),
+        backgroundColor: Colors.blue,
+        centerTitle: true,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Text(
-              "Choose Your City",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              "ເລືອກແຂວງຂອງທ່ານ",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: cities.map((city) {
-                    return GestureDetector(
+              child: ListView.builder(
+                itemCount: cities.length,
+                itemBuilder: (context, index) {
+                  final city = cities[index];
+
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: selectedCity == city ? Colors.blue : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.2),
+                          blurRadius: 6,
+                          spreadRadius: 1,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      title: Text(
+                        city,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: selectedCity == city ? Colors.white : Colors.black,
+                        ),
+                      ),
+                      trailing: selectedCity == city
+                          ? const Icon(Icons.check_circle, color: Colors.white)
+                          : const Icon(Icons.arrow_forward_ios, color: Colors.grey),
                       onTap: () {
                         setState(() {
                           selectedCity = city;
@@ -61,38 +91,13 @@ class _LicensePlateState extends State<LicensePlate> {
                         // Navigate to the addVechicle screen
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => Platetype(
-                              selectedCity:selectedCity!
-                            ),
+                            builder: (context) => Platetype(selectedCity: selectedCity!),
                           ),
                         );
                       },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        margin: const EdgeInsets.symmetric(vertical: 6),
-                        decoration: BoxDecoration(
-                          color: selectedCity == city ? Colors.blue : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: selectedCity == city ? Colors.blueAccent : Colors.grey,
-                            width: 2,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            city,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: selectedCity == city ? Colors.white : Colors.black,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
+                    ),
+                  );
+                },
               ),
             ),
           ],

@@ -69,7 +69,18 @@ class _EmployeeScanState extends State<EmployeeScan> {
             onDetect: (barcodeCapture) {
               for (final barcode in barcodeCapture.barcodes) {
                 if (barcode.rawValue != null && !_isProcessing) {
-                  _handleScan(barcode.rawValue!);
+                  // Extract the bookingId from the QR data
+                  String? bookingId = _extractBookingId(barcode.rawValue!);
+                  if (bookingId != null) {
+                    _handleScan(bookingId);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Invalid QR code format")),
+                    );
+                    setState(() {
+                      _isProcessing = false;
+                    });
+                  }
                 }
               }
             },
@@ -97,5 +108,21 @@ class _EmployeeScanState extends State<EmployeeScan> {
         ],
       ),
     );
+  }
+
+  String? _extractBookingId(String qrData) {
+    // Assuming the QR data is in the format: "BookingID: <bookingId>\n..."
+    try {
+      final lines = qrData.split('\n');
+      for (final line in lines) {
+        if (line.startsWith('BookingID: ')) {
+          return line.substring('BookingID: '.length);
+        }
+      }
+      return null; // BookingID not found
+    } catch (e) {
+      print("Error extracting bookingId: $e");
+      return null;
+    }
   }
 }

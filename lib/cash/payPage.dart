@@ -34,14 +34,13 @@ class _PayPageState extends State<PayPage> {
       "https://api.cloudinary.com/v1_1/doiq3nkso/image/upload";
   final String uploadPreset = "parking";
   @override
-void initState() {
-  super.initState();
-  // Listen for payment status with a placeholder transaction ID
-  // You should pass the correct transactionId here
-  String bookingId = "bookings${DateTime.now().millisecondsSinceEpoch}";
-  listenForPaymentStatus(bookingId);
-}
-
+  void initState() {
+    super.initState();
+    // Listen for payment status with a placeholder transaction ID
+    // You should pass the correct transactionId here
+    String bookingId = "bookings${DateTime.now().millisecondsSinceEpoch}";
+    listenForPaymentStatus(bookingId);
+  }
 
   Future<void> _pickImage() async {
     try {
@@ -183,11 +182,26 @@ void initState() {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        content: Row(
+        title: Text("Payment Verification"), // Added title
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 20),
-            Text("Waiting for payment verification..."),
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+                  Colors.blue), // Blue progress indicator
+            ),
+            SizedBox(height: 20),
+            Text(
+              "Waiting for payment verification...",
+              style: TextStyle(fontSize: 16),
+              textAlign: TextAlign.center, // Centered text
+            ),
+            SizedBox(height: 10),
+            Text(
+              "Please do not close the app.",
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+              textAlign: TextAlign.center, // Centered text
+            ),
           ],
         ),
       ),
