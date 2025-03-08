@@ -16,6 +16,7 @@ class btnLocation extends StatefulWidget {
 class _BtnLocationState extends State<btnLocation> {
   int availableSlots = 0;
   bool isFavorite = false;
+  int checkedInCount = 0;
 
   void _showImagePopup(String imageUrl) {
     showDialog(
@@ -35,6 +36,32 @@ class _BtnLocationState extends State<btnLocation> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Fetches the count of 'check-in' vehicles for this location
+  Stream<int> getCheckedInCount() {
+    return FirebaseFirestore.instance
+        .collection('bookings')
+        .where('locationId', isEqualTo: widget.documentId)
+        .where('parkingStatus', isEqualTo: 'check-in')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
+  void _showFullDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Parking Full"),
+        content: const Text("Sorry, all parking slots are currently occupied."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
       ),
     );
   }
@@ -95,7 +122,7 @@ class _BtnLocationState extends State<btnLocation> {
                     },
                     child: Container(
                       width: double.infinity,
-                      height: 300, // Full height for the image
+                      height: 300,
                       decoration: BoxDecoration(
                         borderRadius: const BorderRadius.only(
                           bottomLeft: Radius.circular(40),
@@ -207,10 +234,7 @@ class _BtnLocationState extends State<btnLocation> {
                               ),
                             ),
                           ),
-                          Row(
-                            children: [
-                              // In your btnLocation widget:
-                              IconButton(
+                          IconButton(
                                 icon: const Icon(Icons.comment,
                                     color: Colors.black, size: 30),
                                 onPressed: () {
@@ -222,22 +246,6 @@ class _BtnLocationState extends State<btnLocation> {
                                       ));
                                 },
                               ),
-                              IconButton(
-                                icon: Icon(
-                                  isFavorite
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: isFavorite ? Colors.red : Colors.black,
-                                  size: 30,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    isFavorite = !isFavorite;
-                                  });
-                                },
-                              ),
-                            ],
-                          ),
                         ],
                       ),
                       const SizedBox(height: 10),
@@ -251,45 +259,53 @@ class _BtnLocationState extends State<btnLocation> {
                       ),
                       const SizedBox(height: 20),
 
-                      const SizedBox(height: 10),
-                      Text(
-                        "Car Slots: $availableSlots",
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
+                      // Real-time Check-in Counter
+                      StreamBuilder<int>(
+                        stream: getCheckedInCount(),
+                        builder: (context, snapshot) {
+                          checkedInCount = snapshot.data ?? 0;
+
+                          return Text(
+                            "Car Slot: $checkedInCount/$availableSlots",
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          );
+                        },
                       ),
+
                       const SizedBox(height: 20),
 
                       const Spacer(),
+
                       SizedBox(
-                        width: 500, // Set a fixed width
-                        height: 50, // Set a fixed height
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            // Correct way to pass the documentId to detailpay
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    detailpay(documentId: widget.documentId),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.arrow_forward,
-                              color: Colors.white),
-                          label: const Text(
-                            "Booking",
-                            style: TextStyle(fontSize: 18, color: Colors.white),
-                          ),
+                        width: 500,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: (checkedInCount >= availableSlots)
+                              ? null
+                              : () {
+                                  if (checkedInCount >= availableSlots) {
+                                    _showFullDialog();
+                                  } else {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            detailpay(documentId: widget.documentId),
+                                      ),
+                                    );
+                                  }
+                                },
                           style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 14),
-                            backgroundColor: Colors.blue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
+                            backgroundColor: (checkedInCount >= availableSlots)
+                                ? Colors.grey
+                                : Colors.blue,
+                          ),
+                          child: Text(
+                            (checkedInCount >= availableSlots) ? "Sold Out" : "Booking",
+                            style: const TextStyle(fontSize: 18, color: Colors.white),
                           ),
                         ),
                       )

@@ -23,6 +23,7 @@ import 'package:parking1/menu/Wallet.dart';
 import 'package:parking1/menu/employee_login.dart';
 import 'package:parking1/menu/employeescan.dart';
 import 'package:parking1/menu/history.dart';
+import 'package:parking1/menu/myTicket.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class drawer_menu extends StatefulWidget {
@@ -322,7 +323,10 @@ class _DrawerMenuState extends State<drawer_menu> {
                 ),
               ),
               onTap: () {
-                Navigator.of(context).pop();
+               Navigator.of(context).pop();
+                MaterialPageRoute route =
+                    MaterialPageRoute(builder: (c) => MyTicket());
+                Navigator.of(context).push(route);
               },
             ),
           ),
@@ -459,7 +463,7 @@ class _DrawerMenuState extends State<drawer_menu> {
               onTap: () {
                 Navigator.of(context).pop();
                 MaterialPageRoute route =
-                    MaterialPageRoute(builder: (c) => map_api());
+                    MaterialPageRoute(builder: (c) => map_api(documentId: '',));
                 Navigator.of(context).push(route);
               },
             ),

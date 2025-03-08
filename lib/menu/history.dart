@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:parking1/drawer.dart';
-
+import 'package:parking1/menu/detailHistory.dart'; // Import your details_history page
 
 class history extends StatefulWidget {
   const history({super.key});
@@ -10,34 +11,95 @@ class history extends StatefulWidget {
 }
 
 class _HistoryState extends State<history> {
+  late Stream<List<Map<String, dynamic>>> _historyStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _historyStream = fetchHistoryData();
+  }
+
+  Stream<List<Map<String, dynamic>>> fetchHistoryData() {
+    return FirebaseFirestore.instance
+        .collection('bookings')
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<Map<String, dynamic>> historyList = [];
+      for (var doc in snapshot.docs) {
+        var bookingData = doc.data();
+        String transactionId = bookingData['paymentId'] ?? '';
+
+        DocumentSnapshot paymentSnapshot = await FirebaseFirestore.instance
+            .collection('payments')
+            .doc(transactionId)
+            .get();
+
+        Map<String, dynamic> paymentData = paymentSnapshot.exists
+            ? paymentSnapshot.data() as Map<String, dynamic>
+            : {};
+
+        historyList.add({
+          'booking': bookingData,
+          'payment': paymentData,
+          'bookingDocId': doc.id, // Add booking document ID
+        });
+      }
+      return historyList;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("History"),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          const TicketWidget(
-            title: 'Parking Ticket',
-            subtitle: 'Location: Downtown Parking Lot',
-            date: '19 Nov 2024',
-            seat: 'Slot 25B',
-          ),
-          const TicketWidget(
-            title: 'Parking Ticket',
-            subtitle: 'Location: City Mall',
-            date: '18 Nov 2024',
-            seat: 'Slot 12A',
-          ),
-          const TicketWidget(
-            title: 'Parking Ticket',
-            subtitle: 'Location: Airport Parking',
-            date: '17 Nov 2024',
-            seat: 'Slot 42C',
-          ),
-        ],
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _historyStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text("No history found."));
+          }
+
+          List<Map<String, dynamic>> historyList = snapshot.data!;
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16.0),
+            itemCount: historyList.length,
+            itemBuilder: (context, index) {
+              var bookingData = historyList[index]['booking'];
+              var paymentData = historyList[index]['payment'];
+              var bookingDocId = historyList[index]['bookingDocId']; // get Doc Id
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DetailHistory(
+                        bookingData: bookingData,
+                        paymentData: paymentData,
+                        bookingDocId: bookingDocId, // Pass the document ID
+                      ),
+                    ),
+                  );
+                },
+                child: TicketWidget(
+                  title: 'Parking Ticket',
+                  subtitle: 'Location: ${bookingData['nameLocation'] ?? 'N/A'}',
+                  date: bookingData['bookingDate'] ?? 'N/A',
+                  seat: bookingData['parkingStatus'] ?? 'N/A',
+                ),
+              );
+            },
+          );
+        },
       ),
       drawer: const drawer_menu(),
     );
@@ -46,7 +108,7 @@ class _HistoryState extends State<history> {
 
 class TicketWidget extends StatelessWidget {
   final String title;
-  final String subtitle;   
+  final String subtitle;
   final String date;
   final String seat;
 
@@ -75,7 +137,6 @@ class TicketWidget extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Top part of the ticket
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -100,12 +161,10 @@ class TicketWidget extends StatelessWidget {
               ],
             ),
           ),
-          // Perforation line
           CustomPaint(
             size: const Size(double.infinity, 20),
             painter: DashedLinePainter(),
           ),
-          // Bottom part of the ticket
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -135,7 +194,7 @@ class TicketWidget extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Slot'),
+                        const Text('Status'),
                         Text(
                           seat,
                           style: const TextStyle(

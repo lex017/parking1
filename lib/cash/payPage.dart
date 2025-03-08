@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -153,96 +154,136 @@ class _PayPageState extends State<PayPage> {
     }
   }
 
-  Future<void> _savePaymentAndBooking() async {
-    if (amountController.text.isEmpty ||
-        dateController.text.isEmpty ||
-        timeController.text.isEmpty ||
-        nameController.text.isEmpty ||
-        (_selectedImage == null && _imageBytes == null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Please fill all fields and upload an image.")),
-      );
-      return;
-    }
-
-    String? imageUrl = await _uploadImageToCloudinary();
-    if (imageUrl == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Image upload failed.")),
-      );
-      return;
-    }
-
-    String transactionId = "payment${DateTime.now().millisecondsSinceEpoch}";
-    String bookingId = "bookings${DateTime.now().millisecondsSinceEpoch}";
-
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text("Payment Verification"), // Added title
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(
-                  Colors.blue), // Blue progress indicator
-            ),
-            SizedBox(height: 20),
-            Text(
-              "Waiting for payment verification...",
-              style: TextStyle(fontSize: 16),
-              textAlign: TextAlign.center, // Centered text
-            ),
-            SizedBox(height: 10),
-            Text(
-              "Please do not close the app.",
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-              textAlign: TextAlign.center, // Centered text
-            ),
-          ],
-        ),
-      ),
+Future<void> _savePaymentAndBooking() async {
+  if (amountController.text.isEmpty ||
+      dateController.text.isEmpty ||
+      timeController.text.isEmpty ||
+      nameController.text.isEmpty ||
+      (_selectedImage == null && _imageBytes == null)) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text("Please fill all fields and upload an image.")),
     );
+    return;
+  }
 
-    // Save payment and booking data
-    FirebaseFirestore.instance.collection('payments').doc(transactionId).set({
-      "amount": amountController.text,
-      "date": dateController.text,
-      "time": timeController.text,
-      "name": nameController.text,
-      "imageBill": imageUrl,
-      "paymentStatus": "pending",
-      "timestamp": FieldValue.serverTimestamp(),
-    });
+  String? imageUrl = await _uploadImageToCloudinary();
+  if (imageUrl == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Image upload failed.")),
+    );
+    return;
+  }
 
-    FirebaseFirestore.instance.collection('bookings').doc(bookingId).set({
-      "userName": nameController.text,
-      "bookingDate": dateController.text,
-      "bookingTime": timeController.text,
-      "paymentId": transactionId,
-      "paymentStatus": "pending",
-      "parkingStatus": "pending",
-      "timestamp": FieldValue.serverTimestamp(),
-    }).then((_) {
-      _sendNotification(transactionId);
+  String transactionId = "payment${DateTime.now().millisecondsSinceEpoch}";
+  String bookingId = "bookings${DateTime.now().millisecondsSinceEpoch}";
+
+  // Fetch location data from Firestore
+  String locationId = ""; 
+  String nameLocation = ""; 
+  try {
+    var locationSnapshot = await FirebaseFirestore.instance
+        .collection('Locations')
+        .limit(1)
+        .get(); 
+
+    if (locationSnapshot.docs.isNotEmpty) {
+      var locationData = locationSnapshot.docs.first.data();
+      locationId = locationSnapshot.docs.first.id; 
+      nameLocation = locationData['nameLocation'] ?? "Unknown Location";
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Payment submitted. Waiting for verification.")),
+        const SnackBar(content: Text("No location found.")),
       );
-    }).catchError((error) {
-      print("Error saving booking: $error");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to save booking. Try again.")),
-      );
-    });
+      return;
+    }
+  } catch (e) {
+    print("Error fetching location: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Failed to retrieve location.")),
+    );
+    return;
+  }
+
+  // Show loading dialog
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      title: Text("Payment Verification"),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+          ),
+          SizedBox(height: 20),
+          Text(
+            "Waiting for payment verification...",
+            style: TextStyle(fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 10),
+          Text(
+            "Please do not close the app.",
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    ),
+  );
+
+  // Save payment and booking data
+  FirebaseFirestore.instance.collection('payments').doc(transactionId).set({
+    "amount": amountController.text,
+    "date": dateController.text,
+    "time": timeController.text,
+    "name": nameController.text,
+    "imageBill": imageUrl,
+    "paymentStatus": "pending",
+    "timestamp": FieldValue.serverTimestamp(),
+  });
+
+  FirebaseFirestore.instance.collection('bookings').doc(bookingId).set({
+    "userName": nameController.text,
+    "bookingDate": dateController.text,
+    "bookingTime": timeController.text,
+    "paymentId": transactionId,
+    "locationId": locationId,
+    "nameLocation": nameLocation,
+    "paymentStatus": "pending",
+    "parkingStatus": "pending",
+    "timestamp": FieldValue.serverTimestamp(),
+  }).then((_) {
+    _sendNotification(transactionId);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text("Payment submitted. Waiting for verification.")),
+    );
+  }).catchError((error) {
+    print("Error saving booking: $error");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Failed to save booking. Try again.")),
+    );
+  });
+
+
 
     // Listen for payment status update
     listenForPaymentStatus(bookingId);
   }
+  Future<int> countCheckedInTickets() async {
+  String userId = FirebaseAuth.instance.currentUser!.uid;
 
+  QuerySnapshot ticketSnapshot = await FirebaseFirestore.instance
+      .collection('bookings') // Make sure this matches your Firestore collection name
+      .where('userId', isEqualTo: userId)
+      .where('parkingStatus', isEqualTo: 'check-in') // Filter only "check-in" status
+      .get();
+
+  return ticketSnapshot.docs.length; // Return the count of filtered tickets
+}
   void listenForPaymentStatus(String bookingId) {
     FirebaseFirestore.instance
         .collection('bookings')

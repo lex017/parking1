@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parking1/bottombar/chatPage.dart';
 import 'package:parking1/drawer.dart';
 
 
@@ -18,7 +19,10 @@ class _HelpState extends State<Help> {
       height: 50,
       child: ElevatedButton(
         onPressed: () {
-         
+         Navigator.of(context).pop();
+                MaterialPageRoute route =
+                    MaterialPageRoute(builder: (c) => ChatPage());
+                Navigator.of(context).push(route);
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 97, 22, 17), // Custom button color

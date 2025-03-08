@@ -105,7 +105,24 @@ class _ParkingAppState extends State<ParkingApp> {
           selectedLabelStyle: TextStyle(fontSize: 25, color: Colors.white),
           unselectedLabelStyle: TextStyle(fontSize: 14, color: Colors.white),
         ),
+        brightness: Brightness.light, // Default light theme
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark, // Dark mode theme
+        appBarTheme: const AppBarTheme(
+          color: Colors.black,
+          titleTextStyle: TextStyle(
+            color: Colors.white,
+            fontSize: 22.0,
+          ),
+          iconTheme: IconThemeData(color: Colors.white, size: 33.0),
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          selectedLabelStyle: TextStyle(fontSize: 25, color: Colors.white),
+          unselectedLabelStyle: TextStyle(fontSize: 14, color: Colors.white),
+        ),
+      ),
+      themeMode: ThemeMode.system, // Automatically switch based on system preferences
       home: const loginPage(),
     );
   }

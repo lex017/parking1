@@ -361,7 +361,7 @@ class _OwnerMainState extends State<ownerMain> {
                       onPressed: () {
                         Navigator.of(context).pop();
                         MaterialPageRoute route =
-                            MaterialPageRoute(builder: (c) => map_api());
+                            MaterialPageRoute(builder: (c) => map_api(documentId: '',));
                         Navigator.of(context).push(route);
                       },
                     ),

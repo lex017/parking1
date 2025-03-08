@@ -12,6 +12,7 @@ class EmployeeScan extends StatefulWidget {
 
 class _EmployeeScanState extends State<EmployeeScan> {
   bool _isProcessing = false;
+  MobileScannerController cameraController = MobileScannerController();
 
   void _handleScan(String bookingId) async {
     if (_isProcessing) return;
@@ -20,39 +21,52 @@ class _EmployeeScanState extends State<EmployeeScan> {
       _isProcessing = true;
     });
 
+    // ปิดกล้องชั่วคราวเพื่อป้องกันการสแกนซ้ำ
+    cameraController.stop();
+
     try {
-      // Check Firestore if the ticket exists
-      final ticketRef =
-          FirebaseFirestore.instance.collection('bookings').doc(bookingId);
+      final ticketRef = FirebaseFirestore.instance.collection('bookings').doc(bookingId);
       final ticketSnapshot = await ticketRef.get();
 
       if (ticketSnapshot.exists) {
         final ticketData = ticketSnapshot.data();
         String status = ticketData?['parkingStatus'] ?? 'unknown';
 
-        // Navigate to confirmation page with actual status
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ScanCheck(bookingId: bookingId, status: status),
           ),
-        );
+        ).then((_) {
+          // เปิดกล้องอีกครั้งเมื่อกลับมาจากหน้าถัดไป
+          cameraController.start();
+        });
       } else {
-        // Show error message if ticket does not exist
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Ticket not found!")),
         );
+        cameraController.start();
       }
     } catch (e) {
       print("Error scanning ticket: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error fetching ticket.")),
+        const SnackBar(content: Text("Ticket is time out.")),
       );
+      cameraController.start();
     }
+
+    // เพิ่มดีเลย์ก่อนให้สแกนใหม่ได้
+    await Future.delayed(const Duration(seconds: 2));
 
     setState(() {
       _isProcessing = false;
     });
+  }
+
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
   }
 
   @override
@@ -66,10 +80,10 @@ class _EmployeeScanState extends State<EmployeeScan> {
       body: Stack(
         children: [
           MobileScanner(
+            controller: cameraController,
             onDetect: (barcodeCapture) {
               for (final barcode in barcodeCapture.barcodes) {
                 if (barcode.rawValue != null && !_isProcessing) {
-                  // Extract the bookingId from the QR data
                   String? bookingId = _extractBookingId(barcode.rawValue!);
                   if (bookingId != null) {
                     _handleScan(bookingId);
@@ -77,9 +91,6 @@ class _EmployeeScanState extends State<EmployeeScan> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Invalid QR code format")),
                     );
-                    setState(() {
-                      _isProcessing = false;
-                    });
                   }
                 }
               }
@@ -111,7 +122,6 @@ class _EmployeeScanState extends State<EmployeeScan> {
   }
 
   String? _extractBookingId(String qrData) {
-    // Assuming the QR data is in the format: "BookingID: <bookingId>\n..."
     try {
       final lines = qrData.split('\n');
       for (final line in lines) {
@@ -119,7 +129,7 @@ class _EmployeeScanState extends State<EmployeeScan> {
           return line.substring('BookingID: '.length);
         }
       }
-      return null; // BookingID not found
+      return null;
     } catch (e) {
       print("Error extracting bookingId: $e");
       return null;

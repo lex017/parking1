@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'package:parking1/bottombar/vechicle.dart';
 import 'package:parking1/map_api/LocationPage.dart';
+import 'package:parking1/map_api/map_api.dart';
 import 'package:parking1/menu/Help.dart';
 import 'package:parking1/menu/Wallet.dart';
 import 'package:parking1/menu/history.dart';
@@ -26,7 +27,7 @@ class _MainPageState extends State<mainPage> {
                            'https://res.cloudinary.com/doiq3nkso/image/upload/v1736348049/ojs7n8aufknyoerqfxex.jpg',
                            'https://res.cloudinary.com/doiq3nkso/image/upload/v1736348850/jwufyzc7imcwz3ylpi5d.png'
                           ]; 
-
+  
   @override
   void initState() {
     super.initState();
@@ -173,7 +174,7 @@ class _MainPageState extends State<mainPage> {
             label: 'Location',
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => LocationPage()),
+                MaterialPageRoute(builder: (context) => map_api(documentId: 'documentId')),
               );
             },
           ),

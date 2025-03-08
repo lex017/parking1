@@ -6,7 +6,8 @@ import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:parking1/map_api/btnlocation.dart';
 
 class map_api extends StatefulWidget {
-  const map_api({Key? key}) : super(key: key);
+  final String documentId;
+  const map_api({Key? key, required this.documentId}) : super(key: key);
 
   @override
   State<map_api> createState() => _MapApiState();
@@ -166,7 +167,7 @@ class _MapApiState extends State<map_api> {
             backdropColor: Colors.white,
             controller: _panelController,
             minHeight: 0,
-            maxHeight: 370,
+            maxHeight: 420,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             panel: selectedDocId != null
                 ? parkLocation(selectedDocId!)
@@ -194,69 +195,138 @@ class _MapApiState extends State<map_api> {
       ),
     );
   }
+ Widget parkLocation(String docId) {
+  /// Fetches the count of 'check-in' vehicles for this location
+  Stream<int> getCheckedInCount() {
+    return FirebaseFirestore.instance
+        .collection('bookings')
+        .where('locationId', isEqualTo: docId)
+        .where('parkingStatus', isEqualTo: 'check-in')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
 
-  Widget parkLocation(String docId) {
-    return FutureBuilder<DocumentSnapshot>(
-      future:
-          FirebaseFirestore.instance.collection('Locations').doc(docId).get(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError ||
-            !snapshot.hasData ||
-            !snapshot.data!.exists) {
-          return const Center(child: Text("Error loading location details"));
-        }
+  return FutureBuilder<DocumentSnapshot>(
+    future: FirebaseFirestore.instance.collection('Locations').doc(docId).get(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      } else if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
+        return const Center(child: Text("Error loading location details"));
+      }
 
-        final data = snapshot.data!.data() as Map<String, dynamic>;
-        final locationName = data['nameLocation'] ?? 'Unknown Location';
-        final addressName = data['address'] ?? 'Unknown Address';
-        final price = data['price'] ?? 'Unknown Address';
-        final carSlot = data['car_slot'] ?? 'Unknown';
-        final imageUrl = data['imageUrl'] ?? '';
+      final data = snapshot.data!.data() as Map<String, dynamic>;
+      final locationName = data['nameLocation'] ?? 'Unknown Location';
+      final addressName = data['address'] ?? 'Unknown Address';
+      final price = data['price'] ?? 'Unknown Price';
+      final carSlot = data['car_slot'] ?? 0;
+      final imageUrl = data['imageUrl'] ?? '';
 
-        return Card(
-          color: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
+      return Card(
+        margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 8,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              colors: [Colors.white, Colors.grey.shade200],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-          elevation: 4,
-          margin: const EdgeInsets.symmetric(vertical: 8.0),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Location name
                 Text(
                   locationName,
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                // Display image with rounded corners
+                if (imageUrl.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(
+                      imageUrl,
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                // Address and price row
+                Row(
+                  children: [
+                    const Icon(Icons.location_on, size: 20, color: Colors.grey),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        addressName,
+                        style: const TextStyle(fontSize: 16, color: Colors.black87),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
-                if (imageUrl.isNotEmpty)
-                  Image.network(imageUrl,
-                      height: 120, width: double.infinity, fit: BoxFit.cover),
-                const SizedBox(height: 20),
-                Text("Address: $addressName",
-                    style: const TextStyle(fontSize: 14)),
-                const SizedBox(height: 10),
-                Text("Price: $price kip", style: const TextStyle(fontSize: 14)),
-                const SizedBox(height: 10),
-                Text("Car Slots: 0/$carSlot",
-                    style: const TextStyle(fontSize: 14)),
-                const SizedBox(height: 15),
                 Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.end, // Moves button to the right
+                  children: [
+                    const Icon(Icons.attach_money, size: 20, color: Colors.green),
+                    const SizedBox(width: 6),
+                    Text(
+                      "$price kip",
+                      style: const TextStyle(fontSize: 16, color: Colors.black87),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Real-time Check-in Counter
+                Row(
+                  children: [
+                    const Icon(Icons.directions_car, size: 20, color: Colors.green),
+                    const SizedBox(width: 6),
+                    StreamBuilder<int>(
+                      stream: getCheckedInCount(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Text("Loading check-ins...",
+                              style: TextStyle(fontSize: 16, color: Colors.black87));
+                        }
+                        return Text(
+                          "Car Slot: ${snapshot.data}/$carSlot",
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+               
+                // Next button aligned to the right
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     ElevatedButton.icon(
-                      icon: const Icon(Icons.map),
-                      label: const Text("Next"),
+                      icon: const Icon(Icons.map,color: Colors.white,),
+                      label: const Text("Next",style: TextStyle(color: Colors.white),),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) =>
-                                btnLocation(documentId: docId),
+                            builder: (context) => btnLocation(documentId: docId),
                           ),
                         );
                       },
@@ -266,8 +336,8 @@ class _MapApiState extends State<map_api> {
               ],
             ),
           ),
-        );
-      },
-    );
-  }
-}
+        ),
+      );
+    },
+  );
+}}

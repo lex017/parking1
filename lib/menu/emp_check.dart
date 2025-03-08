@@ -17,11 +17,11 @@ class _ScanCheckState extends State<ScanCheck> {
   @override
   void initState() {
     super.initState();
-    status = widget.status; // Use passed status first
+    status = widget.status; // ใช้สถานะที่รับมาจากหน้าก่อน
     _fetchTicketStatus();
   }
 
-  // Fetch the ticket status from Firestore
+  // ดึงสถานะของตั๋วจาก Firestore
   Future<void> _fetchTicketStatus() async {
     try {
       final ticketRef = FirebaseFirestore.instance.collection('bookings').doc(widget.bookingId);
@@ -44,7 +44,7 @@ class _ScanCheckState extends State<ScanCheck> {
     }
   }
 
-  // Handle Check-in
+  // อัปเดตสถานะเป็น Check-in
   Future<void> _handleCheckIn() async {
     final ticketRef = FirebaseFirestore.instance.collection('bookings').doc(widget.bookingId);
 
@@ -65,29 +65,30 @@ class _ScanCheckState extends State<ScanCheck> {
     }
   }
 
-  // Handle Check-out (Deletes the ticket)
+  // อัปเดตสถานะเป็น Check-out (ไม่ลบข้อมูล)
   Future<void> _handleCheckOut() async {
     final ticketRef = FirebaseFirestore.instance.collection('bookings').doc(widget.bookingId);
 
     try {
-      await ticketRef.delete();
+      await ticketRef.update({"parkingStatus": "check-out"});
       setState(() {
-        status = "deleted";
+        status = "check-out";
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Check-out successful! Ticket deleted.")),
+        const SnackBar(content: Text("Check-out successful!")),
       );
 
+      // กลับไปหน้าก่อนหลังจากแสดงผล 1 วินาที
       Future.delayed(const Duration(seconds: 1), () {
         if (mounted) {
           Navigator.pop(context);
         }
       });
     } catch (e) {
-      print("Error deleting ticket: $e");
+      print("Error updating check-out status: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to delete ticket.")),
+        const SnackBar(content: Text("Failed to update check-out status.")),
       );
     }
   }
@@ -149,7 +150,7 @@ class _ScanCheckState extends State<ScanCheck> {
                   if (status == "check-in")
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
+                        backgroundColor: Colors.orange,
                         minimumSize: const Size(double.infinity, 50),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
