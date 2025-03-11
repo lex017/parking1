@@ -154,7 +154,7 @@ class DetailHistory extends StatelessWidget {
                       PaymentDetailRow(
                         icon: Icons.payment,
                         label: 'Payment Status',
-                        value: '${paymentData['paymentStatus'] ?? 'N/A'}',
+                        value: '${bookingData['paymentStatus'] ?? 'N/A'}',
                       ),
                       if (paymentData.containsKey('imageBill') &&
                           paymentData['imageBill'] != null) ...[

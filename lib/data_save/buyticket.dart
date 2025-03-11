@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:parking1/homepage.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class BuyTicket extends StatefulWidget {
   final String bookingId;
@@ -25,7 +26,6 @@ class _BuyTicketState extends State<BuyTicket> {
     startTimer();
   }
 
-   /// Fetch ticket and payment details
   Future<Map<String, dynamic>> fetchTicketData() async {
     DocumentSnapshot bookingSnapshot = await FirebaseFirestore.instance
         .collection('bookings')
@@ -40,7 +40,6 @@ class _BuyTicketState extends State<BuyTicket> {
     String transactionId = bookingData['paymentId'] ?? '';
     var parkingStatus = bookingData['parkingStatus'] ?? 'pending';
 
-    // Fetch payment data using transactionId
     DocumentSnapshot paymentSnapshot = await FirebaseFirestore.instance
         .collection('payments')
         .doc(transactionId)
@@ -50,7 +49,6 @@ class _BuyTicketState extends State<BuyTicket> {
         ? paymentSnapshot.data() as Map<String, dynamic>
         : {};
 
-    // Listen to status changes in Firestore
     FirebaseFirestore.instance
         .collection('bookings')
         .doc(widget.bookingId)
@@ -60,9 +58,9 @@ class _BuyTicketState extends State<BuyTicket> {
         String newStatus = snapshot['parkingStatus'] ?? 'pending';
 
         if (newStatus == 'check-in' || newStatus == 'check-out') {
-          stopTimer(); // Stop timer if status is "check-in"
+          stopTimer();
         } else if (newStatus == 'pending') {
-          startTimer(); // Start timer if status is "pending"
+          startTimer();
         }
 
         setState(() {
@@ -77,9 +75,8 @@ class _BuyTicketState extends State<BuyTicket> {
     };
   }
 
-  /// Starts a countdown timer (30 minutes) only if status is "pending"
   void startTimer() {
-    _timer?.cancel(); // Prevent duplicate timers
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
       if (remainingSeconds > 0) {
         setState(() {
@@ -92,15 +89,13 @@ class _BuyTicketState extends State<BuyTicket> {
     });
   }
 
-  /// Stops the countdown timer
   void stopTimer() {
     _timer?.cancel();
     setState(() {
-      remainingSeconds = 30 * 60; // Reset timer
+      remainingSeconds = 30 * 60;
     });
   }
 
-  /// Updates Firestore status to 'checkout' when time expires
   Future<void> updateParkingStatusToCheckout() async {
     await FirebaseFirestore.instance
         .collection('bookings')
@@ -128,11 +123,23 @@ class _BuyTicketState extends State<BuyTicket> {
     }
   }
 
-  /// Formats remaining time into MM:SS format
   String formatTime(int seconds) {
     int minutes = seconds ~/ 60;
     int sec = seconds % 60;
     return "$minutes:${sec.toString().padLeft(2, '0')}";
+  }
+
+  Future<void> _launchURL(String latitude, String longitude) async {
+    try {
+      final url = 'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
+      if (await canLaunch(url)) {
+        await launch(url);
+      } else {
+        throw 'Could not open the map';
+      }
+    } catch (e) {
+      print("Error: $e");
+    }
   }
 
   @override
@@ -140,7 +147,6 @@ class _BuyTicketState extends State<BuyTicket> {
     _timer?.cancel();
     super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -169,6 +175,9 @@ class _BuyTicketState extends State<BuyTicket> {
             String transactionId = bookingData['paymentId'] ?? 'N/A';
             String parkingStatus = bookingData['parkingStatus'] ?? 'N/A';
             String amount = paymentData['amount'] ?? '0.00';
+            GeoPoint location = bookingData['location']; 
+            double latitude = location.latitude;
+            double longitude = location.longitude;
 
             String qrData =
                 "BookingID: ${widget.bookingId}\nUser: $userName\nDate: $bookingDate\nTime: $bookingTime\nPaymentID: $transactionId\nParking Status: $parkingStatus\nAmount: $amount";
@@ -186,7 +195,6 @@ class _BuyTicketState extends State<BuyTicket> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: const [
@@ -199,23 +207,17 @@ class _BuyTicketState extends State<BuyTicket> {
                     ],
                   ),
                   const SizedBox(height: 20),
-
-                  // QR Code
                   QrImageView(
                     data: qrData,
                     version: QrVersions.auto,
                     size: 150,
                   ),
                   const SizedBox(height: 20),
-
-                  // Booking Date
                   Text(
                     bookingDate,
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 15),
-
-                  // User and Time Information
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -240,27 +242,35 @@ class _BuyTicketState extends State<BuyTicket> {
                     ],
                   ),
                   const SizedBox(height: 20),
-
-                  // Amount Paid
                   Text("PAID: $amount Kip",
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 15),
-
-                  // Parking Status
                   Text("Parking Status: $parkingStatus",
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 20),
-
-                  // Countdown Timer Display
                   Text(
                     "Time Left: ${formatTime(remainingSeconds)}",
                     style: const TextStyle(fontSize: 18, color: Colors.red, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 20),
-
-                  // "Thank You" Message
                   const Text("THANK YOU AND HAVE A SAFE TRIP!", style: TextStyle(fontSize: 14)),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 20), 
+
+                  // "Navigate to Location" Button
+                  ElevatedButton.icon(
+                    onPressed: () => _launchURL(latitude.toString(), longitude.toString()),
+                    icon: const Icon(Icons.map),
+                    label: const Text("Navigate to Location"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20), 
 
                   // Back to Main Page Button
                   ElevatedButton.icon(

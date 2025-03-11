@@ -299,8 +299,8 @@ class _BtnLocationState extends State<btnLocation> {
                                   }
                                 },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: (checkedInCount >= availableSlots)
-                                ? Colors.grey
+                            backgroundColor: (checkedInCount == availableSlots)
+                                ? Colors.red
                                 : Colors.blue,
                           ),
                           child: Text(

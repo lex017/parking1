@@ -12,7 +12,15 @@ class EmployeeScan extends StatefulWidget {
 
 class _EmployeeScanState extends State<EmployeeScan> {
   bool _isProcessing = false;
+  bool _isFlashOn = false;
   MobileScannerController cameraController = MobileScannerController();
+
+  void _toggleFlash() {
+    setState(() {
+      _isFlashOn = !_isFlashOn;
+      cameraController.toggleTorch();
+    });
+  }
 
   void _handleScan(String bookingId) async {
     if (_isProcessing) return;
@@ -76,6 +84,12 @@ class _EmployeeScanState extends State<EmployeeScan> {
         title: const Text("Employee Scan"),
         centerTitle: true,
         backgroundColor: Colors.blue,
+        actions: [
+          IconButton(
+            icon: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off, color: Colors.white),
+            onPressed: _toggleFlash,
+          ),
+        ],
       ),
       body: Stack(
         children: [

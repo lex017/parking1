@@ -24,6 +24,7 @@ import 'package:parking1/menu/employee_login.dart';
 import 'package:parking1/menu/employeescan.dart';
 import 'package:parking1/menu/history.dart';
 import 'package:parking1/menu/myTicket.dart';
+import 'package:parking1/menu/setting.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class drawer_menu extends StatefulWidget {
@@ -334,26 +335,6 @@ class _DrawerMenuState extends State<drawer_menu> {
             onPressed: () {},
             child: ListTile(
               title: Text(
-                'Wallet',
-                style: TextStyle(
-                  fontSize: 22.0,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                  fontFamily: 'Roboto',
-                ),
-              ),
-              onTap: () {
-                Navigator.of(context).pop();
-                MaterialPageRoute route =
-                    MaterialPageRoute(builder: (c) => Wallet());
-                Navigator.of(context).push(route);
-              },
-            ),
-          ),
-          TextButton(
-            onPressed: () {},
-            child: ListTile(
-              title: Text(
                 'EmployeeScan',
                 style: TextStyle(
                   fontSize: 22.0,
@@ -403,7 +384,10 @@ class _DrawerMenuState extends State<drawer_menu> {
                 ),
               ),
               onTap: () {
-                Navigator.of(context).pop();
+                 Navigator.of(context).pop();
+                MaterialPageRoute route =
+                    MaterialPageRoute(builder: (c) => SettingPage());
+                Navigator.of(context).push(route);
               },
             ),
           ),

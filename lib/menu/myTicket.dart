@@ -21,26 +21,27 @@ class _MyTicketState extends State<MyTicket> {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-
+        
         final user = authSnapshot.data;
-
         if (user == null) {
           return Scaffold(
             appBar: AppBar(title: const Text("My Tickets")),
             body: const Center(child: Text("กรุณาเข้าสู่ระบบเพื่อดูตั๋วของคุณ")),
           );
         }
-
+        
         return Scaffold(
           appBar: AppBar(
             title: const Text("My Tickets"),
             backgroundColor: Colors.lightBlue,
           ),
           body: StreamBuilder<QuerySnapshot>(
+            // IMPORTANT: Make sure your Firestore documents include a "userId" field.
+            // If not, remove the .where('userId', isEqualTo: user.uid) filter for debugging.
             stream: FirebaseFirestore.instance
                 .collection('bookings')
                 .where('paymentStatus', isEqualTo: 'success')
-                .where('userId', isEqualTo: user.uid)
+                .where(user.uid) // Ensure "userId" exists in Firestore!
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -52,23 +53,30 @@ class _MyTicketState extends State<MyTicket> {
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return const Center(child: Text("คุณไม่มีตั๋วที่ใช้งานอยู่"));
               }
-
+              
+              // Debug print to see how many tickets are fetched
+              print("Fetched ${snapshot.data!.docs.length} tickets");
+              
               var tickets = snapshot.data!.docs;
-
               return ListView.builder(
                 padding: const EdgeInsets.all(8),
                 itemCount: tickets.length,
                 itemBuilder: (context, index) {
                   var ticket = tickets[index].data() as Map<String, dynamic>;
+                  // Debug print for each ticket document
+                  print("Ticket $index data: $ticket");
+                  
                   String bookingId = tickets[index].id;
                   String userName = ticket['userName'] ?? 'Unknown';
                   String bookingDate = ticket['bookingDate'] ?? 'N/A';
                   String bookingTime = ticket['bookingTime'] ?? 'N/A';
                   String amount = ticket['amount'] ?? '0.00';
+                  
+                  // Get GeoPoint from Firestore properly
+                  GeoPoint location = ticket['location'] ?? GeoPoint(0.0, 0.0);
                   String parkingStatus = ticket['parkingStatus'] ?? 'check-in';
-
                   bool isCheckOut = parkingStatus == 'check-out';
-
+                  
                   return Card(
                     elevation: 4,
                     shape: RoundedRectangleBorder(

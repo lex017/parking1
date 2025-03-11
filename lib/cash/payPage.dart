@@ -181,16 +181,17 @@ Future<void> _savePaymentAndBooking() async {
   // Fetch location data from Firestore
   String locationId = ""; 
   String nameLocation = ""; 
+  GeoPoint location;
   try {
     var locationSnapshot = await FirebaseFirestore.instance
         .collection('Locations')
-        .limit(1)
         .get(); 
 
     if (locationSnapshot.docs.isNotEmpty) {
       var locationData = locationSnapshot.docs.first.data();
       locationId = locationSnapshot.docs.first.id; 
       nameLocation = locationData['nameLocation'] ?? "Unknown Location";
+      location = locationData['location'] ?? "Unknown Location";
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("No location found.")),
@@ -252,6 +253,7 @@ Future<void> _savePaymentAndBooking() async {
     "paymentId": transactionId,
     "locationId": locationId,
     "nameLocation": nameLocation,
+    "location":location,
     "paymentStatus": "pending",
     "parkingStatus": "pending",
     "timestamp": FieldValue.serverTimestamp(),

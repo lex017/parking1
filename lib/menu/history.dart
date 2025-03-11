@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:parking1/drawer.dart';
@@ -20,33 +21,40 @@ class _HistoryState extends State<history> {
   }
 
   Stream<List<Map<String, dynamic>>> fetchHistoryData() {
-    return FirebaseFirestore.instance
-        .collection('bookings')
-        .snapshots()
-        .asyncMap((snapshot) async {
-      List<Map<String, dynamic>> historyList = [];
-      for (var doc in snapshot.docs) {
-        var bookingData = doc.data();
-        String transactionId = bookingData['paymentId'] ?? '';
-
-        DocumentSnapshot paymentSnapshot = await FirebaseFirestore.instance
-            .collection('payments')
-            .doc(transactionId)
-            .get();
-
-        Map<String, dynamic> paymentData = paymentSnapshot.exists
-            ? paymentSnapshot.data() as Map<String, dynamic>
-            : {};
-
-        historyList.add({
-          'booking': bookingData,
-          'payment': paymentData,
-          'bookingDocId': doc.id, // Add booking document ID
-        });
-      }
-      return historyList;
-    });
+  String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  
+  if (currentUserId == null) {
+    return Stream.value([]); // Return an empty list if the user is not logged in
   }
+
+  return FirebaseFirestore.instance
+      .collection('bookings')
+      .where(currentUserId) // ✅ Filter by current user's ID
+      .snapshots()
+      .asyncMap((snapshot) async {
+    List<Map<String, dynamic>> historyList = [];
+    for (var doc in snapshot.docs) {
+      var bookingData = doc.data();
+      String transactionId = bookingData['paymentId'] ?? '';
+
+      DocumentSnapshot paymentSnapshot = await FirebaseFirestore.instance
+          .collection('payments')
+          .doc(transactionId)
+          .get();
+
+      Map<String, dynamic> paymentData = paymentSnapshot.exists
+          ? paymentSnapshot.data() as Map<String, dynamic>
+          : {};
+
+      historyList.add({
+        'booking': bookingData,
+        'payment': paymentData,
+        'bookingDocId': doc.id, // Booking document ID
+      });
+    }
+    return historyList;
+  });
+}
 
   @override
   Widget build(BuildContext context) {
