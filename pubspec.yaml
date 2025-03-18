@@ -77,6 +77,7 @@ dependencies:
   location: ^8.0.0
   flutter_polyline_points: ^2.1.0
   flip_card: ^0.7.0
+  intl: ^0.19.0
   # mapbox_maps_flutter: ^2.6.0
   
 

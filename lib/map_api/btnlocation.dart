@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:parking1/cash/QrPay.dart';
 import 'package:parking1/chose/comment.dart';
 import 'package:parking1/map_api/selectdetail.dart';
@@ -17,7 +18,7 @@ class _BtnLocationState extends State<btnLocation> {
   int availableSlots = 0;
   bool isFavorite = false;
   int checkedInCount = 0;
-
+  
   void _showImagePopup(String imageUrl) {
     showDialog(
       context: context,
@@ -45,25 +46,66 @@ class _BtnLocationState extends State<btnLocation> {
     return FirebaseFirestore.instance
         .collection('bookings')
         .where('locationId', isEqualTo: widget.documentId)
-        .where('parkingStatus', isEqualTo: 'check-in')
+        .where('parkingStatus', whereIn: ['check-in', 'pending'])
+        // .where('parkingStatus', isEqualTo: 'check-in')
         .snapshots()
         .map((snapshot) => snapshot.docs.length);
   }
 
-  void _showFullDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Parking Full"),
-        content: const Text("Sorry, all parking slots are currently occupied."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
+  void _showFullDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+      titlePadding: EdgeInsets.zero,
+      contentPadding: EdgeInsets.all(20),
+      actionsPadding: EdgeInsets.only(bottom: 10, right: 10),
+      title: Column(
+        children: [
+          Lottie.network(
+            'https://lottie.host/ee106baf-cfce-452b-8650-fb6fc4f50d82/npLBQIImO9.json', // Make sure to add a relevant Lottie file in your assets
+            height: 120,
+            width: 120,
+            fit: BoxFit.cover,
+          ),
+          SizedBox(height: 10),
+          Text(
+            "Parking Full",
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              color: Colors.redAccent,
+            ),
           ),
         ],
       ),
-    );
+      content: Text(
+        "Sorry, all parking slots are currently occupied. Please check back later.",
+        style: TextStyle(fontSize: 16, color: Colors.black54),
+        textAlign: TextAlign.center,
+      ),
+      actions: [
+        Align(
+          alignment: Alignment.center,
+          child: TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.blue,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: Text("OK", style: TextStyle(fontSize: 16)),
+          ),
+        ),
+      ],
+    ),
+  );
+
+
+
   }
 
   @override
@@ -288,12 +330,12 @@ class _BtnLocationState extends State<btnLocation> {
                               ? null
                               : () {
                                   if (checkedInCount >= availableSlots) {
-                                    _showFullDialog();
+                                    _showFullDialog(context);
                                   } else {
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
                                         builder: (context) =>
-                                            detailpay(documentId: widget.documentId),
+                                            detailPay(documentId: widget.documentId),
                                       ),
                                     );
                                   }

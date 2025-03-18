@@ -49,6 +49,22 @@ class _BuyTicketState extends State<BuyTicket> {
         ? paymentSnapshot.data() as Map<String, dynamic>
         : {};
 
+    int lastRemaining = bookingData['remainingSeconds'] ?? (30 * 60);
+    Timestamp? lastUpdated = bookingData['lastUpdated'];
+
+    if (lastUpdated != null) {
+      int elapsed = DateTime.now().difference(lastUpdated.toDate()).inSeconds;
+      remainingSeconds = (lastRemaining - elapsed).clamp(0, 30 * 60);
+    } else {
+      remainingSeconds = lastRemaining;
+    }
+
+    if (remainingSeconds > 0 && parkingStatus == 'pending') {
+      startTimer();
+    } else if (parkingStatus == 'check-in' || parkingStatus == 'check-out') {
+      stopTimer();
+    }
+
     FirebaseFirestore.instance
         .collection('bookings')
         .doc(widget.bookingId)
@@ -59,12 +75,11 @@ class _BuyTicketState extends State<BuyTicket> {
 
         if (newStatus == 'check-in' || newStatus == 'check-out') {
           stopTimer();
-        } else if (newStatus == 'pending') {
+        } else if (newStatus == 'pending' && _timer == null) {
           startTimer();
         }
-
         setState(() {
-          parkingStatus = newStatus;
+          bookingData['parkingStatus'] = newStatus;
         });
       }
     });
@@ -82,6 +97,16 @@ class _BuyTicketState extends State<BuyTicket> {
         setState(() {
           remainingSeconds--;
         });
+
+        if (remainingSeconds % 10 == 0) {
+          await FirebaseFirestore.instance
+              .collection('bookings')
+              .doc(widget.bookingId)
+              .update({
+            'remainingSeconds': remainingSeconds,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
+        }
       } else {
         timer.cancel();
         await updateParkingStatusToCheckout();
@@ -91,16 +116,13 @@ class _BuyTicketState extends State<BuyTicket> {
 
   void stopTimer() {
     _timer?.cancel();
-    setState(() {
-      remainingSeconds = 30 * 60;
-    });
   }
 
   Future<void> updateParkingStatusToCheckout() async {
     await FirebaseFirestore.instance
         .collection('bookings')
         .doc(widget.bookingId)
-        .update({'parkingStatus': 'checkout'});
+        .update({'parkingStatus': 'Time-out'});
 
     if (mounted) {
       showDialog(
@@ -131,7 +153,8 @@ class _BuyTicketState extends State<BuyTicket> {
 
   Future<void> _launchURL(String latitude, String longitude) async {
     try {
-      final url = 'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
+      final url =
+          'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
       if (await canLaunch(url)) {
         await launch(url);
       } else {
@@ -151,150 +174,281 @@ class _BuyTicketState extends State<BuyTicket> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: FutureBuilder<Map<String, dynamic>>(
-          future: _ticketFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            }
-            if (snapshot.hasError) {
-              return Text("Error: ${snapshot.error}");
-            }
-            if (!snapshot.hasData) {
-              return const Text("No booking found");
-            }
-
-            var bookingData = snapshot.data!['booking'];
-            var paymentData = snapshot.data!['payment'];
-
-            String userName = bookingData['userName'] ?? 'Unknown';
-            String bookingDate = bookingData['bookingDate'] ?? 'N/A';
-            String bookingTime = bookingData['bookingTime'] ?? 'N/A';
-            String transactionId = bookingData['paymentId'] ?? 'N/A';
-            String parkingStatus = bookingData['parkingStatus'] ?? 'N/A';
-            String amount = paymentData['amount'] ?? '0.00';
-            GeoPoint location = bookingData['location']; 
-            double latitude = location.latitude;
-            double longitude = location.longitude;
-
-            String qrData =
-                "BookingID: ${widget.bookingId}\nUser: $userName\nDate: $bookingDate\nTime: $bookingTime\nPaymentID: $transactionId\nParking Status: $parkingStatus\nAmount: $amount";
-
-            return Container(
-              width: 300,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.yellow[700],
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black26, blurRadius: 5, spreadRadius: 2),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.local_parking, size: 40, color: Colors.black),
-                      SizedBox(width: 10),
-                      Text(
-                        "PARKING TICKET",
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  QrImageView(
-                    data: qrData,
-                    version: QrVersions.auto,
-                    size: 150,
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    bookingDate,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 15),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("From:", style: TextStyle(fontSize: 16)),
-                          Text(userName,
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text("Time:", style: TextStyle(fontSize: 16)),
-                          Text(bookingTime,
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Text("PAID: $amount Kip",
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
-                  Text("Parking Status: $parkingStatus",
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 20),
-                  Text(
-                    "Time Left: ${formatTime(remainingSeconds)}",
-                    style: const TextStyle(fontSize: 18, color: Colors.red, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text("THANK YOU AND HAVE A SAFE TRIP!", style: TextStyle(fontSize: 14)),
-                  const SizedBox(height: 20), 
-
-                  // "Navigate to Location" Button
-                  ElevatedButton.icon(
-                    onPressed: () => _launchURL(latitude.toString(), longitude.toString()),
-                    icon: const Icon(Icons.map),
-                    label: const Text("Navigate to Location"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20), 
-
-                  // Back to Main Page Button
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (context) => const Homepage()),
-                      );
-                    },
-                    icon: const Icon(Icons.home),
-                    label: const Text("Main Page"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+      // A modern gradient background for the entire page
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFE3F2FD), Color(0xFFBBDEFB)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
         ),
+        child: Center(
+          child: FutureBuilder<Map<String, dynamic>>(
+            future: _ticketFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const CircularProgressIndicator();
+              }
+              if (snapshot.hasError) {
+                return Text("Error: ${snapshot.error}");
+              }
+              if (!snapshot.hasData) {
+                return const Text("No booking found");
+              }
+
+              var bookingData = snapshot.data!['booking'];
+              var paymentData = snapshot.data!['payment'];
+
+              String userName = bookingData['userName'] ?? 'Unknown';
+              String bookingDate = bookingData['bookingDate'] ?? 'N/A';
+              String bookingTime = bookingData['bookingTime'] ?? 'N/A';
+              String transactionId = bookingData['paymentId'] ?? 'N/A';
+              String parkingStatus = bookingData['parkingStatus'] ?? 'N/A';
+              String car = bookingData['car'] ?? 'N/A';
+              String amount = paymentData['amount'] ?? '0.00';
+              GeoPoint location = bookingData['location'];
+              double latitude = location.latitude;
+              double longitude = location.longitude;
+
+              String qrData =
+                  "BookingID: ${widget.bookingId}\nUser: $userName\nDate: $bookingDate\nTime: $bookingTime\nPaymentID: $transactionId\nStatus: $parkingStatus\nAmount: $amount";
+
+              // Modern front card with a gradient background and refined styling.
+              Widget frontCard = Container(
+                width: 350,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: const LinearGradient(
+                    colors: [Colors.white, Color(0xFFF1F8E9)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.local_parking,
+                            size: 40, color: Colors.black87),
+                        SizedBox(width: 10),
+                        Text(
+                          "PARKING TICKET",
+                          style: TextStyle(
+                              fontSize: 24, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      bookingDate,
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("From:", style: TextStyle(fontSize: 16)),
+                            Text(userName,
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            const Text("Time:", style: TextStyle(fontSize: 16)),
+                            Text(bookingTime,
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text("PAID: $amount Kip",
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Text("Status: $parkingStatus",
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
+                    Text("Car: $car",
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w500)),
+                     const SizedBox(height: 8),
+                    Text("Time Left: ${formatTime(remainingSeconds)}",
+                        style: const TextStyle(
+                            fontSize: 20,
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () =>
+                          _launchURL(latitude.toString(), longitude.toString()),
+                      icon: const Icon(Icons.map),
+                      label: const Text("Navigate to Location"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).pushReplacement(MaterialPageRoute(
+                            builder: (context) => const Homepage()));
+                      },
+                      icon: const Icon(Icons.home),
+                      label: const Text("Main Page"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12, horizontal: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      "Tap to view QR code",
+                      style: TextStyle(
+                          fontStyle: FontStyle.italic, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              );
+
+              // Modern back card displaying the QR code.
+              Widget backCard = Container(
+                width: 350,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: Colors.white,
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    QrImageView(
+                      data: qrData,
+                      version: QrVersions.auto,
+                      size: 200,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Tap to flip back",
+                      style: TextStyle(
+                          fontStyle: FontStyle.italic, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              );
+
+              return FlipCard(front: frontCard, back: backCard);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A custom flip card widget that flips between the front and back sides.
+class FlipCard extends StatefulWidget {
+  final Widget front;
+  final Widget back;
+
+  const FlipCard({Key? key, required this.front, required this.back})
+      : super(key: key);
+
+  @override
+  State<FlipCard> createState() => _FlipCardState();
+}
+
+class _FlipCardState extends State<FlipCard>
+    with SingleTickerProviderStateMixin {
+  bool _showFrontSide = true;
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _animation = Tween<double>(begin: 0, end: 1).animate(_controller);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _flipCard() {
+    if (_showFrontSide) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+    _showFrontSide = !_showFrontSide;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _flipCard,
+      child: AnimatedBuilder(
+        animation: _animation,
+        builder: (context, child) {
+          double angle = _animation.value * 3.141592653589793;
+          bool isFront = angle <= (3.141592653589793 / 2);
+          return Transform(
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.001)
+              ..rotateY(angle),
+            alignment: Alignment.center,
+            child: isFront
+                ? widget.front
+                : Transform(
+                    transform: Matrix4.rotationY(3.141592653589793),
+                    alignment: Alignment.center,
+                    child: widget.back,
+                  ),
+          );
+        },
       ),
     );
   }

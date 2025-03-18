@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:parking1/data_save/addvechicle.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
 import 'package:parking1/data_save/licenseplate.dart';
 import 'package:parking1/vechicle/detailcar.dart';
 
@@ -9,24 +9,25 @@ class Vehicle {
   final String brandName;
   final String color;
   final String plate;
-  final String documentId; // Add documentId
+  final String documentId;
+  final String userId; // Add userId field
 
   Vehicle({
     required this.brandName,
     required this.color,
     required this.plate,
-    required this.documentId, // Include documentId in constructor
+    required this.documentId,
+    required this.userId, // Include userId
   });
 
-  factory Vehicle.fromFirestore(
-      DocumentSnapshot<Map<String, dynamic>> doc,
-      ) {
+  factory Vehicle.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return Vehicle(
       brandName: data['brandName'] ?? 'Unknown',
       color: data['color'] ?? 'Unknown',
       plate: data['plate'] ?? 'Unknown',
-      documentId: doc.id, // Extract documentId from the snapshot
+      documentId: doc.id,
+      userId: data['userId'] ?? '', // Get userId from Firestore
     );
   }
 }
@@ -40,9 +41,19 @@ class Vechicle extends StatefulWidget {
 
 class _VehicleState extends State<Vechicle> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   Widget build(BuildContext context) {
+    final User? user = _auth.currentUser; // Get the current logged-in user
+
+    if (user == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Vehicle Information")),
+        body: const Center(child: Text("Please log in to see your vehicles.")),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Vehicle Information"),
@@ -52,10 +63,12 @@ class _VehicleState extends State<Vechicle> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: StreamBuilder<QuerySnapshot>(
-          stream: _firestore.collection('vehicles').snapshots(),
+          stream: _firestore
+              .collection('vehicles')
+              .where('userId', isEqualTo: user.uid) // Filter by logged-in user
+              .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              // You can replace this with a skeleton loader
               return const Center(child: CircularProgressIndicator());
             }
 
@@ -96,7 +109,7 @@ class _VehicleState extends State<Vechicle> {
                     borderRadius: BorderRadius.circular(16.0),
                   ),
                   elevation: 5,
-                  child: InkWell( // Use InkWell for ripple effect
+                  child: InkWell(
                     onTap: () {
                       Navigator.push(
                         context,
@@ -129,14 +142,13 @@ class _VehicleState extends State<Vechicle> {
                           ),
                           const SizedBox(height: 8.0),
                           Text(
-                            'License_Plate: ${vehicle.plate}',
+                            'License Plate: ${vehicle.plate}',
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.grey[600],
                             ),
                           ),
                           const SizedBox(height: 12.0),
-                         
                         ],
                       ),
                     ),

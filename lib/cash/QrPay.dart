@@ -4,40 +4,47 @@ import 'dart:async';
 import 'package:parking1/cash/payPage.dart';
 
 class QrPay extends StatefulWidget {
-  const QrPay({super.key});
+  final String documentId;
+  final String selectedCar;
+  final TimeOfDay selectedTime;  // TimeOfDay should be passed correctly here
+
+  const QrPay({
+    super.key,
+    required this.documentId,
+    required this.selectedCar,
+    required this.selectedTime,  // Ensuring TimeOfDay is passed correctly
+  });
 
   @override
   State<QrPay> createState() => _QrPayState();
 }
 
 class _QrPayState extends State<QrPay> {
-  String? imageUrl; // ใช้สำหรับเก็บ URL ของ QR
-  bool isLoading = true; // เช็คสถานะการโหลดภาพ
-  late Timer _timer; // ตัวจับเวลา
-  int _remainingTime = 600; // เวลาเริ่มต้น (10 นาที) ในวินาที
-  int? selectedHours = 1; // Example initialization of selectedHours
+  String? imageUrl; // Variable to store QR image URL
+  bool isLoading = true; // Check image loading status
+  late Timer _timer; // Timer instance
+  int _remainingTime = 600; // Start time (10 minutes) in seconds
 
   @override
   void initState() {
     super.initState();
-    fetchQrImage(); // โหลดภาพ QR Code
-    startTimer(); // เริ่มตัวจับเวลา
+    fetchQrImage(); // Fetch the QR code image
+    startTimer(); // Start the countdown timer
   }
 
   @override
   void dispose() {
-    _timer.cancel(); // ยกเลิกตัวจับเวลาเมื่อออกจากหน้า
+    _timer.cancel(); // Cancel timer when leaving the page
     super.dispose();
   }
 
-  // ฟังก์ชันโหลด QR จาก Cloudinary
+  // Function to fetch QR code image from Cloudinary (or any source)
   Future<void> fetchQrImage() async {
     try {
       const String cloudinaryUrl =
-          'https://res.cloudinary.com/doiq3nkso/image/upload/v1736478510/zgpbt7fp1w9d9tua7ujp.jpg'; // URL ของ QR
+          'https://res.cloudinary.com/doiq3nkso/image/upload/v1736478510/zgpbt7fp1w9d9tua7ujp.jpg'; // Placeholder URL
       setState(() {
-        imageUrl =
-            cloudinaryUrl; // ตั้งค่า URL ตรงนี้ (สมมติว่า URL ใช้งานได้โดยตรง)
+        imageUrl = cloudinaryUrl; // Set the URL
         isLoading = false;
       });
     } catch (e) {
@@ -52,16 +59,16 @@ class _QrPayState extends State<QrPay> {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_remainingTime > 0) {
         setState(() {
-          _remainingTime--; // ลดเวลาที่เหลือ
+          _remainingTime--; // Decrease remaining time
         });
       } else {
-        _timer.cancel(); // ยกเลิกตัวจับเวลา
-        Navigator.pop(context); // ส่งผู้ใช้กลับหน้าหลัก
+        _timer.cancel(); // Cancel timer when time is up
+        Navigator.pop(context); // Navigate back to the previous screen
       }
     });
   }
 
-  // ฟังก์ชันฟอร์แมตเวลา (เช่น 10:00)
+  // Function to format time (e.g., 10:00)
   String formatTime(int seconds) {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
@@ -103,7 +110,7 @@ class _QrPayState extends State<QrPay> {
                           ),
                         ),
               const SizedBox(height: 20),
-              // แสดงเวลาที่เหลือ
+              // Display remaining time
               const Text(
                 "Remaining Time",
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -119,23 +126,20 @@ class _QrPayState extends State<QrPay> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: selectedHours == null
-                    ? null
-                    : () {
-                        _timer.cancel(); // Cancel the timer before navigating
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (c) => PayPage(
-                                packageHours:
-                                    selectedHours!), // Pass selectedHours
-                          ),
-                        );
-                      },
+                onPressed: () {
+                  _timer.cancel(); // Cancel the timer before navigating
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (c) => PayPage(
+                        selectedTime: widget.selectedTime, // Directly pass selectedTime
+                        documentId: widget.documentId, selectedCar: widget.selectedCar,
+                      ),
+                    ),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      selectedHours == null ? Colors.grey : Colors.blue,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  backgroundColor: Colors.blue,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   textStyle: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold),
                 ),
@@ -143,25 +147,6 @@ class _QrPayState extends State<QrPay> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class NextPage extends StatelessWidget {
-  const NextPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Next Page"),
-      ),
-      body: const Center(
-        child: Text(
-          "This is the next page.",
-          style: TextStyle(fontSize: 18),
         ),
       ),
     );

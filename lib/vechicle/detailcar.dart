@@ -18,18 +18,43 @@ class _DetailCarState extends State<DetailCar> {
   bool isTimeout = false; // Track timeout state
 
   final Map<String, Map<String, Color>> plateColors = {
-    "ລັດບໍລິຫານ": {"background": Colors.blue, "text": Colors.white, "border": Colors.white},
-    "ເອກະຊົນລາວ": {"background": Colors.yellow, "text": Colors.black, "border": Colors.black},
-    "ບໍລິສັດ/ທຸລະກິດ 100%": {"background": Colors.white, "text": Colors.black, "border": Colors.black},
-    "ບໍລິສັດ/ທຸລະກິດ 1%": {"background": Colors.white, "text": Colors.blue, "border": Colors.blue},
-    "ເອກະຊົນຕ່າງດ້າວ": {"background": Colors.yellow, "text": Colors.lightBlue, "border": Colors.blue},
-    "ອົງການຈັດຕັ້ງສາກົນ(ນຳໃຊ້ສ່ວນຕົວ)": {"background": Colors.white, "text": Colors.lightBlue, "border": Colors.cyan},
+    "ລັດບໍລິຫານ": {
+      "background": Colors.blue,
+      "text": Colors.white,
+      "border": Colors.white
+    },
+    "ເອກະຊົນລາວ": {
+      "background": Colors.yellow,
+      "text": Colors.black,
+      "border": Colors.black
+    },
+    "ບໍລິສັດ/ທຸລະກິດ 100%": {
+      "background": Colors.white,
+      "text": Colors.black,
+      "border": Colors.black
+    },
+    "ບໍລິສັດ/ທຸລະກິດ 1%": {
+      "background": Colors.white,
+      "text": Colors.blue,
+      "border": Colors.blue
+    },
+    "ເອກະຊົນຕ່າງດ້າວ": {
+      "background": Colors.yellow,
+      "text": Colors.lightBlue,
+      "border": Colors.blue
+    },
+    "ອົງການຈັດຕັ້ງສາກົນ(ນຳໃຊ້ສ່ວນຕົວ)": {
+      "background": Colors.white,
+      "text": Colors.lightBlue,
+      "border": Colors.cyan
+    },
   };
 
   @override
   void initState() {
     super.initState();
-    FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true); // Enable Firestore caching
+    FirebaseFirestore.instance.settings =
+        const Settings(persistenceEnabled: true); // Enable Firestore caching
     _fetchCarDetails();
   }
 
@@ -79,22 +104,26 @@ class _DetailCarState extends State<DetailCar> {
 
     if (isTimeout) {
       return const Scaffold(
-        body: Center(child: Text("The request timed out. Please try again later.")),
+        body: Center(
+            child: Text("The request timed out. Please try again later.")),
       );
     }
 
     if (hasError) {
       return const Scaffold(
-        body: Center(child: Text("Something went wrong. Please try again later.")),
+        body: Center(
+            child: Text("Something went wrong. Please try again later.")),
       );
     }
 
-    final plateType = carData?["selectedplate"] ?? "Unknown"; // Handling null plateType
-    final plateColor = plateColors[plateType] ?? {
-      "background": Colors.grey,
-      "text": Colors.white,
-      "border": Colors.grey
-    };
+    final plateType =
+        carData?["selectedplate"] ?? "Unknown"; // Handling null plateType
+    final plateColor = plateColors[plateType] ??
+        {
+          "background": Colors.grey,
+          "text": Colors.white,
+          "border": Colors.grey
+        };
 
     return Scaffold(
       appBar: AppBar(
@@ -108,58 +137,74 @@ class _DetailCarState extends State<DetailCar> {
           children: [
             Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                decoration: BoxDecoration(
-                  color: plateColor["background"],
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 2,
-                      blurRadius: 5,
-                      offset: const Offset(0, 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: plateColor["background"],
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.5),
+                        spreadRadius: 2,
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: plateColor["border"] ??
+                          Colors.transparent, // Set border color
+                      width: 2, // Border width
                     ),
-                  ],
-                  border: Border.all(
-                    color: plateColor["border"] ?? Colors.transparent, // Set border color
-                    width: 2, // Border width
                   ),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      carData?["selectedCity"] ?? "Unknown",
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: plateColor["text"],
+                  child: Column(
+                    children: [
+                      Text(
+                        carData?["selectedCity"] ?? "Unknown",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: plateColor["text"],
+                        ),
                       ),
-                    ),
-                    Text(
-                      carData?["plate"] ?? "Unknown",
-                      style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                        color: plateColor["text"],
+                      const SizedBox(height: 8), // Add spacing
+
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.center, // Center align content
+                        children: [
+                          Text(
+                            carData?["nameplate"] ?? "Unknown",
+                            style: TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                              color: plateColor["text"],
+                            ),
+                          ),
+                          const SizedBox(
+                              width:
+                                  16), // Add space between nameplate and plate
+                          Text(
+                            carData?["plate"] ?? "Unknown",
+                            style: TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                              color: plateColor["text"],
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    Text(
-                      plateType,
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: plateColor["text"],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                    ],
+                  )),
             ),
             const SizedBox(height: 30),
             _buildDetailRow("Brand", carData?["brandName"] ?? "Unknown"),
             _buildDetailRow("Color", carData?["color"] ?? "Unknown"),
             _buildDetailRow("License Plate", carData?["plate"] ?? "Unknown"),
-            _buildDetailRow("City Plate", carData?["selectedCity"] ?? "Unknown"),
-            _buildDetailRow("Plate Type", carData?["selectedplate"] ?? "Unknown"),
+            _buildDetailRow(
+                "City Plate", carData?["selectedCity"] ?? "Unknown"),
+            _buildDetailRow(
+                "Plate Type", carData?["selectedplate"] ?? "Unknown"),
+            _buildDetailRow("Name Plate", carData?["nameplate"] ?? "Unknown"),
             const SizedBox(height: 30),
             Center(
               child: ElevatedButton(

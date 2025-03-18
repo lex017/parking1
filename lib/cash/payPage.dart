@@ -3,18 +3,22 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:parking1/cash/receip.dart';
+import 'package:lottie/lottie.dart';
+
 import 'package:parking1/data_save/buyticket.dart';
 
 class PayPage extends StatefulWidget {
-  final int packageHours;
+  final TimeOfDay selectedTime; 
+  final String documentId;
+  final String selectedCar;
 
-  const PayPage({super.key, required this.packageHours});
+  const PayPage({super.key, required this.selectedTime, required this.documentId, required this.selectedCar});
 
   @override
   State<PayPage> createState() => _PayPageState();
@@ -155,6 +159,15 @@ class _PayPageState extends State<PayPage> {
   }
 
 Future<void> _savePaymentAndBooking() async {
+  final user = FirebaseAuth.instance.currentUser; // Get the logged-in user
+
+  if (user == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("User not logged in.")),
+    );
+    return;
+  }
+
   if (amountController.text.isEmpty ||
       dateController.text.isEmpty ||
       timeController.text.isEmpty ||
@@ -179,19 +192,25 @@ Future<void> _savePaymentAndBooking() async {
   String bookingId = "bookings${DateTime.now().millisecondsSinceEpoch}";
 
   // Fetch location data from Firestore
-  String locationId = ""; 
-  String nameLocation = ""; 
-  GeoPoint location;
+  String locationId = widget.documentId;
+  String nameLocation = "";
+  GeoPoint location = const GeoPoint(0, 0); // Default value to avoid errors
+
   try {
     var locationSnapshot = await FirebaseFirestore.instance
         .collection('Locations')
-        .get(); 
+        .doc(locationId) // Fetch using the document ID directly
+        .get();
 
-    if (locationSnapshot.docs.isNotEmpty) {
-      var locationData = locationSnapshot.docs.first.data();
-      locationId = locationSnapshot.docs.first.id; 
+    if (locationSnapshot.exists) {
+      var locationData = locationSnapshot.data() as Map<String, dynamic>;
       nameLocation = locationData['nameLocation'] ?? "Unknown Location";
-      location = locationData['location'] ?? "Unknown Location";
+
+      if (locationData['location'] is GeoPoint) {
+        location = locationData['location'];
+      } else {
+        print("Error: Invalid location format in Firestore.");
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("No location found.")),
@@ -210,50 +229,122 @@ Future<void> _savePaymentAndBooking() async {
   showDialog(
     context: context,
     barrierDismissible: false,
-    builder: (context) => AlertDialog(
-      title: Text("Payment Verification"),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-          ),
-          SizedBox(height: 20),
-          Text(
-            "Waiting for payment verification...",
-            style: TextStyle(fontSize: 16),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 10),
-          Text(
-            "Please do not close the app.",
-            style: TextStyle(fontSize: 12, color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    ),
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          bool isVerified = false; // Track verification status
+
+          // Listen for real-time updates on the payment document
+          FirebaseFirestore.instance
+              .collection('payments')
+              .doc(transactionId)
+              .snapshots()
+              .listen((docSnapshot) {
+            if (docSnapshot.exists && docSnapshot.data()?['Status'] == "success") {
+              setState(() {
+                isVerified = true; // Update UI to success
+              });
+
+              // Close the dialog after showing success animation
+              Future.delayed(const Duration(seconds: 2), () {
+                Navigator.pop(context); // Close the dialog
+              });
+            }
+          });
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16.0),
+            ),
+            title: Center(
+              child: Text(
+                isVerified ? "Payment Successful" : "Payment Verification",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: isVerified ? Colors.green : Colors.blueAccent,
+                ),
+              ),
+            ),
+            content: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isVerified
+                      ? [Colors.green.shade50, Colors.white]
+                      : [Colors.blue.shade50, Colors.white],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  isVerified
+                      ? Lottie.network(
+                          'https://lottie.host/849ddcf8-8e91-46e2-8b7d-294c25f98b8f/C3UHzTkWtW.json', // Success animation
+                          width: 150,
+                          height: 150,
+                          fit: BoxFit.cover,
+                        )
+                      : Lottie.network(
+                          'https://lottie.host/0f94c2a0-04ba-4ac7-b980-c529bd4fcc62/eLTNAOsywB.json', // Loading animation
+                          width: 150,
+                          height: 150,
+                          fit: BoxFit.cover,
+                        ),
+                  const SizedBox(height: 20),
+                  Text(
+                    isVerified
+                        ? "Payment Verified Successfully!"
+                        : "Waiting for payment verification...",
+                    style: const TextStyle(fontSize: 18),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    isVerified
+                        ? "Thank you for your payment."
+                        : "Please do not close the app.",
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            backgroundColor: Colors.white,
+            elevation: 10,
+          );
+        },
+      );
+    },
   );
 
-  // Save payment and booking data
+  // Save payment data
   FirebaseFirestore.instance.collection('payments').doc(transactionId).set({
+    "userId": user.uid, 
     "amount": amountController.text,
     "date": dateController.text,
     "time": timeController.text,
     "name": nameController.text,
+    "car": widget.selectedCar,
     "imageBill": imageUrl,
     "paymentStatus": "pending",
     "timestamp": FieldValue.serverTimestamp(),
   });
 
+  // Save booking data
   FirebaseFirestore.instance.collection('bookings').doc(bookingId).set({
+    "userId": user.uid, 
     "userName": nameController.text,
     "bookingDate": dateController.text,
     "bookingTime": timeController.text,
     "paymentId": transactionId,
     "locationId": locationId,
     "nameLocation": nameLocation,
-    "location":location,
+    "location": location,
+    "car": widget.selectedCar,
     "paymentStatus": "pending",
     "parkingStatus": "pending",
     "timestamp": FieldValue.serverTimestamp(),
@@ -270,11 +361,10 @@ Future<void> _savePaymentAndBooking() async {
     );
   });
 
+  // Listen for payment status update
+  listenForPaymentStatus(bookingId);
+}
 
-
-    // Listen for payment status update
-    listenForPaymentStatus(bookingId);
-  }
   Future<int> countCheckedInTickets() async {
   String userId = FirebaseAuth.instance.currentUser!.uid;
 

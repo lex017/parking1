@@ -2,28 +2,26 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:parking1/cash/QrPay.dart';
 
-
-class detailpay extends StatefulWidget {
+class detailPay extends StatefulWidget {
   final String documentId;
 
-  const detailpay({required this.documentId, super.key});
+  const detailPay({required this.documentId, super.key});
 
   @override
-  State<detailpay> createState() => _BtnLocationState();
+  State<detailPay> createState() => _BtnLocationState();
 }
 
-
-class _BtnLocationState extends State<detailpay> {
+class _BtnLocationState extends State<detailPay> {
   int pricePerHour = 0;
   TimeOfDay? selectedTime; // To store the selected time
   String? selectedCar; // Store the selected car
   List<String> carList = [];
 
-@override
-void initState() {
-  super.initState();
-  _fetchCarList(); 
-}
+  @override
+  void initState() {
+    super.initState();
+    _fetchCarList(); 
+  }
 
   // Function to show the time picker
   Future<void> _pickTime() async {
@@ -365,12 +363,16 @@ void initState() {
                             ],
                           ),
                           ElevatedButton.icon(
-                            onPressed: selectedTime == null
+                            onPressed: selectedCar == null || selectedTime == null
                                 ? null
                                 : () {
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
-                                        builder: (c) => QrPay(),
+                                        builder: (c) => QrPay(
+                                          documentId: widget.documentId,
+                                          selectedCar: selectedCar!, // Pass selected car
+                                          selectedTime: selectedTime!, // Optionally pass the time
+                                        ),
                                       ),
                                     );
                                   },
@@ -384,7 +386,7 @@ void initState() {
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 24, vertical: 14),
-                              backgroundColor: selectedTime == null
+                              backgroundColor: selectedCar == null || selectedTime == null
                                   ? Colors.grey
                                   : Colors.blue,
                               shape: RoundedRectangleBorder(

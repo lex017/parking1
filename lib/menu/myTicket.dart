@@ -11,6 +11,8 @@ class MyTicket extends StatefulWidget {
 }
 
 class _MyTicketState extends State<MyTicket> {
+  final user = FirebaseAuth.instance.currentUser;
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
@@ -41,7 +43,7 @@ class _MyTicketState extends State<MyTicket> {
             stream: FirebaseFirestore.instance
                 .collection('bookings')
                 .where('paymentStatus', isEqualTo: 'success')
-                .where(user.uid) // Ensure "userId" exists in Firestore!
+                .where('userId', isEqualTo: user.uid) // Ensure "userId" exists in Firestore!
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -70,7 +72,7 @@ class _MyTicketState extends State<MyTicket> {
                   String userName = ticket['userName'] ?? 'Unknown';
                   String bookingDate = ticket['bookingDate'] ?? 'N/A';
                   String bookingTime = ticket['bookingTime'] ?? 'N/A';
-                  String amount = ticket['amount'] ?? '0.00';
+                  String status = ticket['parkingStatus'] ?? 'N/A';
                   
                   // Get GeoPoint from Firestore properly
                   GeoPoint location = ticket['location'] ?? GeoPoint(0.0, 0.0);
@@ -147,7 +149,7 @@ class _MyTicketState extends State<MyTicket> {
                               ),
                             ),
                             Text(
-                              "$amount Kip",
+                              "$status",
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

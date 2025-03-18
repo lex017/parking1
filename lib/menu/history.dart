@@ -29,7 +29,7 @@ class _HistoryState extends State<history> {
 
   return FirebaseFirestore.instance
       .collection('bookings')
-      .where(currentUserId) // ✅ Filter by current user's ID
+      .where('userId', isEqualTo: currentUserId) // ✅ Filter by current user's ID
       .snapshots()
       .asyncMap((snapshot) async {
     List<Map<String, dynamic>> historyList = [];

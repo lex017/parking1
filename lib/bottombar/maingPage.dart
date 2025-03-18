@@ -132,7 +132,7 @@ class _MainPageState extends State<mainPage> {
         } else {
           final userData = snapshot.data!.data() as Map<String, dynamic>;
           final username = userData['username'] ?? 'Guest';
-          final location = userData['location'] ?? 'Unknown';
+          
 
           return Card(
             margin: const EdgeInsets.symmetric(vertical: 16),
@@ -151,7 +151,7 @@ class _MainPageState extends State<mainPage> {
                 username,
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              subtitle: Text('Location: $location'),
+              subtitle: Text('Status: User',style: TextStyle(color: Colors.green),),
             ),
           );
         }
