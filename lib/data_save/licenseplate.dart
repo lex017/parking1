@@ -36,8 +36,8 @@ class _LicensePlateState extends State<LicensePlate> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("ເລືອກແຂວງ"),
-        backgroundColor: Colors.blue,
+        title: const Text("Select province"),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         centerTitle: true,
       ),
       body: Padding(
@@ -45,11 +45,7 @@ class _LicensePlateState extends State<LicensePlate> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Text(
-              "ເລືອກແຂວງຂອງທ່ານ",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
             Expanded(
               child: ListView.builder(
                 itemCount: cities.length,

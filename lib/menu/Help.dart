@@ -25,7 +25,7 @@ class _HelpState extends State<Help> {
                 Navigator.of(context).push(route);
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color.fromARGB(255, 97, 22, 17), // Custom button color
+          backgroundColor: const Color.fromARGB(255, 0, 121, 227), // Custom button color
         ),
         child: const Text(
           "Chat",
@@ -86,7 +86,7 @@ class _HelpState extends State<Help> {
           ),
         ),
       ),
-      drawer: const drawer_menu(), 
+
     );
   }
 }

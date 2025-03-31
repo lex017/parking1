@@ -4,6 +4,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:parking1/map_api/btnlocation.dart';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
+
+
 
 class map_api extends StatefulWidget {
   final String documentId;
@@ -32,6 +37,7 @@ class _MapApiState extends State<map_api> {
   }
 
   Future<void> _determinePosition() async {
+    final BitmapDescriptor customMe = await resizeIcon('assets/images/pin.png', 120); // Adjust width as needed
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       _showSnackBar("Location services are disabled.");
@@ -63,6 +69,7 @@ class _MapApiState extends State<map_api> {
         Marker(
           markerId: const MarkerId("currentLocation"),
           position: _currentPosition!,
+          icon: customMe,
           infoWindow: const InfoWindow(title: "You are here"),
         ),
       );
@@ -78,40 +85,50 @@ class _MapApiState extends State<map_api> {
       SnackBar(content: Text(message)),
     );
   }
+  Future<BitmapDescriptor> resizeIcon(String assetPath, int width) async {
+  final ByteData data = await rootBundle.load(assetPath);
+  final Uint8List bytes = data.buffer.asUint8List();
+
+  final ui.Codec codec = await ui.instantiateImageCodec(bytes, targetWidth: width);
+  final ui.FrameInfo frameInfo = await codec.getNextFrame();
+  final ByteData? resizedData = await frameInfo.image.toByteData(format: ui.ImageByteFormat.png);
+
+  return BitmapDescriptor.fromBytes(resizedData!.buffer.asUint8List());
+}
 
   Future<void> _loadMarkersFromFirebase() async {
-    FirebaseFirestore.instance
-        .collection('Locations')
-        .snapshots()
-        .listen((snapshot) {
-      Set<Marker> newMarkers = snapshot.docs
-          .map((doc) {
-            GeoPoint? geoPoint = doc['location'];
-            String address = doc['address'] ?? "Unknown Location";
+  final BitmapDescriptor customIcon = await resizeIcon('assets/images/car.png', 80); // Adjust width as needed
 
-            if (geoPoint != null) {
-              return Marker(
-                markerId: MarkerId(doc.id),
-                position: LatLng(geoPoint.latitude, geoPoint.longitude),
-                infoWindow: InfoWindow(title: address),
-                onTap: () {
-                  setState(() {
-                    selectedDocId = doc.id;
-                  });
-                  _panelController.open();
-                },
-              );
-            }
-            return null;
-          })
-          .whereType<Marker>()
-          .toSet();
+  FirebaseFirestore.instance.collection('parking').snapshots().listen((snapshot) {
+    Set<Marker> newMarkers = snapshot.docs
+        .map((doc) {
+          GeoPoint? geoPoint = doc['location'];
+          String address = doc['address'] ?? "Unknown Location";
 
-      setState(() {
-        _markers.addAll(newMarkers);
-      });
+          if (geoPoint != null) {
+            return Marker(
+              markerId: MarkerId(doc.id),
+              position: LatLng(geoPoint.latitude, geoPoint.longitude),
+              icon: customIcon, // Set resized icon
+              infoWindow: InfoWindow(title: address),
+              onTap: () {
+                setState(() {
+                  selectedDocId = doc.id;
+                });
+                _panelController.open();
+              },
+            );
+          }
+          return null;
+        })
+        .whereType<Marker>()
+        .toSet();
+
+    setState(() {
+      _markers.addAll(newMarkers);
     });
-  }
+  });
+}
 
   void _searchInRadius() {
     if (_searchPosition == null) return;
@@ -148,17 +165,6 @@ class _MapApiState extends State<map_api> {
               zoom: 13,
             ),
             markers: _markers,
-            circles: {
-              if (_searchPosition != null)
-                Circle(
-                  circleId: const CircleId("searchRadius"),
-                  center: _searchPosition!,
-                  radius: _searchRadius,
-                  fillColor: Colors.blue.withOpacity(0.2),
-                  strokeColor: Colors.blue,
-                  strokeWidth: 2,
-                ),
-            },
             onMapCreated: (GoogleMapController controller) {
               _mapController = controller;
             },
@@ -167,7 +173,7 @@ class _MapApiState extends State<map_api> {
             backdropColor: Colors.white,
             controller: _panelController,
             minHeight: 0,
-            maxHeight: 420,
+            maxHeight: 480,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             panel: selectedDocId != null
                 ? parkLocation(selectedDocId!)
@@ -201,13 +207,13 @@ class _MapApiState extends State<map_api> {
     return FirebaseFirestore.instance
         .collection('bookings')
         .where('locationId', isEqualTo: docId)
-        .where('parkingStatus', isEqualTo: 'check-in')
+        .where('Status', isEqualTo: 'check-in')
         .snapshots()
         .map((snapshot) => snapshot.docs.length);
   }
 
   return FutureBuilder<DocumentSnapshot>(
-    future: FirebaseFirestore.instance.collection('Locations').doc(docId).get(),
+    future: FirebaseFirestore.instance.collection('parking').doc(docId).get(),
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) {
         return const Center(child: CircularProgressIndicator());
@@ -216,7 +222,7 @@ class _MapApiState extends State<map_api> {
       }
 
       final data = snapshot.data!.data() as Map<String, dynamic>;
-      final locationName = data['nameLocation'] ?? 'Unknown Location';
+      final locationName = data['nameparking'] ?? 'Unknown Location';
       final addressName = data['address'] ?? 'Unknown Address';
       final price = data['price'] ?? 'Unknown Price';
       final carSlot = data['car_slot'] ?? 0;

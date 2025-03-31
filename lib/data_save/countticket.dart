@@ -15,7 +15,7 @@ class _TicketCountPageState extends State<TicketCountPage> {
       QuerySnapshot ticketSnapshot = await FirebaseFirestore.instance
           .collection('bookings') // Firestore collection name
           .where('userId', isEqualTo: userId) // Filter for current user
-          .where('parkingStatus', isEqualTo: 'check-in') // Filter only "check-in" status
+          .where('Status', isEqualTo: 'check-in') // Filter only "check-in" status
           .get();
 
       return ticketSnapshot.docs.length; // Return count of matching documents

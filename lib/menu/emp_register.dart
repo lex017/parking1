@@ -111,25 +111,6 @@ class _RegisterPageState extends State<emp_register> {
     );
   }
 
-  Widget dateOfBirthInput() {
-    return SizedBox(
-      width: 350,
-      child: TextFormField(
-        onSaved: (value) => dateOfBirth = value,
-        validator:
-            RequiredValidator(errorText: "Please enter your date of birth"),
-        keyboardType: TextInputType.datetime,
-        decoration: const InputDecoration(
-          border: UnderlineInputBorder(),
-          labelText: 'Date of Birth (YYYY-MM-DD)',
-          filled: true,
-          fillColor: Colors.white,
-          prefixIcon: Icon(Icons.cake, color: Colors.black, size: 35.0),
-        ),
-      ),
-    );
-  }
-
   // Updated empIdInput to allow user to enter their own ID
   Widget empIdInput() {
     return SizedBox(
@@ -155,76 +136,6 @@ class _RegisterPageState extends State<emp_register> {
     );
   }
 
-  Widget passwordInput() {
-    return SizedBox(
-      width: 350,
-      child: TextFormField(
-        obscureText: obs,
-        onSaved: (String? pass) {
-          myUser.pass_emp = pass ?? '';
-        },
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Please enter a password';
-          }
-          return null;
-        },
-        decoration: InputDecoration(
-          border: UnderlineInputBorder(),
-          labelText: 'Password',
-          filled: true,
-          fillColor: Colors.white,
-          prefixIcon: Icon(
-            Icons.key,
-            color: Colors.black,
-            size: 35.0,
-          ),
-          suffixIcon: IconButton(
-            onPressed: () {
-              showMessage();
-            },
-            icon: const Icon(Icons.visibility),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget passConfirm() {
-    return SizedBox(
-      width: 350,
-      child: TextFormField(
-        obscureText: obs,
-        onSaved: (String? passConfirm) {
-          myUser.passconfilm_emp = passConfirm ?? '';
-        },
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Please confirm your password';
-          }
-          return null;
-        },
-        decoration: InputDecoration(
-          border: UnderlineInputBorder(),
-          labelText: 'Confirm Password',
-          filled: true,
-          fillColor: Colors.white,
-          prefixIcon: Icon(
-            Icons.key,
-            color: Colors.black,
-            size: 35.0,
-          ),
-          suffixIcon: IconButton(
-            onPressed: () {
-              showMessage();
-            },
-            icon: const Icon(Icons.visibility),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget signUpButton() {
     return SizedBox(
       width: 350,
@@ -243,9 +154,8 @@ class _RegisterPageState extends State<emp_register> {
                   'emp_id': emp_id,
                   'firstname': firstname,
                   'lastname': lastname,
+                  'gender': 'male',
                   'age': age,
-                  'date_of_birth': dateOfBirth,
-                  'pass_emp': myUser.pass_emp,
                 });
 
                 Navigator.pushReplacement(
@@ -337,13 +247,9 @@ class _RegisterPageState extends State<emp_register> {
                             const SizedBox(height: 20.0),
                             ageInput(),
                             const SizedBox(height: 20.0),
-                            dateOfBirthInput(),
-                            const SizedBox(height: 20.0),
+
                             empIdInput(), // Employee ID input by user
-                            const SizedBox(height: 20.0),
-                            passwordInput(),
-                            const SizedBox(height: 20.0),
-                            passConfirm(),
+
                             const SizedBox(height: 30.0),
                             signUpButton(),
                             login(),
@@ -362,9 +268,9 @@ class _RegisterPageState extends State<emp_register> {
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.black, size: 30),
               onPressed: () {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (ctx) => const ownerMain()),
+                  MaterialPageRoute(builder: (context) => emp_register()),
                 );
               },
             ),

@@ -91,7 +91,7 @@ class DetailHistory extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Location: ${bookingData['nameLocation'] ?? 'N/A'}',
+                        'Location: ${bookingData['nameparking'] ?? 'N/A'}',
                         style: detailTitleStyle,
                       ),
                       const SizedBox(height: 8),
@@ -125,7 +125,7 @@ class DetailHistory extends StatelessWidget {
                               color: Colors.lightBlue),
                           const SizedBox(width: 8),
                           Text(
-                            'Status: ${bookingData['parkingStatus'] ?? 'N/A'}',
+                            'Status: ${bookingData['Status'] ?? 'N/A'}',
                             style: detailTextStyle,
                           ),
                         ],

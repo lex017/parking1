@@ -22,7 +22,8 @@ class AddVechicle extends StatefulWidget {
 }
 
 class _VechicleState extends State<AddVechicle> {
-  final FirebaseAuth _auth = FirebaseAuth.instance; // Get Firebase Auth instance
+  final FirebaseAuth _auth =
+      FirebaseAuth.instance; // Get Firebase Auth instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final TextEditingController brandNameController = TextEditingController();
@@ -54,8 +55,7 @@ class _VechicleState extends State<AddVechicle> {
     if (brandNameController.text.isEmpty ||
         colorController.text.isEmpty ||
         nameplateController.text.isEmpty ||
-        plateController.text.isEmpty ||
-        nameController.text.isEmpty) {
+        plateController.text.isEmpty ) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill out all fields")),
       );
@@ -71,11 +71,10 @@ class _VechicleState extends State<AddVechicle> {
     await _firestore.collection('vehicles').doc(documentId).set({
       "brandName": brandNameController.text,
       "color": colorController.text,
-      "nameplate": nameplateController.text,
-      "plate": plateController.text,
-      "ownerName": nameController.text,
-      "selectedCity": widget.selectedCity,
-      "selectedplate": widget.selectedcolor,
+      "charplate": nameplateController.text,
+      "numberplate": plateController.text,
+      "province": widget.selectedCity,
+      "typeplate": widget.selectedcolor,
       "timestamp": FieldValue.serverTimestamp(),
       "userId": user.uid, // Save the logged-in user's UID
     }).then((_) {
@@ -104,7 +103,7 @@ class _VechicleState extends State<AddVechicle> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Vehicle Details'),
-        backgroundColor: Colors.blue,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         centerTitle: true,
       ),
       body: isLoading
@@ -123,13 +122,19 @@ class _VechicleState extends State<AddVechicle> {
                   // Display the selected city
                   Text(
                     "Selected City: ${widget.selectedCity}",
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
+                    style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black),
                   ),
                   const SizedBox(height: 20),
 
                   Text(
                     "Selected Plate: ${widget.selectedcolor}",
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
+                    style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black),
                   ),
                   const SizedBox(height: 20),
 
@@ -137,7 +142,8 @@ class _VechicleState extends State<AddVechicle> {
                     controller: brandNameController,
                     decoration: InputDecoration(
                       labelText: "Brand Name",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -146,7 +152,8 @@ class _VechicleState extends State<AddVechicle> {
                     controller: colorController,
                     decoration: InputDecoration(
                       labelText: "Color",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -155,7 +162,8 @@ class _VechicleState extends State<AddVechicle> {
                     controller: nameplateController,
                     decoration: InputDecoration(
                       labelText: "NamePlate",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -164,16 +172,8 @@ class _VechicleState extends State<AddVechicle> {
                     controller: plateController,
                     decoration: InputDecoration(
                       labelText: "Plate",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: "Owner's Name",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -181,7 +181,18 @@ class _VechicleState extends State<AddVechicle> {
                   Center(
                     child: ElevatedButton(
                       onPressed: _savePaymentData,
-                      child: const Text("Save Vehicle Info"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue, // Background color
+                        foregroundColor: Colors.white, // Text color
+                        minimumSize: const Size(
+                            double.infinity, 50), // Full width and height of 50
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(30), // Rounded corners
+                        ),
+                      ),
+                      child: const Text("Save Vehicle Info",
+                          style: TextStyle(fontSize: 18)),
                     ),
                   ),
                 ],

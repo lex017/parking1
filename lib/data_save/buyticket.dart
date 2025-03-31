@@ -18,12 +18,31 @@ class _BuyTicketState extends State<BuyTicket> {
   late Future<Map<String, dynamic>> _ticketFuture;
   Timer? _timer;
   int remainingSeconds = 30 * 60; // 30 minutes in seconds
+  late String userName;
 
   @override
   void initState() {
     super.initState();
     _ticketFuture = fetchTicketData();
     startTimer();
+  }
+
+// Function to fetch the userName from the users collection
+  Future<String> getUserName(String userId) async {
+    try {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (userDoc.exists) {
+        return userDoc['username'] ?? 'Unknown'; // Return userName or 'Unknown'
+      }
+      return 'Unknown'; // In case the document doesn't exist
+    } catch (e) {
+      print("Error fetching userName: $e");
+      return 'Unknown'; // Return 'Unknown' in case of error
+    }
   }
 
   Future<Map<String, dynamic>> fetchTicketData() async {
@@ -37,8 +56,13 @@ class _BuyTicketState extends State<BuyTicket> {
     }
 
     var bookingData = bookingSnapshot.data() as Map<String, dynamic>;
+    String userId = bookingData[
+        'userId']; // Assuming userId is stored in the booking document
+    userName = await getUserName(
+        userId); // Fetch the username from the 'users' collection
+
     String transactionId = bookingData['paymentId'] ?? '';
-    var parkingStatus = bookingData['parkingStatus'] ?? 'pending';
+    var parkingStatus = bookingData['Status'] ?? 'pending';
 
     DocumentSnapshot paymentSnapshot = await FirebaseFirestore.instance
         .collection('payments')
@@ -71,7 +95,7 @@ class _BuyTicketState extends State<BuyTicket> {
         .snapshots()
         .listen((snapshot) {
       if (snapshot.exists) {
-        String newStatus = snapshot['parkingStatus'] ?? 'pending';
+        String newStatus = snapshot['Status'] ?? 'pending';
 
         if (newStatus == 'check-in' || newStatus == 'check-out') {
           stopTimer();
@@ -79,7 +103,7 @@ class _BuyTicketState extends State<BuyTicket> {
           startTimer();
         }
         setState(() {
-          bookingData['parkingStatus'] = newStatus;
+          bookingData['Status'] = newStatus;
         });
       }
     });
@@ -122,7 +146,7 @@ class _BuyTicketState extends State<BuyTicket> {
     await FirebaseFirestore.instance
         .collection('bookings')
         .doc(widget.bookingId)
-        .update({'parkingStatus': 'Time-out'});
+        .update({'Status': 'Time-out'});
 
     if (mounted) {
       showDialog(
@@ -133,8 +157,10 @@ class _BuyTicketState extends State<BuyTicket> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const Homepage()),
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => Homepage()),
+                  (route) =>
+                      false, // This removes all previous routes from the stack
                 );
               },
               child: const Text("OK"),
@@ -174,7 +200,6 @@ class _BuyTicketState extends State<BuyTicket> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // A modern gradient background for the entire page
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -199,13 +224,11 @@ class _BuyTicketState extends State<BuyTicket> {
 
               var bookingData = snapshot.data!['booking'];
               var paymentData = snapshot.data!['payment'];
-
-              String userName = bookingData['userName'] ?? 'Unknown';
               String bookingDate = bookingData['bookingDate'] ?? 'N/A';
               String bookingTime = bookingData['bookingTime'] ?? 'N/A';
               String transactionId = bookingData['paymentId'] ?? 'N/A';
-              String parkingStatus = bookingData['parkingStatus'] ?? 'N/A';
-              String car = bookingData['car'] ?? 'N/A';
+              String parkingStatus = bookingData['Status'] ?? 'N/A';
+              String car = bookingData['vechicle'] ?? 'N/A';
               String amount = paymentData['amount'] ?? '0.00';
               GeoPoint location = bookingData['location'];
               double latitude = location.latitude;
@@ -291,7 +314,7 @@ class _BuyTicketState extends State<BuyTicket> {
                     Text("Car: $car",
                         style: const TextStyle(
                             fontSize: 18, fontWeight: FontWeight.w500)),
-                     const SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text("Time Left: ${formatTime(remainingSeconds)}",
                         style: const TextStyle(
                             fontSize: 20,
@@ -316,8 +339,11 @@ class _BuyTicketState extends State<BuyTicket> {
                     const SizedBox(height: 12),
                     ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.of(context).pushReplacement(MaterialPageRoute(
-                            builder: (context) => const Homepage()));
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (context) => Homepage()),
+                          (route) =>
+                              false, // This removes all previous routes from the stack
+                        );
                       },
                       icon: const Icon(Icons.home),
                       label: const Text("Main Page"),

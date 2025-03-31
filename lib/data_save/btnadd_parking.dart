@@ -32,33 +32,10 @@ class _BtnaddParkingState extends State<BtnaddParking> {
   Uint8List? _imageBytes;
   final ImagePicker _picker = ImagePicker();
 
-  Future<void> _pickImage() async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-      if (pickedFile != null) {
-        if (kIsWeb) {
-          final Uint8List bytes = await pickedFile.readAsBytes();
-          setState(() {
-            _imageBytes = bytes;
-          });
-        } else {
-          setState(() {
-            _selectedImage = File(pickedFile.path);
-          });
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No image selected')),
-        );
-      }
-    } catch (e) {
-      print("Error selecting image: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error selecting image')),
-      );
-    }
-  }
+  String? _selectedEVOption; // Variable to store the selected EV option
+  final List<String> _evOptions = ["EV", "None"]; // Dropdown options
 
+  // Function to upload image to Cloudinary
   Future<String?> _uploadImageToCloudinary() async {
     try {
       var request = http.MultipartRequest('POST', Uri.parse(cloudinaryUrl))
@@ -92,53 +69,51 @@ class _BtnaddParkingState extends State<BtnaddParking> {
     }
   }
 
+  // Function to add parking location with image and other details
   Future<void> _addLocationWithImage(String name, String address,
-    String description, int price, int carSlot) async {
-  try {
-    final String? imageUrl = await _uploadImageToCloudinary();
+    String description, int price, int carSlot, String evSupport) async {
+    try {
+      final String? imageUrl = await _uploadImageToCloudinary();
 
-    if (imageUrl != null) {
-      // Get the current user ID (owner)
-      User? currentUser = FirebaseAuth.instance.currentUser;
-      String ownerId = currentUser?.uid ?? 'unknown_owner'; // fallback in case of no user
+      if (imageUrl != null) {
+        User? currentUser = FirebaseAuth.instance.currentUser;
+        String ownerId = currentUser?.uid ?? 'unknown_owner';
 
-      final collection = FirebaseFirestore.instance.collection('Locations');
-      final snapshot = await collection.get();
-      final newId = "location${snapshot.docs.length + 1}";
+        final collection = FirebaseFirestore.instance.collection('parking');
+        final snapshot = await collection.get();
+        final newId = "location${snapshot.docs.length + 1}";
 
-      await collection.doc(newId).set({
-        'nameLocation': name,
-        'address': address,
-        'description': description,
-        'price': price,
-        'car_slot': carSlot,
-        'imageUrl': imageUrl,
-        'location': GeoPoint(widget.latitude, widget.longitude), // Save location
-        'ownerId': ownerId, // Save ownerId
-      });
+        await collection.doc(newId).set({
+          'nameparking': name,
+          'address': address,
+          'description': description,
+          'price': price,
+          'status': 'N/A',
+          'car_slot': carSlot,
+          'imageUrl': imageUrl,
+          'location': GeoPoint(widget.latitude, widget.longitude),
+          'ownerId': ownerId,
+          'evSupport': evSupport, // Store EV selection
+        });
 
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Location added successfully with ID: $newId')),
+        );
+
+        Navigator.of(context).pop();
+        Navigator.of(context).push(MaterialPageRoute(builder: (c) => ownerMain()));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Image upload failed')),
+        );
+      }
+    } catch (e) {
+      print("Error adding location: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Location added successfully with ID: $newId')),
-      );
-
-      // Navigate back to the previous screen
-      Navigator.of(context).pop();
-      MaterialPageRoute route =
-          MaterialPageRoute(builder: (c) => ownerMain());
-      Navigator.of(context).push(route);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Image upload failed')),
+        SnackBar(content: Text('Failed to add location: $e')),
       );
     }
-  } catch (e) {
-    print("Error adding location: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to add location: $e')),
-    );
   }
-}
-
 
   Widget _addLocationForm() {
     final _formKey = GlobalKey<FormState>();
@@ -208,13 +183,14 @@ class _BtnaddParkingState extends State<BtnaddParking> {
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _priceController,
+                  keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: "price",
+                    labelText: "Price",
                     prefixIcon: Icon(Icons.price_change),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return "Please enter the description";
+                      return "Please enter the price";
                     }
                     return null;
                   },
@@ -236,6 +212,30 @@ class _BtnaddParkingState extends State<BtnaddParking> {
                   },
                 ),
                 const SizedBox(height: 16),
+
+                // EV Charging Support Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedEVOption,
+                  decoration: const InputDecoration(
+                    labelText: "EV Charging Support",
+                    prefixIcon: Icon(Icons.electric_car),
+                  ),
+                  items: _evOptions.map((String option) {
+                    return DropdownMenuItem<String>(
+                      value: option,
+                      child: Text(option),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedEVOption = newValue;
+                    });
+                  },
+                  validator: (value) =>
+                      value == null ? "Please select an option" : null,
+                ),
+                const SizedBox(height: 16),
+
                 ElevatedButton.icon(
                   onPressed: _pickImage,
                   icon: const Icon(Icons.image),
@@ -260,8 +260,11 @@ class _BtnaddParkingState extends State<BtnaddParking> {
                         final price = int.parse(_priceController.text.trim());
                         final carSlot = int.parse(_carSlotController.text.trim());
 
+                        // Get the selected EV option
+                        final evSupport = _selectedEVOption ?? "None";
+
                         await _addLocationWithImage(
-                            name, address, description,price, carSlot);
+                            name, address, description, price, carSlot, evSupport);
                       }
                     },
                     child: const Text("Add Location"),
@@ -273,6 +276,34 @@ class _BtnaddParkingState extends State<BtnaddParking> {
         ),
       ),
     );
+  }
+
+  // Image picking function
+  Future<void> _pickImage() async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        if (kIsWeb) {
+          final Uint8List bytes = await pickedFile.readAsBytes();
+          setState(() {
+            _imageBytes = bytes;
+          });
+        } else {
+          setState(() {
+            _selectedImage = File(pickedFile.path);
+          });
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No image selected')),
+        );
+      }
+    } catch (e) {
+      print("Error selecting image: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error selecting image')),
+      );
+    }
   }
 
   @override

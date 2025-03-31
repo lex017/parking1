@@ -1,24 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:parking1/data_save/buyticket.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:parking1/loginandregis/loginPage.dart';
 
-// Background message handler
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print("Handling a background message: ${message.messageId}");
-  if (message.notification != null) {
-    print("Title: ${message.notification!.title}");
-    print("Body: ${message.notification!.body}");
+}
+
+// Global ValueNotifier for theme mode
+final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(ThemeMode.system);
+
+Future<void> loadThemeMode() async {
+  final prefs = await SharedPreferences.getInstance();
+  final themeModeIndex = prefs.getInt('themeMode') ?? 0;
+  switch (themeModeIndex) {
+    case 1:
+      themeModeNotifier.value = ThemeMode.light;
+      break;
+    case 2:
+      themeModeNotifier.value = ThemeMode.dark;
+      break;
+    default:
+      themeModeNotifier.value = ThemeMode.system;
+      break;
   }
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-
-  // Initialize Firebase Messaging
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  await loadThemeMode();
 
   runApp(const ParkingApp());
 }
@@ -37,10 +52,10 @@ class _ParkingAppState extends State<ParkingApp> {
   void initState() {
     super.initState();
     _initializeFCM();
+    _checkInternetConnectivity();
   }
 
   void _initializeFCM() async {
-    // Request permission for notifications
     NotificationSettings settings = await _firebaseMessaging.requestPermission(
       alert: true,
       badge: true,
@@ -48,21 +63,16 @@ class _ParkingAppState extends State<ParkingApp> {
     );
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      print("User granted permission");
-
-      // Get FCM token for the device
       _firebaseMessaging.getToken().then((token) {
         print("FCM Token: $token");
       });
 
-      // Handle foreground messages
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         if (message.notification != null) {
           _showNotificationDialog(message.notification!);
         }
       });
 
-      // Handle notification click when app is in background
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         if (message.notification != null) {
           print("Notification clicked! Title: ${message.notification!.title}");
@@ -89,41 +99,90 @@ class _ParkingAppState extends State<ParkingApp> {
     );
   }
 
+  void _checkInternetConnectivity() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      _showNoInternetDialog();
+    }
+
+    Connectivity().onConnectivityChanged.listen((result) {
+      if (result == ConnectivityResult.none) {
+        _showNoInternetDialog();
+      }
+    });
+  }
+
+  void _showNoInternetDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("No Internet Connection"),
+        content: const Text("Please check your internet connection and try again."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(
-        appBarTheme: const AppBarTheme(
-          color: Colors.white,
-          titleTextStyle: TextStyle(
-            color: Colors.black,
-            fontSize: 22.0,
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeModeNotifier,
+      builder: (context, currentTheme, _) {
+        return MaterialApp(
+          title: 'Parking App',
+          theme: ThemeData(
+            brightness: Brightness.light,
+            scaffoldBackgroundColor: Colors.white, 
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.white,
+              titleTextStyle: TextStyle(
+                color: Colors.black,
+                fontSize: 22.0,
+              ),
+              iconTheme: IconThemeData(
+                color: Colors.black,
+                size: 33.0,
+              ),
+            ),
+            bottomNavigationBarTheme: BottomNavigationBarThemeData(
+              backgroundColor: Colors.white, 
+              selectedItemColor: Colors.blue, 
+              unselectedItemColor: Colors.grey, 
+              selectedLabelStyle: TextStyle(fontSize: 16), 
+              unselectedLabelStyle: TextStyle(fontSize: 14),
+            ),
           ),
-          iconTheme: IconThemeData(color: Colors.black, size: 33.0),
-        ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          selectedLabelStyle: TextStyle(fontSize: 25, color: Colors.white),
-          unselectedLabelStyle: TextStyle(fontSize: 14, color: Colors.white),
-        ),
-        brightness: Brightness.light, // Default light theme
-      ),
-      darkTheme: ThemeData(
-        brightness: Brightness.dark, // Dark mode theme
-        appBarTheme: const AppBarTheme(
-          color: Colors.black,
-          titleTextStyle: TextStyle(
-            color: Colors.white,
-            fontSize: 22.0,
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: Colors.black87, 
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.black87, 
+              titleTextStyle: TextStyle(
+                color: Colors.white,
+                fontSize: 22.0,
+              ),
+              iconTheme: IconThemeData(
+                color: Colors.white,
+                size: 33.0,
+              ),
+            ),
+            bottomNavigationBarTheme: BottomNavigationBarThemeData(
+              backgroundColor: Colors.black87, 
+              selectedItemColor: Colors.blueAccent, 
+              unselectedItemColor: Colors.grey, 
+              selectedLabelStyle: TextStyle(fontSize: 16),
+              unselectedLabelStyle: TextStyle(fontSize: 14),
+            ),
           ),
-          iconTheme: IconThemeData(color: Colors.white, size: 33.0),
-        ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          selectedLabelStyle: TextStyle(fontSize: 25, color: Colors.white),
-          unselectedLabelStyle: TextStyle(fontSize: 14, color: Colors.white),
-        ),
-      ),
-      themeMode: ThemeMode.system, // Automatically switch based on system preferences
-      home: const loginPage(),
+          themeMode: currentTheme, 
+          home: const loginPage(), 
+        );
+      },
     );
   }
 }

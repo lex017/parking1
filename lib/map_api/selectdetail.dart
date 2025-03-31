@@ -113,7 +113,7 @@ class _BtnLocationState extends State<detailPay> {
               // StreamBuilder to fetch image
               StreamBuilder<DocumentSnapshot>(
                 stream: FirebaseFirestore.instance
-                    .collection('Locations')
+                    .collection('parking')
                     .doc(widget.documentId)
                     .snapshots(),
                 builder: (context, snapshot) {
@@ -204,7 +204,7 @@ class _BtnLocationState extends State<detailPay> {
           Expanded(
             child: StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance
-                  .collection('Locations')
+                  .collection('parking')
                   .doc(widget.documentId)
                   .snapshots(),
               builder: (context, snapshot) {
@@ -231,7 +231,7 @@ class _BtnLocationState extends State<detailPay> {
                 }
 
                 final data = snapshot.data!.data() as Map<String, dynamic>;
-                final nameLocation = data['nameLocation'] ?? 'Unknown Name';
+                final nameLocation = data['nameparking'] ?? 'Unknown Name';
                 final price = data['price'] ?? 0;
                 pricePerHour = price;
 

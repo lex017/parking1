@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'editcar.dart'; // Create an edit page
+import 'editcar.dart'; 
 
 class DetailCar extends StatefulWidget {
-  final String documentId; // Get document ID
+  final String documentId; 
 
   const DetailCar({super.key, required this.documentId});
 
@@ -12,10 +12,10 @@ class DetailCar extends StatefulWidget {
 }
 
 class _DetailCarState extends State<DetailCar> {
-  Map<String, dynamic>? carData; // Store car data
-  bool isLoading = true; // Track loading state
-  bool hasError = false; // Track error state
-  bool isTimeout = false; // Track timeout state
+  Map<String, dynamic>? carData; 
+  bool isLoading = true; 
+  bool hasError = false; 
+  bool isTimeout = false; 
 
   final Map<String, Map<String, Color>> plateColors = {
     "ລັດບໍລິຫານ": {
@@ -54,7 +54,7 @@ class _DetailCarState extends State<DetailCar> {
   void initState() {
     super.initState();
     FirebaseFirestore.instance.settings =
-        const Settings(persistenceEnabled: true); // Enable Firestore caching
+        const Settings(persistenceEnabled: true); 
     _fetchCarDetails();
   }
 
@@ -64,7 +64,7 @@ class _DetailCarState extends State<DetailCar> {
           .collection('vehicles')
           .doc(widget.documentId)
           .get()
-          .timeout(const Duration(seconds: 10)); // Timeout after 10 seconds
+          .timeout(const Duration(seconds: 10)); 
 
       if (doc.exists) {
         setState(() {
@@ -117,7 +117,7 @@ class _DetailCarState extends State<DetailCar> {
     }
 
     final plateType =
-        carData?["selectedplate"] ?? "Unknown"; // Handling null plateType
+        carData?["typeplate"] ?? "Unknown"; // Handling null plateType
     final plateColor = plateColors[plateType] ??
         {
           "background": Colors.grey,
@@ -159,7 +159,7 @@ class _DetailCarState extends State<DetailCar> {
                   child: Column(
                     children: [
                       Text(
-                        carData?["selectedCity"] ?? "Unknown",
+                        carData?["province"] ?? "Unknown",
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -173,7 +173,7 @@ class _DetailCarState extends State<DetailCar> {
                             MainAxisAlignment.center, // Center align content
                         children: [
                           Text(
-                            carData?["nameplate"] ?? "Unknown",
+                            carData?["charplate"] ?? "Unknown",
                             style: TextStyle(
                               fontSize: 36,
                               fontWeight: FontWeight.bold,
@@ -182,9 +182,9 @@ class _DetailCarState extends State<DetailCar> {
                           ),
                           const SizedBox(
                               width:
-                                  16), // Add space between nameplate and plate
+                                  16), // Add space between charplate and plate
                           Text(
-                            carData?["plate"] ?? "Unknown",
+                            carData?["numberplate"] ?? "Unknown",
                             style: TextStyle(
                               fontSize: 36,
                               fontWeight: FontWeight.bold,
@@ -199,12 +199,12 @@ class _DetailCarState extends State<DetailCar> {
             const SizedBox(height: 30),
             _buildDetailRow("Brand", carData?["brandName"] ?? "Unknown"),
             _buildDetailRow("Color", carData?["color"] ?? "Unknown"),
-            _buildDetailRow("License Plate", carData?["plate"] ?? "Unknown"),
+            _buildDetailRow("License Plate", carData?["numberplate"] ?? "Unknown"),
             _buildDetailRow(
-                "City Plate", carData?["selectedCity"] ?? "Unknown"),
+                "City Plate", carData?["province"] ?? "Unknown"),
             _buildDetailRow(
-                "Plate Type", carData?["selectedplate"] ?? "Unknown"),
-            _buildDetailRow("Name Plate", carData?["nameplate"] ?? "Unknown"),
+                "Plate Type", carData?["typeplate"] ?? "Unknown"),
+            _buildDetailRow("Name Plate", carData?["charplate"] ?? "Unknown"),
             const SizedBox(height: 30),
             Center(
               child: ElevatedButton(

@@ -34,7 +34,7 @@ class _ScanCheckState extends State<ScanCheck> {
       if (ticketSnapshot.exists) {
         var data = ticketSnapshot.data() as Map<String, dynamic>;
         setState(() {
-          status = data['parkingStatus'] ?? 'unknown';
+          status = data['Status'] ?? 'unknown';
           if (data['checkOutTime'] != null) {
             checkOutTime = (data['checkOutTime'] as Timestamp).toDate();
           }
@@ -58,7 +58,7 @@ class _ScanCheckState extends State<ScanCheck> {
         FirebaseFirestore.instance.collection('bookings').doc(widget.bookingId);
 
     try {
-      await ticketRef.update({"parkingStatus": "check-in"});
+      await ticketRef.update({"Status": "check-in"});
       setState(() {
         status = "check-in";
       });
@@ -87,7 +87,7 @@ class _ScanCheckState extends State<ScanCheck> {
 
     try {
       await ticketRef.update({
-        "parkingStatus": "check-out",
+        "Status": "check-out",
         "checkOutTime": FieldValue.serverTimestamp(),
       });
       setState(() {

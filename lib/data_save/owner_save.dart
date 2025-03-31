@@ -250,9 +250,9 @@ Widget ExpiryDateInput() {
                   "lname": myOwner.lname,
                   "age": myOwner.age,
                   "idcard": myOwner.idcard,
-                  "expiryDate": expiryDateController.text,
+                  "Dateofbirth": expiryDateController.text,
                   "profile_image_url": _profileImageUrl,
-                  "id_card_image_url": _idCardImageUrl,
+                  "imageidenity": _idCardImageUrl,
                   "created_at": Timestamp.now(),
                 });
 

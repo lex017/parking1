@@ -21,7 +21,7 @@ class _ChatPageState extends State<ChatPage> {
   final ImagePicker _picker = ImagePicker();
 
   String _userId = '';
-  String _userName = 'User';
+  String _userName = 'User ';
   final String _adminId = 'admin'; // Replace with your admin's user ID
 
   @override
@@ -46,14 +46,12 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  // Generate a unique chat ID between the user and admin.
   String getChatId() {
     List<String> ids = [_userId, _adminId];
     ids.sort();
     return ids.join('_');
   }
 
-  // Send a text message to Firestore.
   void _sendMessage() async {
     String text = _messageController.text.trim();
     if (text.isNotEmpty) {
@@ -70,48 +68,43 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  // Send an image message: pick image, upload to Firebase Storage, then send URL.
- Future<void> _sendImageMessage() async {
-  final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-  if (pickedFile != null) {
-    File imageFile = File(pickedFile.path);
+  Future<void> _sendImageMessage() async {
+    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      File imageFile = File(pickedFile.path);
 
-    // Cloudinary API details
-    const String cloudName = "doiq3nkso";
-    const String uploadPreset = "parking"; // Set this in Cloudinary settings
+      const String cloudName = "doiq3nkso";
+      const String uploadPreset = "parking"; // Set this in Cloudinary settings
 
-    // Cloudinary upload URL
-    String url = "https://api.cloudinary.com/v1_1/$cloudName/image/upload";
+      String url = "https://api.cloudinary.com/v1_1/$cloudName/image/upload";
 
-    var request = http.MultipartRequest("POST", Uri.parse(url));
-    request.fields['upload_preset'] = uploadPreset;
-    request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+      var request = http.MultipartRequest("POST", Uri.parse(url));
+      request.fields['upload_preset'] = uploadPreset;
+      request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
 
-    try {
-      var response = await request.send();
-      var responseBody = await response.stream.bytesToString();
-      var jsonResponse = json.decode(responseBody);
+      try {
+        var response = await request.send();
+        var responseBody = await response.stream.bytesToString();
+        var jsonResponse = json.decode(responseBody);
 
-      if (jsonResponse['secure_url'] != null) {
-        String downloadUrl = jsonResponse['secure_url'];
+        if (jsonResponse['secure_url'] != null) {
+          String downloadUrl = jsonResponse['secure_url'];
 
-        // Send the image URL to Firestore
-        await _firestore.collection('chats').doc(getChatId()).collection('messages').add({
-          'text': '', // Leave empty or add caption if needed
-          'senderId': _userId,
-          'imageUrl': downloadUrl,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
-      } else {
-        print("Cloudinary Upload Failed: ${jsonResponse['error']['message']}");
+          await _firestore.collection('chats').doc(getChatId()).collection('messages').add({
+            'text': '',
+            'senderId': _userId,
+            'imageUrl': downloadUrl,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+        } else {
+          print("Cloudinary Upload Failed: ${jsonResponse['error']['message']}");
+        }
+      } catch (e) {
+        print("Error uploading image: $e");
       }
-    } catch (e) {
-      print("Error uploading image: $e");
     }
   }
-}
 
-  // Build a chat bubble for a single message.
   Widget _buildMessageItem(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     bool isMe = data['senderId'] == _userId;
@@ -121,7 +114,7 @@ class _ChatPageState extends State<ChatPage> {
       text: data['text'] ?? '',
       isMe: isMe,
       timestamp: date,
-      imageUrl: data['imageUrl'], // May be null if not an image message.
+      imageUrl: data['imageUrl'],
     );
   }
 
@@ -131,67 +124,81 @@ class _ChatPageState extends State<ChatPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Chat with Admin'),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+           color: Colors.blue
+          ),
+        ),
       ),
-      body: Column(
-        children: [
-          // Message list
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore
-                  .collection('chats')
-                  .doc(chatId)
-                  .collection('messages')
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text("No messages yet."));
-                }
-                return ListView.builder(
-                  reverse: true,
-                  padding: const EdgeInsets.all(8.0),
-                  itemCount: snapshot.data!.docs.length,
-                  itemBuilder: (context, index) =>
-                      _buildMessageItem(snapshot.data!.docs[index]),
-                );
-              },
+      body: Container(
+        color: Colors.grey[100],
+        child: Column(
+          children: [
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: _firestore
+                    .collection('chats')
+                    .doc(chatId)
+                    .collection('messages')
+                    .orderBy('timestamp', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(child: Text("No messages yet."));
+                  }
+                  return ListView.builder(
+                    reverse: true,
+                    padding: const EdgeInsets.all(8.0),
+                    itemCount: snapshot.data!.docs.length,
+                    itemBuilder: (context, index) =>
+                        _buildMessageItem(snapshot.data!.docs[index]),
+                  );
+                },
+              ),
             ),
-          ),
-          // Divider line
-          const Divider(height: 1.0),
-          // Text composer for sending messages and images
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-            ),
-            child: Row(
-              children: [
-                // Button to pick and send image message.
-                IconButton(
-                  icon: const Icon(Icons.image),
-                  onPressed: _sendImageMessage,
-                ),
-                Flexible(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: const InputDecoration.collapsed(
-                      hintText: 'Type your message...',
-                    ),
-                    onSubmitted: (_) => _sendMessage(),
+            const Divider(height: 1.0),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 5.0,
+                    spreadRadius: 1.0,
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: _sendMessage,
-                ),
-              ],
+                ],
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.image),
+                    onPressed: _sendImageMessage,
+                    color: Colors.blue,
+                  ),
+                  Flexible(
+                    child: TextField(
+                      controller: _messageController,
+                      decoration: const InputDecoration(
+                        hintText: 'Type your message...',
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.send),
+                    onPressed: _sendMessage,
+                    color: Colors.blue,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -213,12 +220,10 @@ class ChatMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Chat bubble with conditional styling for text and/or image.
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10.0),
       child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isMe)
@@ -234,13 +239,18 @@ class ChatMessage extends StatelessWidget {
               padding: const EdgeInsets.all(12.0),
               decoration: BoxDecoration(
                 color: isMe ? Colors.blue.shade200 : Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(8.0),
+                borderRadius: BorderRadius.circular(20.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 5.0,
+                    spreadRadius: 1.0,
+                  ),
+                ],
               ),
               child: Column(
-                crossAxisAlignment:
-                    isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                 children: [
-                  // If an image URL is provided, show the image.
                   if (imageUrl != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),
@@ -254,7 +264,6 @@ class ChatMessage extends StatelessWidget {
                         ),
                       ),
                     ),
-                  // Display text message (if any)
                   if (text.isNotEmpty)
                     Text(
                       text,
@@ -263,8 +272,7 @@ class ChatMessage extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     "${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}",
-                    style:
-                        const TextStyle(fontSize: 10, color: Colors.black54),
+                    style: const TextStyle(fontSize: 10, color: Colors.black54),
                   ),
                 ],
               ),

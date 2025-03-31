@@ -28,6 +28,7 @@ class _PayPageState extends State<PayPage> {
   File? _selectedImage;
   Uint8List? _imageBytes;
   final ImagePicker _picker = ImagePicker();
+   bool _isLoading = false;
 
   final TextEditingController amountController = TextEditingController();
   final TextEditingController accountController = TextEditingController();
@@ -171,7 +172,6 @@ Future<void> _savePaymentAndBooking() async {
   if (amountController.text.isEmpty ||
       dateController.text.isEmpty ||
       timeController.text.isEmpty ||
-      nameController.text.isEmpty ||
       (_selectedImage == null && _imageBytes == null)) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -191,6 +191,22 @@ Future<void> _savePaymentAndBooking() async {
   String transactionId = "payment${DateTime.now().millisecondsSinceEpoch}";
   String bookingId = "bookings${DateTime.now().millisecondsSinceEpoch}";
 
+  // Fetch user data (username)
+  String username = "Unknown User"; // Default value
+  try {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    if (userDoc.exists) {
+      Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+      username = userData['username'] ?? "Unknown User";
+    }
+  } catch (e) {
+    print("Error fetching username: $e");
+  }
+
   // Fetch location data from Firestore
   String locationId = widget.documentId;
   String nameLocation = "";
@@ -198,13 +214,13 @@ Future<void> _savePaymentAndBooking() async {
 
   try {
     var locationSnapshot = await FirebaseFirestore.instance
-        .collection('Locations')
-        .doc(locationId) // Fetch using the document ID directly
+        .collection('parking')
+        .doc(locationId)
         .get();
 
     if (locationSnapshot.exists) {
       var locationData = locationSnapshot.data() as Map<String, dynamic>;
-      nameLocation = locationData['nameLocation'] ?? "Unknown Location";
+      nameLocation = locationData['nameparking'] ?? "Unknown Location";
 
       if (locationData['location'] is GeoPoint) {
         location = locationData['location'];
@@ -234,20 +250,20 @@ Future<void> _savePaymentAndBooking() async {
         builder: (context, setState) {
           bool isVerified = false; // Track verification status
 
-          // Listen for real-time updates on the payment document
           FirebaseFirestore.instance
               .collection('payments')
               .doc(transactionId)
               .snapshots()
               .listen((docSnapshot) {
-            if (docSnapshot.exists && docSnapshot.data()?['Status'] == "success") {
+            if (docSnapshot.exists &&
+                docSnapshot.data()?['paymentStatus'] == "success") {
               setState(() {
                 isVerified = true; // Update UI to success
               });
 
               // Close the dialog after showing success animation
               Future.delayed(const Duration(seconds: 2), () {
-                Navigator.pop(context); // Close the dialog
+                Navigator.pop(context);
               });
             }
           });
@@ -283,13 +299,13 @@ Future<void> _savePaymentAndBooking() async {
                 children: [
                   isVerified
                       ? Lottie.network(
-                          'https://lottie.host/849ddcf8-8e91-46e2-8b7d-294c25f98b8f/C3UHzTkWtW.json', // Success animation
+                          'https://lottie.host/849ddcf8-8e91-46e2-8b7d-294c25f98b8f/C3UHzTkWtW.json',
                           width: 150,
                           height: 150,
                           fit: BoxFit.cover,
                         )
                       : Lottie.network(
-                          'https://lottie.host/0f94c2a0-04ba-4ac7-b980-c529bd4fcc62/eLTNAOsywB.json', // Loading animation
+                          'https://lottie.host/0f94c2a0-04ba-4ac7-b980-c529bd4fcc62/eLTNAOsywB.json',
                           width: 150,
                           height: 150,
                           fit: BoxFit.cover,
@@ -321,32 +337,31 @@ Future<void> _savePaymentAndBooking() async {
     },
   );
 
-  // Save payment data
+  // Save payment data with username
   FirebaseFirestore.instance.collection('payments').doc(transactionId).set({
-    "userId": user.uid, 
+    "userId": user.uid,
+    "userName": username, // Added username
     "amount": amountController.text,
     "date": dateController.text,
     "time": timeController.text,
-    "name": nameController.text,
-    "car": widget.selectedCar,
+    "vechicle": widget.selectedCar,
     "imageBill": imageUrl,
-    "paymentStatus": "pending",
     "timestamp": FieldValue.serverTimestamp(),
   });
 
-  // Save booking data
+  // Save booking data with username
   FirebaseFirestore.instance.collection('bookings').doc(bookingId).set({
-    "userId": user.uid, 
-    "userName": nameController.text,
+    "userId": user.uid,
+    "userName": username, // Added username
     "bookingDate": dateController.text,
     "bookingTime": timeController.text,
     "paymentId": transactionId,
     "locationId": locationId,
-    "nameLocation": nameLocation,
+    "nameparking": nameLocation,
     "location": location,
-    "car": widget.selectedCar,
+    "vechicle": widget.selectedCar,
     "paymentStatus": "pending",
-    "parkingStatus": "pending",
+    "Status": "pending",
     "timestamp": FieldValue.serverTimestamp(),
   }).then((_) {
     _sendNotification(transactionId);
@@ -365,13 +380,14 @@ Future<void> _savePaymentAndBooking() async {
   listenForPaymentStatus(bookingId);
 }
 
+
   Future<int> countCheckedInTickets() async {
   String userId = FirebaseAuth.instance.currentUser!.uid;
 
   QuerySnapshot ticketSnapshot = await FirebaseFirestore.instance
       .collection('bookings') // Make sure this matches your Firestore collection name
       .where('userId', isEqualTo: userId)
-      .where('parkingStatus', isEqualTo: 'check-in') // Filter only "check-in" status
+      .where('Status', isEqualTo: 'check-in') // Filter only "check-in" status
       .get();
 
   return ticketSnapshot.docs.length; // Return the count of filtered tickets
@@ -405,7 +421,7 @@ Future<void> _savePaymentAndBooking() async {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Payment & Booking'),
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.white,
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -456,15 +472,6 @@ Future<void> _savePaymentAndBooking() async {
               readOnly: true,
             ),
             const SizedBox(height: 20),
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(
-                labelText: "Name",
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-            const SizedBox(height: 20),
             const Text("Upload Picture",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
@@ -496,17 +503,23 @@ Future<void> _savePaymentAndBooking() async {
             ),
             const SizedBox(height: 40),
             Center(
-              child: ElevatedButton(
-                onPressed: _savePaymentAndBooking,
-                style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  backgroundColor: Colors.white,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _savePaymentAndBooking, // Disable when loading
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          backgroundColor: Colors.white,
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(
+                  color: Colors.black, // Match text color
+                  strokeWidth: 3,
                 ),
-                child: const Text("Pay Now",
-                    style: TextStyle(fontSize: 18, color: Colors.black)),
+              )
+            : const Text("Pay Now", style: TextStyle(fontSize: 18, color: Colors.black)),
               ),
             ),
           ],

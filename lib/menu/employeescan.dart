@@ -38,7 +38,7 @@ class _EmployeeScanState extends State<EmployeeScan> {
 
       if (ticketSnapshot.exists) {
         final ticketData = ticketSnapshot.data();
-        String status = ticketData?['parkingStatus'] ?? 'unknown';
+        String status = ticketData?['Status'] ?? 'unknown';
 
         Navigator.push(
           context,

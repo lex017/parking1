@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:parking1/drawer.dart';
 import 'package:parking1/map_api/btnlocation.dart';
 
-
 class LocationPage extends StatefulWidget {
   const LocationPage({Key? key}) : super(key: key);
 
@@ -13,46 +12,106 @@ class LocationPage extends StatefulWidget {
 
 class _LocationPageState extends State<LocationPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  String searchQuery = '';
+  String? selectedCategory = 'All'; // Default to 'All'
+
+  // Sample categories for filtering
+  final List<String> categories = ['All', 'EV'];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Location"),
         centerTitle: true,
       ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value.toLowerCase();
+                });
+              },
+              decoration: InputDecoration(
+                labelText: 'Search',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16.0),
+                ),
+                prefixIcon: const Icon(Icons.search),
+              ),
+            ),
+          ),
+          // Single Selection Chips for filtering
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Align(
+              // Ensures alignment to the left
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 8.0,
+                alignment:
+                    WrapAlignment.start, // Aligns chips to the start (left)
+                children: categories.map((category) {
+                  return ChoiceChip(
+                    label: Text(category),
+                    selected: selectedCategory == category,
+                    onSelected: (bool selected) {
+                      setState(() {
+                        selectedCategory = selected ? category : 'All';
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore.collection('Locations').snapshots(),
+              stream: _firestore.collection('parking').snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 if (snapshot.hasError) {
                   return const Center(
-                    child: Text(
-                      "Error fetching data",
-                      style: TextStyle(color: Colors.red),
-                    ),
+                    child: Text("Error fetching data",
+                        style: TextStyle(color: Colors.red)),
                   );
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(
-                    child: Text(
-                      "No locations found",
-                      style: TextStyle(color: Colors.grey),
-                    ),
+                    child: Text("No locations found",
+                        style: TextStyle(color: Colors.grey)),
                   );
                 }
 
-                final locations = snapshot.data!.docs;
+                final locations = snapshot.data!.docs.where((doc) {
+                  final location = doc.data() as Map<String, dynamic>;
+                  final name = location['nameparking']?.toLowerCase() ?? '';
+                  final category = location['tag'] ??
+                      ''; // Assuming category field exists in Firestore
+
+                  bool matchesSearch = name.contains(searchQuery);
+                  bool matchesCategory = (selectedCategory == 'All') ||
+                      (selectedCategory == 'EV' && category == 'EV');
+
+                  return matchesSearch && matchesCategory;
+                }).toList();
+
+                if (locations.isEmpty) {
+                  return const Center(
+                    child: Text("No matching locations",
+                        style: TextStyle(color: Colors.grey)),
+                  );
+                }
 
                 return ListView.builder(
                   itemCount: locations.length,
@@ -101,10 +160,9 @@ class _LocationPageState extends State<LocationPage> {
                                     },
                                     errorBuilder: (context, error, stackTrace) {
                                       return const Center(
-                                        child: Text(
-                                          "Failed to load image",
-                                          style: TextStyle(color: Colors.red),
-                                        ),
+                                        child: Text("Failed to load image",
+                                            style:
+                                                TextStyle(color: Colors.red)),
                                       );
                                     },
                                   ),
@@ -112,31 +170,31 @@ class _LocationPageState extends State<LocationPage> {
                               Padding(
                                 padding: const EdgeInsets.all(16.0),
                                 child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          location['nameLocation'] ??
-                                              'Unknown Name',
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            location['nameparking'] ??
+                                                'Unknown Name',
+                                            style: const TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 4.0),
-                                        Text(
-                                          location['address'] ??
-                                              'Unknown Address',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey[600],
+                                          const SizedBox(height: 4.0),
+                                          Text(
+                                            location['address'] ??
+                                                'Unknown Address',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[600],
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                     Column(
                                       crossAxisAlignment:
@@ -165,9 +223,6 @@ class _LocationPageState extends State<LocationPage> {
             ),
           ),
         ],
-      ),
-      drawer: const Drawer(
-        child: drawer_menu(),
       ),
     );
   }

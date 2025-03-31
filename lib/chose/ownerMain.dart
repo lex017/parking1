@@ -7,8 +7,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:parking1/chose/detail_ownner.dart';
 import 'package:parking1/chose/mapapi.dart';
 import 'package:parking1/data_save/btnadd_parking.dart';
+import 'package:parking1/detailownner/detail_money.dart';
+import 'package:parking1/map_api/btnlocation.dart';
 import 'package:parking1/map_api/map_api.dart';
 import 'package:parking1/menu/emp_register.dart';
 
@@ -56,12 +59,12 @@ class _OwnerMainState extends State<ownerMain> {
     }
   }
 
-  void toggleStatus(String currentStatus) async {
+  void toggleStatus(String parkingId, String currentStatus) async {
     String newStatus = currentStatus == "Online" ? "Offline" : "Online";
 
     await FirebaseFirestore.instance
-        .collection('users')
-        .doc(auth.currentUser?.uid)
+        .collection('parking') // Reference the "parking" collection
+        .doc(parkingId) // Specify the document to update
         .update({'status': newStatus});
   }
 
@@ -69,62 +72,113 @@ class _OwnerMainState extends State<ownerMain> {
     required String title,
     required String date,
     required String status,
+    required String tel,
     required VoidCallback onToggle,
+    required String profileImageUrl,
   }) {
     return Card(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(18.0),
       ),
-      elevation: 4,
       margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Colors.blueAccent,
+            width: 1.0,
+          ),
+          borderRadius: BorderRadius.circular(18.0),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Profile and Name
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.grey[300],
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: Image.network(
+                        profileImageUrl,
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(Icons.person,
+                              size: 30, color: Colors.grey);
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 18),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Date: $date",
-                  style: const TextStyle(fontSize: 14),
-                ),
-                Text(
-                  "Status: $status",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: status.toLowerCase() == 'online'
-                        ? Colors.green
-                        : Colors.red,
+              const SizedBox(height: 11),
+
+              // Status Information
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Tel: 020 $tel",
+                    style: TextStyle(
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: onToggle,
-                  icon: const Icon(Icons.power_settings_new),
-                  label: Text(status == "Online" ? "Go Offline" : "Go Online"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        status == "Online" ? Colors.red : Colors.green,
-                    foregroundColor: Colors.white,
+                  Text(
+                    "Status: $status",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: status.toLowerCase() == 'online'
+                          ? Colors.green
+                          : Colors.red,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+
+              const SizedBox(height: 8),
+              const Divider(), // Line added above the switch
+
+              // Switch, Status Toggle, and Date on the Right
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Date: $date",
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  Row(
+                    children: [
+                      Text(status == "Online" ? "Go Offline" : "Go Online"),
+                      const SizedBox(width: 8),
+                      Switch(
+                        value: status.toLowerCase() == 'online',
+                        onChanged: (value) {
+                          onToggle();
+                        },
+                        activeColor: Colors.green,
+                        activeTrackColor: Colors.lightGreenAccent,
+                        inactiveThumbColor: Colors.red,
+                        inactiveTrackColor: Colors.redAccent,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -154,6 +208,9 @@ class _OwnerMainState extends State<ownerMain> {
           final userData = snapshot.data!.data() as Map<String, dynamic>;
           final username = userData['username'] ?? 'Guest';
           final status = userData['status'] ?? 'Offline';
+          final tel = userData['phoneNumber'] ?? 'N/A';
+          final profileImageUrl =
+              userData['profileImage'] ?? ''; // Get profile image URL
 
           return StreamBuilder<String>(
             stream: _realTimeDateStream,
@@ -163,7 +220,9 @@ class _OwnerMainState extends State<ownerMain> {
                 title: username,
                 date: realTimeDate,
                 status: status,
-                onToggle: () => toggleStatus(status),
+                tel: tel,
+                onToggle: () => toggleStatus(auth.currentUser!.uid, status),
+                profileImageUrl: profileImageUrl, // Pass the profile image URL
               );
             },
           );
@@ -240,8 +299,8 @@ class _OwnerMainState extends State<ownerMain> {
     final String? imageUrl = await _uploadImageToCloudinary();
 
     if (imageUrl != null) {
-      await FirebaseFirestore.instance.collection('Locations').add({
-        'nameLocation': name,
+      await FirebaseFirestore.instance.collection('parking').add({
+        'nameparking': name,
         'address': address,
         'description': description,
         'price': price,
@@ -258,132 +317,392 @@ class _OwnerMainState extends State<ownerMain> {
     }
   }
 
-  Widget parkLocation() {
-  // Get the current user's ID (owner)
-  User? currentUser = FirebaseAuth.instance.currentUser;
-  String ownerId = currentUser?.uid ?? '';
-
-  return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance
-        .collection('Locations')
-        .where('ownerId', isEqualTo: ownerId) // Filter by ownerId
-        .snapshots(),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(
-          child: CircularProgressIndicator(),
-        );
-      } else if (snapshot.hasError || !snapshot.hasData) {
-        return const Center(
-          child: Text(
-            'Error loading locations',
-            style: TextStyle(fontSize: 18, color: Colors.red),
+  Widget DashboardButton({
+    required String iconPath,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Colors.blue, Colors.purple],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        );
-      } else if (snapshot.data!.docs.isEmpty) {
-        return const Center(
-          child: Text(
-            'No parking locations available',
-            style: TextStyle(fontSize: 18, color: Colors.grey),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: Colors.blueAccent,
+              width: 1.0,
+            ),
           ),
-        );
-      } else {
-        final locations = snapshot.data!.docs;
-
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: locations.length,
-          itemBuilder: (context, index) {
-            final locationData =
-                locations[index].data() as Map<String, dynamic>;
-            final locationName =
-                locationData['nameLocation'] ?? 'Unknown Location';
-            final addressName = locationData['address'] ?? 'Unknown Address';
-            final description =
-                locationData['description'] ?? 'No Description Available';
-            final price = locationData['price'] ?? 'Unknown';
-            final carSlot = locationData['car_slot'] ?? 'Unknown';
-            final imageUrl = locationData['imageUrl'] ?? '';
-
-            return Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.0),
-              ),
-              elevation: 4,
-              margin: const EdgeInsets.symmetric(vertical: 8.0),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Parking Location ${index + 1}",
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (imageUrl.isNotEmpty)
-                      Image.network(
-                        imageUrl,
-                        height: 150,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Text("Failed to load image"),
-                      ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Location: $locationName",
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Address: $addressName",
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Car Slots: 0/$carSlot",
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "Price: $price",
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.map),
-                      label: const Text("Open in Maps"),
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        MaterialPageRoute route =
-                            MaterialPageRoute(builder: (c) => map_api(documentId: '',));
-                        Navigator.of(context).push(route);
-                      },
-                    ),
-                  ],
+          margin: EdgeInsets.zero,
+          child: Container(
+            width: 140,
+            height: 140,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  iconPath,
+                  width: 28,
+                  height: 28,
+                  fit: BoxFit.contain,
                 ),
-              ),
-            );
-          },
-        );
-      }
-    },
-  );
-}
+                const SizedBox(height: 18),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
+  Widget buttonthree(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(6.0),
+      child: Row(
+        mainAxisAlignment:
+            MainAxisAlignment.spaceEvenly, // จัดให้ปุ่มกระจายตัวเท่าๆ กัน
+        children: [
+          Expanded(
+            child: DashboardButton(
+              iconPath: 'assets/images/income.png',
+              label: 'ລາຍຮັບ',
+              onPressed: () {
+                Navigator.of(context).pop();
+                MaterialPageRoute route =
+                    MaterialPageRoute(builder: (c) => DetailMoney());
+                Navigator.of(context).push(route);
+              },
+            ),
+          ),
+          SizedBox(width: 15), // เพิ่มระยะห่าง
+          Expanded(
+            child: DashboardButton(
+              iconPath: 'assets/images/ticket.png',
+              label: 'ປະຫວັດ',
+              onPressed: () {},
+            ),
+          ),
+          SizedBox(width: 15),
+          Expanded(
+            child: DashboardButton(
+              iconPath: 'assets/images/question.png',
+              label: 'ຊ່ວຍເຫຼືອ',
+              onPressed: () {},
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  void _showAddLocationDialog() {
-    final _formKey = GlobalKey<FormState>();
-    final _nameController = TextEditingController();
-    final _addressController = TextEditingController();
-    final _descriptionController = TextEditingController();
-    final _priceController = TextEditingController();
-    final _carSlotController = TextEditingController();
+  Widget parkLocation() {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    String ownerId = currentUser?.uid ?? '';
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('parking')
+          .where('ownerId', isEqualTo: ownerId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError || !snapshot.hasData) {
+          return const Center(
+            child: Text(
+              'Error loading locations',
+              style: TextStyle(fontSize: 18, color: Colors.red),
+            ),
+          );
+        } else if (snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Text(
+              'No parking locations available',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+          );
+        } else {
+          final locations = snapshot.data!.docs;
+          return ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: locations.length,
+            itemBuilder: (context, index) {
+              final locationData =
+                  locations[index].data() as Map<String, dynamic>;
+              final docId = locations[index].id;
+              final locationName =
+                  locationData['nameparking'] ?? 'Unknown Location';
+              final carSlot = locationData['car_slot'] ?? 'Unknown';
+              final imageUrl = locationData['imageUrl'] ?? '';
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => DetailOwner(documentId: docId),
+                    ),
+                  );
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(
+                      16.0), // Rounded border for the whole card
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16.0),
+                    ),
+                    elevation: 6,
+                    margin: const EdgeInsets.symmetric(
+                        vertical: 10.0, horizontal: 8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (imageUrl.isNotEmpty)
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(
+                                    16.0)), // Ensures top corners are rounded
+                            child: Image.network(
+                              imageUrl,
+                              height: 150,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Center(
+                                      child: Text("Failed to load image")),
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    "Parking Location ${index + 1}",
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Spacer(), // Pushes "Car Slots" to the right
+                                  Text(
+                                    "Car Slots: 0/$carSlot",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                     fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "Location: $locationName",
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              Divider(),
+                              Text(
+                                    "Status : online",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        }
+      },
+    );
+  }
+
+// Widget parkLocation() {
+//   User? currentUser = FirebaseAuth.instance.currentUser;
+//   String ownerId = currentUser?.uid ?? '';
+
+//   return StreamBuilder<QuerySnapshot>(
+//     stream: FirebaseFirestore.instance
+//         .collection('parking')
+//         .where('ownerId', isEqualTo: ownerId)
+//         .snapshots(),
+//     builder: (context, snapshot) {
+//       if (snapshot.connectionState == ConnectionState.waiting) {
+//         return const Center(child: CircularProgressIndicator());
+//       }
+//       if (snapshot.hasError) {
+//         return const Center(
+//           child: Text(
+//             'Error loading locations',
+//             style: TextStyle(fontSize: 18, color: Colors.red),
+//           ),
+//         );
+//       }
+//       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+//         return const Center(
+//           child: Text(
+//             'No parking locations available',
+//             style: TextStyle(fontSize: 18, color: Colors.grey),
+//           ),
+//         );
+//       }
+
+//       final locations = snapshot.data!.docs;
+
+//       return ListView.builder(
+//         itemCount: locations.length,
+//         itemBuilder: (context, index) {
+//           final locationData = locations[index].data() as Map<String, dynamic>?;
+//           final docId = locations[index].id;
+
+//           if (locationData == null) {
+//             return const SizedBox.shrink();
+//           }
+
+//           final locationName = locationData['nameparking'] ?? 'Unknown Location';
+//           final address = locationData['address'] ?? 'Unknown Address';
+//           final description = locationData['description'] ?? 'No Description Available';
+//           final price = locationData['price'] ?? 'Unknown';
+//           final carSlot = locationData['car_slot'] ?? 'Unknown';
+//           final imageUrl = locationData['imageUrl'] ?? '';
+
+//           return GestureDetector(
+//             onTap: () {
+//               Navigator.of(context).push(
+//                 MaterialPageRoute(
+//                   builder: (context) => btnLocation(documentId: docId),
+//                 ),
+//               );
+//             },
+//             child: Card(
+//               shape: RoundedRectangleBorder(
+//                 borderRadius: BorderRadius.circular(16.0),
+//               ),
+//               elevation: 6,
+//               margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 8.0),
+//               child: Padding(
+//                 padding: const EdgeInsets.all(16.0),
+//                 child: Column(
+//                   crossAxisAlignment: CrossAxisAlignment.start,
+//                   children: [
+//                     Row(
+//                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                       children: [
+//                         Text(
+//                           "Parking Location ${index + 1}",
+//                           style: const TextStyle(
+//                             fontSize: 20,
+//                             fontWeight: FontWeight.bold,
+//                           ),
+//                         ),
+//                         PopupMenuButton<String>(
+//                           onSelected: (value) {
+//                             if (value == 'edit') {
+//                               _showEditLocationDialog(docId: docId, data: locationData);
+//                             } else if (value == 'delete') {
+//                               _showDeleteConfirmationDialog(docId: docId);
+//                             }
+//                           },
+//                           itemBuilder: (BuildContext context) => [
+//                             const PopupMenuItem(value: 'edit', child: Text('Edit')),
+//                             const PopupMenuItem(value: 'delete', child: Text('Delete')),
+//                           ],
+//                           icon: const Icon(Icons.more_vert),
+//                         ),
+//                       ],
+//                     ),
+//                     const SizedBox(height: 10),
+//                     if (imageUrl.isNotEmpty)
+//                       ClipRRect(
+//                         borderRadius: BorderRadius.circular(12),
+//                         child: Image.network(
+//                           imageUrl,
+//                           height: 150,
+//                           width: double.infinity,
+//                           fit: BoxFit.cover,
+//                           errorBuilder: (context, error, stackTrace) =>
+//                               const Center(child: Text("Failed to load image")),
+//                         ),
+//                       ),
+//                     const SizedBox(height: 12),
+//                     Text("Location: $locationName", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+//                     const SizedBox(height: 8),
+//                     Text("Address: $address", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+//                     const SizedBox(height: 8),
+//                     Text("Car Slots: 0/$carSlot", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+//                     const SizedBox(height: 8),
+//                     Text("Price: $price", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+//                     const SizedBox(height: 12),
+//                     ElevatedButton.icon(
+//                       icon: const Icon(Icons.map, color: Colors.white),
+//                       label: const Text("Open in Maps", style: TextStyle(color: Colors.white)),
+//                       onPressed: () {
+//                         Navigator.of(context).push(MaterialPageRoute(
+//                           builder: (c) => map_api(documentId: docId),
+//                         ));
+//                       },
+//                       style: ElevatedButton.styleFrom(
+//                         backgroundColor: Colors.blueAccent,
+//                         shape: RoundedRectangleBorder(
+//                           borderRadius: BorderRadius.circular(12),
+//                         ),
+//                       ),
+//                     ),
+//                   ],
+//                 ),
+//               ),
+//             ),
+//           );
+//         },
+//       );
+//     },
+//   );
+// }
+
+  /// Function to show an edit popup dialog (remains unchanged)
+  void _showEditLocationDialog({
+    required String docId,
+    required Map<String, dynamic> data,
+  }) {
+    final _editFormKey = GlobalKey<FormState>();
+    final _editNameController =
+        TextEditingController(text: data['nameparking'] ?? '');
+    final _editAddressController =
+        TextEditingController(text: data['address'] ?? '');
+    final _editDescriptionController =
+        TextEditingController(text: data['description'] ?? '');
+    final _editPriceController =
+        TextEditingController(text: data['price']?.toString() ?? '');
+    final _editCarSlotController =
+        TextEditingController(text: data['car_slot']?.toString() ?? '');
 
     showDialog(
       context: context,
@@ -394,22 +713,23 @@ class _OwnerMainState extends State<ownerMain> {
           ),
           title: Row(
             children: const [
-              Icon(Icons.add_location_alt, color: Colors.blue, size: 30),
+              Icon(Icons.edit, color: Colors.blue, size: 30),
               SizedBox(width: 8),
               Text(
-                "Add New Location",
+                "Edit Location",
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ],
           ),
           content: SingleChildScrollView(
             child: Form(
-              key: _formKey,
+              key: _editFormKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Location Name
                   TextFormField(
-                    controller: _nameController,
+                    controller: _editNameController,
                     decoration: InputDecoration(
                       labelText: "Location Name",
                       prefixIcon:
@@ -426,8 +746,9 @@ class _OwnerMainState extends State<ownerMain> {
                     },
                   ),
                   const SizedBox(height: 16),
+                  // Address
                   TextFormField(
-                    controller: _addressController,
+                    controller: _editAddressController,
                     decoration: InputDecoration(
                       labelText: "Address",
                       prefixIcon:
@@ -444,8 +765,9 @@ class _OwnerMainState extends State<ownerMain> {
                     },
                   ),
                   const SizedBox(height: 16),
+                  // Description
                   TextFormField(
-                    controller: _descriptionController,
+                    controller: _editDescriptionController,
                     decoration: InputDecoration(
                       labelText: "Description",
                       prefixIcon:
@@ -462,25 +784,28 @@ class _OwnerMainState extends State<ownerMain> {
                     },
                   ),
                   const SizedBox(height: 16),
+                  // Price
                   TextFormField(
-                    controller: _priceController,
+                    controller: _editPriceController,
                     decoration: InputDecoration(
                       labelText: "Price",
-                      prefixIcon: const Icon(Icons.link, color: Colors.blue),
+                      prefixIcon:
+                          const Icon(Icons.attach_money, color: Colors.blue),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10.0),
                       ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return "Please enter price";
+                        return "Please enter the price";
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
+                  // Car Slots
                   TextFormField(
-                    controller: _carSlotController,
+                    controller: _editCarSlotController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: "Car Slots (min 3)",
@@ -498,36 +823,6 @@ class _OwnerMainState extends State<ownerMain> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: _pickImage,
-                    icon: const Icon(Icons.image),
-                    label: const Text("Pick Image"),
-                  ),
-                  if (_selectedImage != null || _imageBytes != null)
-                    Column(
-                      children: [
-                        if (_selectedImage != null)
-                          Image.file(
-                            _selectedImage!,
-                            height: 150,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          )
-                        else if (_imageBytes != null)
-                          Image.memory(
-                            _imageBytes!,
-                            height: 150,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          "Image picked and ready to upload.",
-                          style: TextStyle(color: Colors.green),
-                        ),
-                      ],
-                    ),
                 ],
               ),
             ),
@@ -543,26 +838,33 @@ class _OwnerMainState extends State<ownerMain> {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: Colors.blueAccent,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10.0),
                 ),
               ),
               onPressed: () async {
-                if (_formKey.currentState?.validate() ?? false) {
-                  final name = _nameController.text.trim();
-                  final address = _addressController.text.trim();
-                  final description = _descriptionController.text.trim();
-                  final price = int.parse(_priceController.text.trim());
-                  final carSlot = int.parse(_carSlotController.text.trim());
-                  await _addLocationWithCustomId(
-                      name, address, description, price, carSlot);
+                if (_editFormKey.currentState?.validate() ?? false) {
+                  await FirebaseFirestore.instance
+                      .collection('parking')
+                      .doc(docId)
+                      .update({
+                    'nameparking': _editNameController.text.trim(),
+                    'address': _editAddressController.text.trim(),
+                    'description': _editDescriptionController.text.trim(),
+                    'price': int.parse(_editPriceController.text.trim()),
+                    'car_slot': int.parse(_editCarSlotController.text.trim()),
+                  });
                   Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Location updated successfully!')),
+                  );
                 }
               },
               child: const Text(
-                "Add",
+                "Save",
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -572,31 +874,46 @@ class _OwnerMainState extends State<ownerMain> {
     );
   }
 
-  Future<void> _addLocationWithCustomId(String name, String address,
-      String description, int price, int carSlot) async {
-    final collection = FirebaseFirestore.instance.collection('Locations');
-    final snapshot = await collection.get();
-    final newId = "location${snapshot.docs.length + 1}";
-
-    final imageUrl = await _uploadImageToCloudinary();
-
-    if (imageUrl != null) {
-      await collection.doc(newId).set({
-        'nameLocation': name,
-        'address': address,
-        'description': description,
-        'price': price,
-        'car_slot': carSlot,
-        'imageUrl': imageUrl,
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Location added successfully!')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Image upload failed')),
-      );
-    }
+  /// Function to show a delete confirmation dialog.
+  void _showDeleteConfirmationDialog({required String docId}) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Confirm Delete"),
+          content: const Text("Are you sure you want to delete this location?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                "Cancel",
+                style: TextStyle(color: Colors.blueAccent),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+              ),
+              onPressed: () async {
+                await FirebaseFirestore.instance
+                    .collection('parking')
+                    .doc(docId)
+                    .delete();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text("Location deleted successfully!")),
+                );
+              },
+              child: const Text(
+                "Delete",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -612,6 +929,16 @@ class _OwnerMainState extends State<ownerMain> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             nameProfile(),
+            const SizedBox(height: 14),
+            buttonthree(context),
+            const SizedBox(height: 14),
+            const Text(
+              'Parking location',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 16),
             parkLocation(),
           ],
@@ -645,9 +972,12 @@ class _OwnerMainState extends State<ownerMain> {
                       leading: const Icon(Icons.location_on),
                       title: const Text('Add Employee'),
                       onTap: () {
-                        Navigator.pop(context); // Close the bottom sheet
-                        Navigator.of(context)
-                            .push(MaterialPageRoute(builder: (c) => emp_register()));
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => emp_register()),
+                          (route) => false, // Removes all previous routes
+                        );
                       },
                     ),
                   ],

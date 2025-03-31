@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:parking1/data_save/licenseplate.dart';
 import 'package:parking1/vechicle/detailcar.dart';
 
@@ -10,14 +10,14 @@ class Vehicle {
   final String color;
   final String plate;
   final String documentId;
-  final String userId; // Add userId field
+  final String userId;
 
   Vehicle({
     required this.brandName,
     required this.color,
     required this.plate,
     required this.documentId,
-    required this.userId, // Include userId
+    required this.userId,
   });
 
   factory Vehicle.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -25,9 +25,9 @@ class Vehicle {
     return Vehicle(
       brandName: data['brandName'] ?? 'Unknown',
       color: data['color'] ?? 'Unknown',
-      plate: data['plate'] ?? 'Unknown',
+      plate: data['numberplate'] ?? 'Unknown',
       documentId: doc.id,
-      userId: data['userId'] ?? '', // Get userId from Firestore
+      userId: data['userId'] ?? '',
     );
   }
 }
@@ -45,7 +45,7 @@ class _VehicleState extends State<Vechicle> {
 
   @override
   Widget build(BuildContext context) {
-    final User? user = _auth.currentUser; // Get the current logged-in user
+    final User? user = _auth.currentUser ;
 
     if (user == null) {
       return Scaffold(
@@ -56,16 +56,25 @@ class _VehicleState extends State<Vechicle> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Vehicle Information"),
-        centerTitle: true,
-        backgroundColor: Colors.blue,
-      ),
-      body: Padding(
+  title: const Text(
+    "Vehicle Information",
+    style: TextStyle(
+      color: Colors.white, // Change text color here
+      fontSize: 20, // Optional: Adjust font size
+      fontWeight: FontWeight.bold, // Optional: Adjust font weight
+    ),
+  ),
+  centerTitle: true,
+  backgroundColor: Colors.blueAccent,
+),
+
+      body: Container(
+        color: Colors.grey[200], // Background color
         padding: const EdgeInsets.all(16.0),
         child: StreamBuilder<QuerySnapshot>(
           stream: _firestore
               .collection('vehicles')
-              .where('userId', isEqualTo: user.uid) // Filter by logged-in user
+              .where('userId', isEqualTo: user.uid)
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -97,7 +106,9 @@ class _VehicleState extends State<Vechicle> {
               );
             }
 
-            final vehicles = snapshot.data!.docs.map((doc) => Vehicle.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>)).toList();
+            final vehicles = snapshot.data!.docs
+                .map((doc) => Vehicle.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+                .toList();
 
             return ListView.builder(
               itemCount: vehicles.length,
@@ -108,7 +119,8 @@ class _VehicleState extends State<Vechicle> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16.0),
                   ),
-                  elevation: 5,
+                  elevation: 8,
+                  margin: const EdgeInsets.symmetric(vertical: 8.0),
                   child: InkWell(
                     onTap: () {
                       Navigator.push(
@@ -125,28 +137,46 @@ class _VehicleState extends State<Vechicle> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Brand of car: ${vehicle.brandName}',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          Row(
+                            children: [
+                              Icon(Icons.directions_car, color: Colors.blueAccent),
+                              const SizedBox(width: 8.0),
+                              Text(
+                                'Brand: ${vehicle.brandName}',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 8.0),
-                          Text(
-                            'Color of car: ${vehicle.color}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                            ),
+                          Row(
+                            children: [
+                              Icon(Icons.color_lens, color: Colors.blueAccent),
+                              const SizedBox(width: 8.0),
+                              Text(
+                                'Color: ${vehicle.color}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 8.0),
-                          Text(
-                            'License Plate: ${vehicle.plate}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                            ),
+                          Row(
+                            children: [
+                              Icon(Icons.confirmation_number, color: Colors.blueAccent),
+                              const SizedBox(width: 8.0),
+                              Text(
+                                'License Plate: ${vehicle.plate}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 12.0),
                         ],

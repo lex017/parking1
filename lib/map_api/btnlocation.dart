@@ -46,7 +46,7 @@ class _BtnLocationState extends State<btnLocation> {
     return FirebaseFirestore.instance
         .collection('bookings')
         .where('locationId', isEqualTo: widget.documentId)
-        .where('parkingStatus', whereIn: ['check-in', 'pending'])
+        .where('Status', whereIn: ['check-in', 'pending'])
         // .where('parkingStatus', isEqualTo: 'check-in')
         .snapshots()
         .map((snapshot) => snapshot.docs.length);
@@ -118,7 +118,7 @@ class _BtnLocationState extends State<btnLocation> {
               // StreamBuilder to fetch image
               StreamBuilder<DocumentSnapshot>(
                 stream: FirebaseFirestore.instance
-                    .collection('Locations')
+                    .collection('parking')
                     .doc(widget.documentId)
                     .snapshots(),
                 builder: (context, snapshot) {
@@ -209,7 +209,7 @@ class _BtnLocationState extends State<btnLocation> {
           Expanded(
             child: StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance
-                  .collection('Locations')
+                  .collection('parking')
                   .doc(widget.documentId)
                   .snapshots(),
               builder: (context, snapshot) {
@@ -236,7 +236,7 @@ class _BtnLocationState extends State<btnLocation> {
                 }
 
                 final data = snapshot.data!.data() as Map<String, dynamic>;
-                final nameLocation = data['nameLocation'] ?? 'Unknown Name';
+                final nameLocation = data['nameparking'] ?? 'Unknown Name';
                 final description =
                     data['description'] ?? 'No description available';
                 final price = data['price'] ?? 0;
@@ -263,7 +263,6 @@ class _BtnLocationState extends State<btnLocation> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Name Location with Buttons on the Right
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [

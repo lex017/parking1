@@ -5,7 +5,6 @@ import 'package:form_field_validator/form_field_validator.dart';
 import 'package:parking1/homepage.dart';
 import 'package:parking1/loginandregis/registerPage.dart';
 import 'package:parking1/model/userdata.dart';
-
 import 'package:shared_preferences/shared_preferences.dart';
 
 class loginPage extends StatefulWidget {
@@ -16,12 +15,11 @@ class loginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<loginPage> {
-  bool obs = true;
-  final formkey = GlobalKey<FormState>();
+  bool obs = true; // To toggle password visibility
+  final formKey = GlobalKey<FormState>();
   bool rememberMe = false;
   Userparking myUser = Userparking();
 
-    
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
@@ -41,19 +39,18 @@ class _LoginPageState extends State<loginPage> {
     });
 
     if (rememberMe && myUser.email.isNotEmpty && myUser.Pass.isNotEmpty) {
-  try {
-    await FirebaseAuth.instance.signInWithEmailAndPassword(
-      email: myUser.email,
-      password: myUser.Pass,
-    );
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (c) => Homepage()),
-    );
-  } catch (e) {
-    debugPrint("Auto-login failed: $e");
-  }
-}
-
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: myUser.email,
+          password: myUser.Pass,
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (c) => Homepage()),
+        );
+      } catch (e) {
+        debugPrint("Auto-login failed: $e");
+      }
+    }
   }
 
   Future<void> saveCredentials() async {
@@ -84,39 +81,45 @@ class _LoginPageState extends State<loginPage> {
       );
     } catch (e) {
       // print("Firebase initialization failed: $e");
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(content: Text('Failed to initialize Firebase: $e')),
-      // );
     }
   }
 
   void showMessage() {
     setState(() {
-      obs = !obs;
+      obs = !obs; // Toggle password visibility
     });
   }
 
- Widget showText() {
+  Widget showText() {
     return Text(
       "LOGIN",
       style: TextStyle(
-          fontSize: 35.0,
-          fontWeight: FontWeight.bold,
-          color: Colors.blue[900],
-          fontFamily: 'Lobster'),
+        fontSize: 35.0,
+        fontWeight: FontWeight.bold,
+        color: Theme.of(context)
+            .textTheme
+            .titleLarge
+            ?.color, // Dynamically adjust color
+        fontFamily: 'Lobster',
+      ),
     );
   }
 
   Widget showText1() {
     return Text(
       "Welcome to my app",
-      style: const TextStyle(
-          fontSize: 20.0,
-          fontWeight: FontWeight.bold,
-          color: Colors.black,
-          fontFamily: 'Lobster'),
+      style: TextStyle(
+        fontSize: 20.0,
+        fontWeight: FontWeight.bold,
+        color: Theme.of(context)
+            .textTheme
+            .bodyLarge
+            ?.color, // Dynamically adjust color
+        fontFamily: 'Lobster',
+      ),
     );
   }
+
   Widget emailInput() {
     return SizedBox(
       width: 350,
@@ -126,13 +129,21 @@ class _LoginPageState extends State<loginPage> {
           RequiredValidator(errorText: "Please enter an email"),
           EmailValidator(errorText: "Please enter a valid email"),
         ]),
-        decoration: const InputDecoration(
-          border: UnderlineInputBorder(),
+        decoration: InputDecoration(
+         border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30)
+          ),
           labelText: 'Email',
-          labelStyle: TextStyle(color: Colors.black),
+          labelStyle: TextStyle(
+              color: Theme.of(context)
+                  .textTheme
+                  .bodyLarge
+                  ?.color), // Dynamically adjust color
           prefixIcon: Icon(
             Icons.email,
-            color: Colors.black,
+            color: Theme.of(context)
+                .iconTheme
+                .color, // Dynamically adjust icon color
             size: 35.0,
           ),
         ),
@@ -145,7 +156,7 @@ class _LoginPageState extends State<loginPage> {
       width: 350,
       child: TextFormField(
         controller: passwordController,
-        obscureText: obs,
+        obscureText: obs, // Toggle password visibility
         validator: (value) {
           if (value == null || value.isEmpty) {
             return 'Please enter a password';
@@ -153,17 +164,30 @@ class _LoginPageState extends State<loginPage> {
           return null;
         },
         decoration: InputDecoration(
-          border: const UnderlineInputBorder(),
+         border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30)
+          ),
           labelText: 'Password',
-          labelStyle: const TextStyle(color: Colors.black),
-          prefixIcon: const Icon(
+          labelStyle: TextStyle(
+              color: Theme.of(context)
+                  .textTheme
+                  .bodyLarge
+                  ?.color), // Dynamically adjust color
+          prefixIcon: Icon(
             Icons.key,
-            color: Colors.black,
+            color: Theme.of(context)
+                .iconTheme
+                .color, // Dynamically adjust icon color
             size: 35.0,
           ),
           suffixIcon: IconButton(
             onPressed: showMessage,
-            icon: const Icon(Icons.visibility),
+            icon: Icon(
+              obs ? Icons.visibility : Icons.visibility_off, // Toggle icon
+              color: Theme.of(context)
+                  .iconTheme
+                  .color, // Dynamically adjust icon color
+            ),
           ),
         ),
       ),
@@ -189,66 +213,90 @@ class _LoginPageState extends State<loginPage> {
     );
   }
 
+
+  bool isLoading = false; // Track loading state
+
   Widget loginButton() {
     return SizedBox(
       width: 350,
       height: 50,
       child: ElevatedButton(
-        onPressed: () async {
-          if (formkey.currentState?.validate() ?? false) {
-            try {
-              await FirebaseAuth.instance.signInWithEmailAndPassword(
-                email: emailController.text,
-                password: passwordController.text,
-              );
-              await saveCredentials();
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (c) => Homepage()),
-              );
-            } on FirebaseAuthException catch (e) {
-              String errorMessage = 'Something went wrong!';
-
-              if (e.code == 'user-not-found') {
-                errorMessage = 'No user found for this email.';
-              } else if (e.code == 'wrong-password') {
-                errorMessage = 'Incorrect password.';
-              } else if (e.code == 'invalid-email') {
-                errorMessage = 'The email address is invalid.';
-              }
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(errorMessage)),
-              );
-            } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('An unexpected error occurred.')),
-              );
-            }
-          }
-        },
-        child: const Text(
-          "Login",
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 20.0,
+        onPressed: isLoading ? null : _login, // Disable button while loading
+        child: isLoading
+            ? const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              )
+            : const Text(
+                "Login",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20.0,
+                ),
+              ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blueAccent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
           ),
         ),
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
       ),
     );
   }
+
+  Future<void> _login() async {
+    if (formKey.currentState?.validate() ?? false) {
+      setState(() => isLoading = true); // Show loading
+
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: emailController.text,
+          password: passwordController.text,
+        );
+        await saveCredentials();
+
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => Homepage()),
+          (route) => false,
+        );
+      } on FirebaseAuthException catch (e) {
+        String errorMessage = 'Something went wrong!';
+
+        if (e.code == 'user-not-found') {
+          errorMessage = 'No user found for this email.';
+        } else if (e.code == 'wrong-password') {
+          errorMessage = 'Incorrect password.';
+        } else if (e.code == 'invalid-email') {
+          errorMessage = 'The email address is invalid.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('An unexpected error occurred.')),
+        );
+      } finally {
+        setState(() => isLoading = false); // Hide loading
+      }
+    }
+  }
+
 
 
   Widget signUp() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text(
+        Text(
           "Register",
           style: TextStyle(
             fontSize: 16,
-            color: Colors.black,
+            color: Theme.of(context)
+                .textTheme
+                .bodyLarge
+                ?.color, // Dynamically adjust color
           ),
         ),
         TextButton(
@@ -258,9 +306,14 @@ class _LoginPageState extends State<loginPage> {
               MaterialPageRoute(builder: (ctx) => const RegisterPage()),
             );
           },
-          child: const Text(
+          child: Text(
             "Click here",
-            style: TextStyle(color: Colors.blue),
+            style: TextStyle(
+              color: Theme.of(context)
+                  .colorScheme
+                  .secondary, // Adjusts link color dynamically
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
@@ -275,11 +328,14 @@ class _LoginPageState extends State<loginPage> {
           child: Container(
             width: double.infinity,
             height: MediaQuery.of(context).size.height,
-            decoration: const BoxDecoration(color: Colors.white),
+            decoration: BoxDecoration(
+              color: Theme.of(context)
+                  .scaffoldBackgroundColor, // Color adjusts based on theme
+            ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Form(
-                key: formkey,
+                key: formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

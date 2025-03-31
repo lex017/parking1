@@ -100,16 +100,15 @@ class _HistoryState extends State<history> {
                 },
                 child: TicketWidget(
                   title: 'Parking Ticket',
-                  subtitle: 'Location: ${bookingData['nameLocation'] ?? 'N/A'}',
+                  subtitle: 'Location: ${bookingData['nameparking'] ?? 'N/A'}',
                   date: bookingData['bookingDate'] ?? 'N/A',
-                  seat: bookingData['parkingStatus'] ?? 'N/A',
+                  seat: bookingData['Status'] ?? 'N/A',
                 ),
               );
             },
           );
         },
       ),
-      drawer: const drawer_menu(),
     );
   }
 }
