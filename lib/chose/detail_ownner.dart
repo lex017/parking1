@@ -212,7 +212,7 @@ class _DetailOwnerState extends State<DetailOwner> {
                       Text(address,
                           style: const TextStyle(
                               fontSize: 16, height: 1.6, color: Colors.grey)),
-                      const SizedBox(height: 20),
+               
 
                       // Real-time Check-in Counter
                       // StreamBuilder<int>(
@@ -226,7 +226,7 @@ class _DetailOwnerState extends State<DetailOwner> {
                       //   },
                       // ),
 
-                      const SizedBox(height: 20),
+               
                       DefaultTabController(
                         length: 3,
                         child: Column(
@@ -248,18 +248,17 @@ class _DetailOwnerState extends State<DetailOwner> {
                               ],
                             ),
                             SizedBox(
-                              height: 460, // Adjust as needed
+                              height:363, // Adjust as needed
                               child: TabBarView(
                                 children: [
                                   Center(
                                       child: DetailMap(
                                           documentId: widget.documentId)),
-                                  Center(
-                                      child: EditEmployee()),
-                                  Center(child: DetailReview()),
+                                  Center(child: EditEmployee(locationId: widget.documentId,)),
+                                  Center(child: DetailReview(parkingId: widget.documentId,)),
                                 ],
                               ),
-                            ),
+                            )
                           ],
                         ),
                       ),

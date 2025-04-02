@@ -178,7 +178,7 @@ class _DetailMapState extends State<DetailMap> {
                         TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ),
-            SizedBox(height: 8),
+
             TextButton(
               onPressed: showDeleteConfirmationDialog,
               child: Text(
@@ -191,7 +191,7 @@ class _DetailMapState extends State<DetailMap> {
                       Colors.red, // Match underline color with text
                   decorationThickness:
                       2, // Increase thickness for better visibility
-                  height: 2, // Creates a gap between text and underline
+           // Creates a gap between text and underline
                 ),
               ),
             ),

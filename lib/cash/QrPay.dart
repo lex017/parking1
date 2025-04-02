@@ -7,12 +7,13 @@ class QrPay extends StatefulWidget {
   final String documentId;
   final String selectedCar;
   final TimeOfDay selectedTime;  // TimeOfDay should be passed correctly here
+  final String selectedVehicleId;
 
   const QrPay({
     super.key,
     required this.documentId,
     required this.selectedCar,
-    required this.selectedTime,  // Ensuring TimeOfDay is passed correctly
+    required this.selectedTime, required this.selectedVehicleId,  // Ensuring TimeOfDay is passed correctly
   });
 
   @override
@@ -132,7 +133,7 @@ class _QrPayState extends State<QrPay> {
                     MaterialPageRoute(
                       builder: (c) => PayPage(
                         selectedTime: widget.selectedTime, // Directly pass selectedTime
-                        documentId: widget.documentId, selectedCar: widget.selectedCar,
+                        documentId: widget.documentId, selectedCar: widget.selectedCar,selectedVehicleId: widget.selectedVehicleId
                       ),
                     ),
                   );

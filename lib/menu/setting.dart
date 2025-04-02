@@ -116,15 +116,44 @@ class _SettingPageState extends State<SettingPage> {
   }
 
   Future<void> logout() async {
+  bool? confirmLogout = await showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: Colors.white,
+        title: const Text("Logout Confirmation"),
+        content: const Text("Are you sure you want to log out?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false), 
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true), 
+            child: const Text("Logout",style: TextStyle(color: Colors.red,),)
+          ),
+        ],
+      );
+    },
+  );
+
+ 
+  if (confirmLogout == true) {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('email');
     await prefs.remove('password');
     await prefs.remove('rememberMe');
     await FirebaseAuth.instance.signOut();
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const loginPage()),
-    );
+    
+    // Navigate to login page
+    if (context.mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const loginPage()),
+      );
+    }
   }
+}
+
 
   Future<void> _uploadImageToCloudinary() async {
     try {

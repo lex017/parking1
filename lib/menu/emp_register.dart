@@ -1,4 +1,4 @@
-import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:form_field_validator/form_field_validator.dart';
@@ -6,7 +6,7 @@ import 'package:parking1/chose/ownerMain.dart';
 import 'package:parking1/menu/emp_main.dart';
 import 'package:parking1/menu/employee_login.dart';
 import 'package:parking1/model/employeedata.dart';
-import 'package:parking1/model/userdata.dart';
+
 
 class emp_register extends StatefulWidget {
   const emp_register({super.key});
@@ -32,30 +32,10 @@ class _RegisterPageState extends State<emp_register> {
   String? age;
   String? dateOfBirth;
   String? emp_id;
+  String? selectedLocation;
+  String? selectedGender;
 
-  Widget showText() {
-    return Text(
-      "Sign up Employee",
-      style: TextStyle(
-        fontSize: 35.0,
-        fontWeight: FontWeight.bold,
-        color: Colors.blue[900],
-        fontFamily: 'Lobster',
-      ),
-    );
-  }
 
-  Widget showText1() {
-    return Text(
-      "Create a new account",
-      style: TextStyle(
-        fontSize: 20.0,
-        fontWeight: FontWeight.bold,
-        color: Colors.black,
-        fontFamily: 'Lobster',
-      ),
-    );
-  }
 
   Widget firstNameInput() {
     return SizedBox(
@@ -154,14 +134,15 @@ class _RegisterPageState extends State<emp_register> {
                   'emp_id': emp_id,
                   'firstname': firstname,
                   'lastname': lastname,
-                  'gender': 'male',
+                  'gender': selectedGender,
                   'age': age,
+                  'location_id': selectedLocation,
                 });
 
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => emp_main(empId: emp_id!)),
+                      builder: (context) => ownerMain()),
                 );
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -185,25 +166,66 @@ class _RegisterPageState extends State<emp_register> {
       ),
     );
   }
-
-  Widget login() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text(
-          "Already have an account?",
-          style: TextStyle(fontSize: 16, color: Colors.black),
+Widget locationDropdown() {
+    return FutureBuilder<QuerySnapshot>(
+      future: FirebaseFirestore.instance.collection('parking').get(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const CircularProgressIndicator();
+        }
+        List<DropdownMenuItem<String>> items = snapshot.data!.docs.map((doc) {
+          return DropdownMenuItem(
+            value: doc.id,
+            child: Text(doc['nameparking'] ?? 'Unknown Location'),
+          );
+        }).toList();
+        return SizedBox(
+          width: 350,
+          child: DropdownButtonFormField<String>(
+            value: selectedLocation,
+            hint: const Text('Select Location ID'),
+            items: items,
+            onChanged: (value) {
+              setState(() {
+                selectedLocation = value;
+              });
+            },
+            validator: (value) => value == null ? 'Please select a location' : null,
+            decoration: const InputDecoration(
+              border: UnderlineInputBorder(),
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: Icon(Icons.location_on, color: Colors.black, size: 35.0),
+            ),
+          ),
+        );
+      },
+    );
+  }
+ Widget genderDropdown() {
+    return SizedBox(
+      width: 350,
+      child: DropdownButtonFormField<String>(
+        value: selectedGender,
+        hint: const Text('Select Gender'),
+        items: [
+          DropdownMenuItem(value: 'Male', child: Text('Male')),
+          DropdownMenuItem(value: 'Female', child: Text('Female')),
+          DropdownMenuItem(value: 'Other', child: Text('Other')),
+        ],
+        onChanged: (value) {
+          setState(() {
+            selectedGender = value;
+          });
+        },
+        validator: (value) => value == null ? 'Please select a gender' : null,
+        decoration: const InputDecoration(
+          border: UnderlineInputBorder(),
+          filled: true,
+          fillColor: Colors.white,
+          prefixIcon: Icon(Icons.transgender, color: Colors.black, size: 35.0),
         ),
-        TextButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (ctx) => const emp_login()),
-            );
-          },
-          child: const Text("Click here", style: TextStyle(color: Colors.blue)),
-        ),
-      ],
+      ),
     );
   }
 
@@ -211,6 +233,7 @@ class _RegisterPageState extends State<emp_register> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(title: Text("Sign up Employee"),),
       body: Stack(
         children: [
           SingleChildScrollView(
@@ -224,18 +247,7 @@ class _RegisterPageState extends State<emp_register> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 80.0),
-                            showText(),
-                            const SizedBox(height: 10.0),
-                            showText1(),
-                          ],
-                        ),
-                      ),
+                  
                       Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -249,10 +261,14 @@ class _RegisterPageState extends State<emp_register> {
                             const SizedBox(height: 20.0),
 
                             empIdInput(), // Employee ID input by user
+                            const SizedBox(height: 20.0),
+                            locationDropdown(),
+                            const SizedBox(height: 20.0),
+                            genderDropdown(),
 
                             const SizedBox(height: 30.0),
                             signUpButton(),
-                            login(),
+                            
                           ],
                         ),
                       ),
@@ -260,19 +276,6 @@ class _RegisterPageState extends State<emp_register> {
                   ),
                 ),
               ),
-            ),
-          ),
-          Positioned(
-            top: 40,
-            left: 16,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black, size: 30),
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => emp_register()),
-                );
-              },
             ),
           ),
         ],

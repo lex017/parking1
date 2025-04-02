@@ -19,6 +19,7 @@ class _BuyTicketState extends State<BuyTicket> {
   Timer? _timer;
   int remainingSeconds = 30 * 60; // 30 minutes in seconds
   late String userName;
+  late String numberplate;
 
   @override
   void initState() {
@@ -45,6 +46,46 @@ class _BuyTicketState extends State<BuyTicket> {
     }
   }
 
+  Future<String> getNumberPlate(String vehicleId) async {
+    try {
+      DocumentSnapshot vehicleDoc = await FirebaseFirestore.instance
+          .collection('vehicles') // Adjust collection name if needed
+          .doc(vehicleId)
+          .get();
+
+       if (vehicleDoc.exists) {
+        return vehicleDoc['numberplate'] ?? 'Unknown'; // Return userName or 'Unknown'
+      }
+      return 'Unknown'; // In case the document doesn't exist
+    } catch (e) {
+      print("Error fetching userName: $e");
+      return 'Unknown'; // Return 'Unknown' in case of error
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchTicketcar() async {
+    DocumentSnapshot bookingSnapshot = await FirebaseFirestore.instance
+        .collection('bookings')
+        .doc(widget.bookingId)
+        .get();
+
+    if (!bookingSnapshot.exists) {
+      throw Exception("Booking not found");
+    }
+
+    var bookingData = bookingSnapshot.data() as Map<String, dynamic>;
+    String userId = bookingData['userId'];
+    String vehicleId = bookingData['vehicleId']; // Make sure vehicleId exists
+
+    userName = await getUserName(userId);
+    String numberplate = await getNumberPlate(vehicleId); // Fetch number plate
+
+    
+    return {
+      'booking': bookingData,
+    };
+  }
+
   Future<Map<String, dynamic>> fetchTicketData() async {
     DocumentSnapshot bookingSnapshot = await FirebaseFirestore.instance
         .collection('bookings')
@@ -60,6 +101,10 @@ class _BuyTicketState extends State<BuyTicket> {
         'userId']; // Assuming userId is stored in the booking document
     userName = await getUserName(
         userId); // Fetch the username from the 'users' collection
+
+     String vehicleId = bookingData[
+        'vehicleId']; // Assuming userId is stored in the booking document
+    numberplate = await getNumberPlate(vehicleId); // Fetch the username from the 'users' collection
 
     String transactionId = bookingData['paymentId'] ?? '';
     var parkingStatus = bookingData['Status'] ?? 'pending';
@@ -228,7 +273,7 @@ class _BuyTicketState extends State<BuyTicket> {
               String bookingTime = bookingData['bookingTime'] ?? 'N/A';
               String transactionId = bookingData['paymentId'] ?? 'N/A';
               String parkingStatus = bookingData['Status'] ?? 'N/A';
-              String car = bookingData['vechicle'] ?? 'N/A';
+              String car = bookingData['vehicle'] ?? 'N/A';
               String amount = paymentData['amount'] ?? '0.00';
               GeoPoint location = bookingData['location'];
               double latitude = location.latitude;
@@ -314,6 +359,10 @@ class _BuyTicketState extends State<BuyTicket> {
                     Text("Car: $car",
                         style: const TextStyle(
                             fontSize: 18, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 4), // Add spacing
+                    Text("Plate: $numberplate",
+                        style: const TextStyle(
+                            fontSize: 16, color: Colors.black54)),
                     const SizedBox(height: 8),
                     Text("Time Left: ${formatTime(remainingSeconds)}",
                         style: const TextStyle(

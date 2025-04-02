@@ -17,8 +17,9 @@ class PayPage extends StatefulWidget {
   final TimeOfDay selectedTime; 
   final String documentId;
   final String selectedCar;
+  final String selectedVehicleId;
 
-  const PayPage({super.key, required this.selectedTime, required this.documentId, required this.selectedCar});
+  const PayPage({super.key, required this.selectedTime, required this.documentId, required this.selectedCar, required this.selectedVehicleId});
 
   @override
   State<PayPage> createState() => _PayPageState();
@@ -359,7 +360,8 @@ Future<void> _savePaymentAndBooking() async {
     "locationId": locationId,
     "nameparking": nameLocation,
     "location": location,
-    "vechicle": widget.selectedCar,
+    "vehicle": widget.selectedCar,
+    "vehicleId": widget.selectedVehicleId,
     "paymentStatus": "pending",
     "Status": "pending",
     "timestamp": FieldValue.serverTimestamp(),

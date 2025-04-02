@@ -525,7 +525,7 @@ class _MainPageState extends State<mainPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 20),
+            
             adSlider(), // Assuming this widget is created somewhere else
             const SizedBox(height: 24),
             const Text(

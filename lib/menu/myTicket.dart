@@ -46,7 +46,8 @@ class _MyTicketState extends State<MyTicket> {
         if (user == null) {
           return Scaffold(
             appBar: AppBar(title: const Text("My Tickets")),
-            body: const Center(child: Text("กรุณาเข้าสู่ระบบเพื่อดูตั๋วของคุณ")),
+            body:
+                const Center(child: Text("กรุณาเข้าสู่ระบบเพื่อดูตั๋วของคุณ")),
           );
         }
 
@@ -82,8 +83,10 @@ class _MyTicketState extends State<MyTicket> {
                 String statusA = a['Status'] ?? 'check-in';
                 String statusB = b['Status'] ?? 'check-in';
 
-                if (statusA == 'check-out' || statusA == 'time-out') return 1; // Move to bottom
-                if (statusB == 'check-out' || statusB == 'time-out') return -1; // Move to bottom
+                if (statusA == 'check-out' || statusA == 'Time-out')
+                  return 1; // Move to bottom
+                if (statusB == 'check-out' || statusB == 'Time-out')
+                  return -1; // Move to bottom
                 return 0; // Keep other tickets as they are
               });
 
@@ -103,9 +106,11 @@ class _MyTicketState extends State<MyTicket> {
                   bool isCheckOut = parkingStatus == 'check-out';
 
                   return FutureBuilder<String>(
-                    future: getUserName(user.uid), // Fetch username from Firestore
+                    future:
+                        getUserName(user.uid), // Fetch username from Firestore
                     builder: (context, userNameSnapshot) {
-                      if (userNameSnapshot.connectionState == ConnectionState.waiting) {
+                      if (userNameSnapshot.connectionState ==
+                          ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
                       }
 
@@ -115,7 +120,8 @@ class _MyTicketState extends State<MyTicket> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        margin: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 16),
                         color: isCheckOut ? Colors.grey[300] : Colors.white,
                         child: InkWell(
                           onTap: isCheckOut
@@ -124,7 +130,8 @@ class _MyTicketState extends State<MyTicket> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => BuyTicket(bookingId: bookingId),
+                                      builder: (context) =>
+                                          BuyTicket(bookingId: bookingId),
                                     ),
                                   );
                                 },
@@ -136,26 +143,33 @@ class _MyTicketState extends State<MyTicket> {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: isCheckOut ? Colors.grey : Theme.of(context).primaryColor,
+                                    color: isCheckOut
+                                        ? Colors.grey
+                                        : Theme.of(context).primaryColor,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: Icon(
-                                    Icons.calendar_view_day_sharp,
-                                    color: Colors.white,
-                                    size: 28,
+                                  child: Image.asset(
+                                    'assets/images/history.png', 
+                                    width: 28, 
+                                    height: 28,
+                                    color:
+                                        Colors.white, 
                                   ),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         "Location: $bookingname", // Use the fetched username
                                         style: TextStyle(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
-                                          color: isCheckOut ? Colors.grey[700] : Colors.black,
+                                          color: isCheckOut
+                                              ? Colors.grey[700]
+                                              : Colors.black,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -163,7 +177,9 @@ class _MyTicketState extends State<MyTicket> {
                                         "Date: $bookingDate | Time: $bookingTime",
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: isCheckOut ? Colors.grey[600] : Colors.black54,
+                                          color: isCheckOut
+                                              ? Colors.grey[600]
+                                              : Colors.black54,
                                         ),
                                       ),
                                     ],
@@ -174,7 +190,9 @@ class _MyTicketState extends State<MyTicket> {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: isCheckOut ? Colors.grey[700] : Colors.black,
+                                    color: isCheckOut
+                                        ? Colors.grey[700]
+                                        : Colors.black,
                                   ),
                                 ),
                               ],

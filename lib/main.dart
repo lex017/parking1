@@ -83,23 +83,10 @@ class _ParkingAppState extends State<ParkingApp> {
     }
   }
 
-  void _showNotificationDialog(RemoteNotification notification) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(notification.title ?? "No Title"),
-        content: Text(notification.body ?? "No Body"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _checkInternetConnectivity() async {
+    // Delaying the internet check until the widget is fully loaded
+    await Future.delayed(Duration(milliseconds: 100));
+
     var connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult == ConnectivityResult.none) {
       _showNoInternetDialog();
@@ -113,11 +100,33 @@ class _ParkingAppState extends State<ParkingApp> {
   }
 
   void _showNoInternetDialog() {
+    // Use the mounted check to ensure the widget is still in the widget tree
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("No Internet Connection"),
         content: const Text("Please check your internet connection and try again."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNotificationDialog(RemoteNotification notification) {
+    // Ensuring the dialog is shown after the widget is fully mounted
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(notification.title ?? "No Title"),
+        content: Text(notification.body ?? "No Body"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

@@ -33,7 +33,8 @@ class _EmployeeScanState extends State<EmployeeScan> {
     cameraController.stop();
 
     try {
-      final ticketRef = FirebaseFirestore.instance.collection('bookings').doc(bookingId);
+      final ticketRef =
+          FirebaseFirestore.instance.collection('bookings').doc(bookingId);
       final ticketSnapshot = await ticketRef.get();
 
       if (ticketSnapshot.exists) {
@@ -43,7 +44,8 @@ class _EmployeeScanState extends State<EmployeeScan> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ScanCheck(bookingId: bookingId, status: status),
+            builder: (context) =>
+                ScanCheck(bookingId: bookingId, status: status),
           ),
         ).then((_) {
           // เปิดกล้องอีกครั้งเมื่อกลับมาจากหน้าถัดไป
@@ -81,12 +83,20 @@ class _EmployeeScanState extends State<EmployeeScan> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Employee Scan"),
+        title: const Text(
+          "Employee Scan",
+          style: TextStyle(
+            fontSize: 20, 
+            fontWeight: FontWeight.bold,
+            color: Colors.white, 
+          ),
+        ),
         centerTitle: true,
         backgroundColor: Colors.blue,
         actions: [
           IconButton(
-            icon: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off, color: Colors.white),
+            icon: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off,
+                color: Colors.white),
             onPressed: _toggleFlash,
           ),
         ],

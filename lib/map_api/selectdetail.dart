@@ -15,12 +15,14 @@ class _BtnLocationState extends State<detailPay> {
   int pricePerHour = 0;
   TimeOfDay? selectedTime; // To store the selected time
   String? selectedCar; // Store the selected car
-  List<String> carList = [];
+  String? selectedVehicleId;
+
+  List<Map<String, String>> carList = []; // Ensure carList is initialized
 
   @override
   void initState() {
     super.initState();
-    _fetchCarList(); 
+    _fetchCarList();
   }
 
   // Function to show the time picker
@@ -65,13 +67,18 @@ class _BtnLocationState extends State<detailPay> {
         await FirebaseFirestore.instance.collection('vehicles').get();
 
     setState(() {
-      carList = snapshot.docs.map((doc) => doc['brandName'] as String).toList();
+      carList = snapshot.docs.map((doc) {
+        return {
+          'vehicleId': doc.id, // Store vehicleId
+          'brandName': doc['brandName'] as String,
+        };
+      }).toList();
     });
   }
 
   // Function to select a car
   Future<void> _selectCar() async {
-    String? selected = await showDialog<String>(
+    Map<String, String>? selected = await showDialog<Map<String, String>>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
@@ -84,9 +91,10 @@ class _BtnLocationState extends State<detailPay> {
                     itemCount: carList.length,
                     itemBuilder: (context, index) {
                       return ListTile(
-                        title: Text(carList[index]),
+                        title: Text(carList[index]['brandName']!),
                         onTap: () {
-                          Navigator.pop(context, carList[index]);
+                          Navigator.pop(
+                              context, carList[index]); // Return both values
                         },
                       );
                     },
@@ -98,7 +106,8 @@ class _BtnLocationState extends State<detailPay> {
 
     if (selected != null) {
       setState(() {
-        selectedCar = selected;
+        selectedCar = selected['brandName']!;
+        selectedVehicleId = selected['vehicleId']!;
       });
     }
   }
@@ -322,13 +331,23 @@ class _BtnLocationState extends State<detailPay> {
                                   onChanged: (String? newValue) {
                                     setState(() {
                                       selectedCar = newValue;
+
+                                      // Find the selected vehicle ID based on brand name
+                                      selectedVehicleId = carList.firstWhere(
+                                        (car) => car['brandName'] == newValue,
+                                        orElse: () => {
+                                          'vehicleId': ''
+                                        }, // Provide a default empty ID
+                                      )['vehicleId'];
                                     });
                                   },
                                   items: carList.map<DropdownMenuItem<String>>(
-                                      (String car) {
+                                      (Map<String, String> car) {
                                     return DropdownMenuItem<String>(
-                                      value: car,
-                                      child: Text(car),
+                                      value: car[
+                                          'brandName'], // Use brandName as the value
+                                      child: Text(car['brandName'] ??
+                                          "Unknown"), // Display brandName
                                     );
                                   }).toList(),
                                 ),
@@ -363,19 +382,22 @@ class _BtnLocationState extends State<detailPay> {
                             ],
                           ),
                           ElevatedButton.icon(
-                            onPressed: selectedCar == null || selectedTime == null
-                                ? null
-                                : () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (c) => QrPay(
-                                          documentId: widget.documentId,
-                                          selectedCar: selectedCar!, // Pass selected car
-                                          selectedTime: selectedTime!, // Optionally pass the time
-                                        ),
-                                      ),
-                                    );
-                                  },
+                            onPressed:
+                                selectedCar == null || selectedTime == null
+                                    ? null
+                                    : () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (c) => QrPay(
+                                              documentId: widget.documentId,
+                                              selectedCar:
+                                                  selectedCar!, // Pass selected car
+                                              selectedTime:
+                                                  selectedTime!, selectedVehicleId: selectedVehicleId!, // Optionally pass the time
+                                            ),
+                                          ),
+                                        );
+                                      },
                             icon: const Icon(Icons.arrow_forward,
                                 color: Colors.white),
                             label: const Text(
@@ -386,9 +408,10 @@ class _BtnLocationState extends State<detailPay> {
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 24, vertical: 14),
-                              backgroundColor: selectedCar == null || selectedTime == null
-                                  ? Colors.grey
-                                  : Colors.blue,
+                              backgroundColor:
+                                  selectedCar == null || selectedTime == null
+                                      ? Colors.grey
+                                      : Colors.blue,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
                               ),

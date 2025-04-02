@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:parking1/menu/emp_register.dart';
 
 class EditEmployee extends StatefulWidget {
-  const EditEmployee({super.key});
+  final String locationId; // Location ID to filter employees
+
+  const EditEmployee({super.key, required this.locationId});
 
   @override
   State<EditEmployee> createState() => _EditEmployeeState();
@@ -13,7 +15,11 @@ class _EditEmployeeState extends State<EditEmployee> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<List<Map<String, dynamic>>> fetchEmployees() async {
-    QuerySnapshot snapshot = await _firestore.collection('employees').get();
+    QuerySnapshot snapshot = await _firestore
+        .collection('employees')
+        .where('location_id', isEqualTo: widget.locationId) // Filter by location
+        .get();
+
     return snapshot.docs.map((doc) {
       return {
         'id': doc.id,
@@ -32,7 +38,7 @@ class _EditEmployeeState extends State<EditEmployee> {
   }
 
   void addEmployee() {
-   
+    // Add employee logic
   }
 
   @override
@@ -46,7 +52,7 @@ class _EditEmployeeState extends State<EditEmployee> {
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No Employees found.'));
+            return const Center(child: Text('No employees found for this location.'));
           } else {
             List<Map<String, dynamic>> employees = snapshot.data!;
             return ListView.builder(
@@ -74,7 +80,6 @@ class _EditEmployeeState extends State<EditEmployee> {
                         value: 'edit',
                         child: Text('Edit'),
                       ),
-
                     ],
                   ),
                 );
@@ -83,34 +88,26 @@ class _EditEmployeeState extends State<EditEmployee> {
           }
         },
       ),
-    bottomNavigationBar: Padding(
+      bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min, // To prevent overflow
-          children: [
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: addEmployee,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text('Add Employee',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        child: SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton(
+            onPressed: addEmployee,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
               ),
             ),
-          ],
+            child: const Text('Add Employee',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
         ),
       ),
     );
   }
 }
-
-

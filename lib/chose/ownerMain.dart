@@ -10,9 +10,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:parking1/chose/detail_ownner.dart';
 import 'package:parking1/chose/mapapi.dart';
 import 'package:parking1/data_save/btnadd_parking.dart';
+import 'package:parking1/detailownner/detail_booking.dart';
 import 'package:parking1/detailownner/detail_money.dart';
 import 'package:parking1/map_api/btnlocation.dart';
 import 'package:parking1/map_api/map_api.dart';
+import 'package:parking1/menu/Help.dart';
 import 'package:parking1/menu/emp_register.dart';
 
 import 'package:url_launcher/url_launcher.dart';
@@ -385,10 +387,9 @@ class _OwnerMainState extends State<ownerMain> {
               iconPath: 'assets/images/income.png',
               label: 'ລາຍຮັບ',
               onPressed: () {
-                Navigator.of(context).pop();
-                MaterialPageRoute route =
-                    MaterialPageRoute(builder: (c) => DetailMoney());
-                Navigator.of(context).push(route);
+                Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => DetailMoney()),
+                    );
               },
             ),
           ),
@@ -397,7 +398,11 @@ class _OwnerMainState extends State<ownerMain> {
             child: DashboardButton(
               iconPath: 'assets/images/ticket.png',
               label: 'ປະຫວັດ',
-              onPressed: () {},
+              onPressed: () {
+                 Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => DetailBooking()),
+                    );
+              },
             ),
           ),
           SizedBox(width: 15),
@@ -405,7 +410,11 @@ class _OwnerMainState extends State<ownerMain> {
             child: DashboardButton(
               iconPath: 'assets/images/question.png',
               label: 'ຊ່ວຍເຫຼືອ',
-              onPressed: () {},
+              onPressed: () {
+                 Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => Help()),
+                    );
+              },
             ),
           ),
         ],
@@ -972,12 +981,9 @@ class _OwnerMainState extends State<ownerMain> {
                       leading: const Icon(Icons.location_on),
                       title: const Text('Add Employee'),
                       onTap: () {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => emp_register()),
-                          (route) => false, // Removes all previous routes
-                        );
+                        Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => emp_register()),
+                    );
                       },
                     ),
                   ],

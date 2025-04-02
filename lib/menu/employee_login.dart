@@ -17,6 +17,8 @@ class _emp_loginState extends State<emp_login> {
   bool obs = true;
   final formkey = GlobalKey<FormState>();
   bool rememberMe = false;
+  bool isLoading = false;
+
 
   final TextEditingController emailController =
       TextEditingController(); // emp_id
@@ -56,12 +58,11 @@ class _emp_loginState extends State<emp_login> {
       if (data != null && data['pass_emp'] == password) {
         // Successful login
         await saveCredentials();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => emp_main(empId: empId), // Pass empId here
-          ),
-        );
+        Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => emp_main(empId: empId)),
+        (route) => route.isFirst, // Keep only the first route (HomePage)
+      );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Incorrect password.')),
@@ -73,9 +74,7 @@ class _emp_loginState extends State<emp_login> {
       );
     }
   } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('An error occurred: $e')),
-    );
+   
   }
 }
 
@@ -99,17 +98,7 @@ class _emp_loginState extends State<emp_login> {
     });
   }
 
-  Widget showText() {
-    return Text(
-      "LOGIN_Employee",
-      style: TextStyle(
-        fontSize: 35.0,
-        fontWeight: FontWeight.bold,
-        color: Colors.blue[900],
-        fontFamily: 'Lobster',
-      ),
-    );
-  }
+ 
 
   Widget emailInput() {
     return SizedBox(
@@ -181,31 +170,49 @@ class _emp_loginState extends State<emp_login> {
   }
 
   Widget loginButton() {
-    return SizedBox(
-      width: 350,
-      height: 50,
-      child: ElevatedButton(
-        onPressed: () async {
-          if (formkey.currentState?.validate() ?? false) {
-            await loginWithFirestore();
-          }
-        },
-        child: const Text(
-          "Login",
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 20.0,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-      ),
-    );
-  }
+  return SizedBox(
+    width: 350,
+    height: 50,
+    child: ElevatedButton(
+      onPressed: () async {
+        if (formkey.currentState?.validate() ?? false) {
+          setState(() {
+            isLoading = true;
+          });
+
+          await loginWithFirestore();
+
+          setState(() {
+            isLoading = false;
+          });
+        }
+      },
+      style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+      child: isLoading
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                color: Colors.black,
+                strokeWidth: 3,
+              ),
+            )
+          : const Text(
+              "Login",
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 20.0,
+              ),
+            ),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: Text('LOGIN_Employee'),),
       body: SingleChildScrollView(
         child: Center(
           child: Container(
@@ -219,16 +226,7 @@ class _emp_loginState extends State<emp_login> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 100.0),
-                          showText(),
-                        ],
-                      ),
-                    ),
+                   
                     Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
