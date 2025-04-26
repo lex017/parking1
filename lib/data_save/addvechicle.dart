@@ -84,8 +84,10 @@ class _VechicleState extends State<AddVechicle> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Data saved successfully!")),
       );
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const Vechicle()),
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => Vechicle()),
+        (route) => route.isFirst, // Keep only the first route (HomePage)
       );
     }).catchError((error) {
       setState(() {

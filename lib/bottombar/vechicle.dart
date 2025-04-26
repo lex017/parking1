@@ -69,7 +69,7 @@ class _VehicleState extends State<Vechicle> {
 ),
 
       body: Container(
-        color: Colors.grey[200], // Background color
+        color: Theme.of(context).cardColor, // Background color
         padding: const EdgeInsets.all(16.0),
         child: StreamBuilder<QuerySnapshot>(
           stream: _firestore
@@ -196,7 +196,7 @@ class _VehicleState extends State<Vechicle> {
           );
         },
         child: const Icon(Icons.add),
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).cardColor,
       ),
     );
   }

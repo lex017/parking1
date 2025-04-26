@@ -57,7 +57,8 @@ class _MapApiState extends State<MapApi> {
 
     if (permission == LocationPermission.deniedForever) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Location permissions are permanently denied.")),
+        const SnackBar(
+            content: Text("Location permissions are permanently denied.")),
       );
       return;
     }
@@ -94,24 +95,27 @@ class _MapApiState extends State<MapApi> {
         .collection('parking')
         .snapshots()
         .listen((snapshot) {
-      Set<Marker> newMarkers = snapshot.docs.map((doc) {
-        if (doc.data().containsKey('location')) {
-          GeoPoint geoPoint = doc['location'];
-          String address = doc['address'] ?? "Unknown Location";
-          return Marker(
-            markerId: MarkerId(doc.id),
-            position: LatLng(geoPoint.latitude, geoPoint.longitude),
-            icon: customIcon,
-            infoWindow: InfoWindow(title: address),
-            onTap: () {
-              setState(() {
-                selectedDocId = doc.id;
-              });
-            },
-          );
-        }
-        return null;
-      }).whereType<Marker>().toSet();
+      Set<Marker> newMarkers = snapshot.docs
+          .map((doc) {
+            if (doc.data().containsKey('location')) {
+              GeoPoint geoPoint = doc['location'];
+              String address = doc['address'] ?? "Unknown Location";
+              return Marker(
+                markerId: MarkerId(doc.id),
+                position: LatLng(geoPoint.latitude, geoPoint.longitude),
+                icon: customIcon,
+                infoWindow: InfoWindow(title: address),
+                onTap: () {
+                  setState(() {
+                    selectedDocId = doc.id;
+                  });
+                },
+              );
+            }
+            return null;
+          })
+          .whereType<Marker>()
+          .toSet();
 
       setState(() {
         _markers.clear();
@@ -206,7 +210,6 @@ class _MapApiState extends State<MapApi> {
           // Central Pin with Shadow
           Center(
             child: Container(
-              
               child: Image.asset(
                 'assets/images/pin.png',
                 width: 40,
@@ -267,7 +270,7 @@ class _MapApiState extends State<MapApi> {
           ),
           // Floating Button for My Location
           Positioned(
-            top: 40,
+            bottom: 80,
             right: 20,
             child: FloatingActionButton(
               backgroundColor: Colors.white,
@@ -277,7 +280,7 @@ class _MapApiState extends State<MapApi> {
           ),
           // Zoom Controls (Zoom In and Zoom Out)
           Positioned(
-            bottom: 100,
+            top: 20,
             right: 20,
             child: Column(
               children: [

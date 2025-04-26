@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parking1/cash/QrPay.dart';
 
@@ -13,7 +14,6 @@ class detailPay extends StatefulWidget {
 
 class _BtnLocationState extends State<detailPay> {
   int pricePerHour = 0;
-  TimeOfDay? selectedTime; // To store the selected time
   String? selectedCar; // Store the selected car
   String? selectedVehicleId;
 
@@ -25,19 +25,7 @@ class _BtnLocationState extends State<detailPay> {
     _fetchCarList();
   }
 
-  // Function to show the time picker
-  Future<void> _pickTime() async {
-    TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: selectedTime ?? TimeOfDay.now(),
-    );
-
-    if (picked != null && picked != selectedTime) {
-      setState(() {
-        selectedTime = picked;
-      });
-    }
-  }
+  
 
   void _showImagePopup(String imageUrl) {
     showDialog(
@@ -63,18 +51,26 @@ class _BtnLocationState extends State<detailPay> {
 
   // Fetch user's registered vehicles from Firestore
   Future<void> _fetchCarList() async {
-    QuerySnapshot snapshot =
-        await FirebaseFirestore.instance.collection('vehicles').get();
+  String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-    setState(() {
-      carList = snapshot.docs.map((doc) {
-        return {
-          'vehicleId': doc.id, // Store vehicleId
-          'brandName': doc['brandName'] as String,
-        };
-      }).toList();
-    });
+  if (currentUserId == null) {
+    return; // No user logged in
   }
+
+  QuerySnapshot snapshot = await FirebaseFirestore.instance
+      .collection('vehicles')
+      .where('userId', isEqualTo: currentUserId) // Only get user's cars
+      .get();
+
+  setState(() {
+    carList = snapshot.docs.map((doc) {
+      return {
+        'vehicleId': doc.id, // Store vehicleId
+        'brandName': doc['brandName'] as String,
+      };
+    }).toList();
+  });
+}
 
   // Function to select a car
   Future<void> _selectCar() async {
@@ -294,26 +290,6 @@ class _BtnLocationState extends State<detailPay> {
                       // Button to pick time
                       Row(
                         children: [
-                          const Text(
-                            "Select Time: ",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          TextButton(
-                            onPressed: _pickTime,
-                            child: Text(
-                              selectedTime != null
-                                  ? "${selectedTime!.hour}:${selectedTime!.minute.toString().padLeft(2, '0')} ${selectedTime!.period == DayPeriod.am ? 'AM' : 'PM'}"
-                                  : "Pick Time",
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
                           Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Row(
@@ -383,7 +359,7 @@ class _BtnLocationState extends State<detailPay> {
                           ),
                           ElevatedButton.icon(
                             onPressed:
-                                selectedCar == null || selectedTime == null
+                                selectedCar == null 
                                     ? null
                                     : () {
                                         Navigator.of(context).push(
@@ -392,8 +368,10 @@ class _BtnLocationState extends State<detailPay> {
                                               documentId: widget.documentId,
                                               selectedCar:
                                                   selectedCar!, // Pass selected car
-                                              selectedTime:
-                                                  selectedTime!, selectedVehicleId: selectedVehicleId!, // Optionally pass the time
+                                             
+                                              selectedVehicleId: 
+                                                  selectedVehicleId!,
+                                              pricePerHour: pricePerHour, 
                                             ),
                                           ),
                                         );
@@ -409,7 +387,7 @@ class _BtnLocationState extends State<detailPay> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 24, vertical: 14),
                               backgroundColor:
-                                  selectedCar == null || selectedTime == null
+                                  selectedCar == null 
                                       ? Colors.grey
                                       : Colors.blue,
                               shape: RoundedRectangleBorder(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart'; // For formatting DateTime
+import 'package:intl/intl.dart';
 
 class ScanCheck extends StatefulWidget {
   final String bookingId;
@@ -14,48 +14,118 @@ class ScanCheck extends StatefulWidget {
 }
 
 class _ScanCheckState extends State<ScanCheck> {
-  late String status;
-  DateTime? checkOutTime; // To store check-out timestamp
+   String status = 'Loading...';
+  String? collectionType;
+  DateTime? checkOutTime;
+  String? nameParking;
+  String? plateNumber;
 
   @override
   void initState() {
     super.initState();
-    status = widget.status; // Initialize with passed status
     _fetchTicketStatus();
   }
 
-  // Fetch the ticket status and checkOutTime from Firestore
   Future<void> _fetchTicketStatus() async {
     try {
-      final ticketRef =
-          FirebaseFirestore.instance.collection('bookings').doc(widget.bookingId);
-      final ticketSnapshot = await ticketRef.get();
+      final bookingRef = FirebaseFirestore.instance
+          .collection('bookings')
+          .doc(widget.bookingId);
+      final bookingSnap = await bookingRef.get();
 
-      if (ticketSnapshot.exists) {
-        var data = ticketSnapshot.data() as Map<String, dynamic>;
+      if (bookingSnap.exists) {
+        var data = bookingSnap.data() as Map<String, dynamic>;
         setState(() {
+          collectionType = 'bookings';
           status = data['Status'] ?? 'unknown';
+          nameParking = data['nameParking'] ?? '-';
+          plateNumber = data['plate'] ?? '-';
           if (data['checkOutTime'] != null) {
             checkOutTime = (data['checkOutTime'] as Timestamp).toDate();
           }
         });
       } else {
-        setState(() {
-          status = "not_found";
-        });
+        final ticketRealRef = FirebaseFirestore.instance
+            .collection('ticketreal')
+            .doc(widget.bookingId);
+        final ticketRealSnap = await ticketRealRef.get();
+
+        if (ticketRealSnap.exists) {
+          var data = ticketRealSnap.data() as Map<String, dynamic>;
+          setState(() {
+            collectionType = 'ticketreal';
+            status = data['Status'] ?? 'unknown';
+            nameParking = data['nameParking'] ?? '-';
+            plateNumber = data['plate'] ?? '-';
+            if (data['checkOutTime'] != null) {
+              checkOutTime = (data['checkOutTime'] as Timestamp).toDate();
+            }
+          });
+        } else {
+          setState(() {
+            status = 'not_found';
+          });
+        }
       }
     } catch (e) {
       print("Error fetching ticket status: $e");
       setState(() {
-        status = "error";
+        status = 'error';
       });
     }
   }
 
-  // Update status to Check-in and pop to scan page after completion
+  // Future<void> _fetchTicketStatus() async {
+  //   try {
+  //     final bookingRef = FirebaseFirestore.instance
+  //         .collection('bookings')
+  //         .doc(widget.bookingId);
+  //     final bookingSnap = await bookingRef.get();
+
+  //     if (bookingSnap.exists) {
+  //       var data = bookingSnap.data() as Map<String, dynamic>;
+  //       setState(() {
+  //         collectionType = 'bookings';
+  //         status = data['Status'] ?? 'unknown';
+  //         if (data['checkOutTime'] != null) {
+  //           checkOutTime = (data['checkOutTime'] as Timestamp).toDate();
+  //         }
+  //       });
+  //     } else {
+  //       final ticketRealRef = FirebaseFirestore.instance
+  //           .collection('ticketreal')
+  //           .doc(widget.bookingId);
+  //       final ticketRealSnap = await ticketRealRef.get();
+
+  //       if (ticketRealSnap.exists) {
+  //         var data = ticketRealSnap.data() as Map<String, dynamic>;
+  //         setState(() {
+  //           collectionType = 'ticketreal';
+  //           status = data['Status'] ?? 'unknown';
+  //           if (data['checkOutTime'] != null) {
+  //             checkOutTime = (data['checkOutTime'] as Timestamp).toDate();
+  //           }
+  //         });
+  //       } else {
+  //         setState(() {
+  //           status = 'not_found';
+  //         });
+  //       }
+  //     }
+  //   } catch (e) {
+  //     print("Error fetching ticket status: $e");
+  //     setState(() {
+  //       status = 'error';
+  //     });
+  //   }
+  // }
+
   Future<void> _handleCheckIn() async {
-    final ticketRef =
-        FirebaseFirestore.instance.collection('bookings').doc(widget.bookingId);
+    if (collectionType == null) return;
+
+    final ticketRef = FirebaseFirestore.instance
+        .collection(collectionType!)
+        .doc(widget.bookingId);
 
     try {
       await ticketRef.update({"Status": "check-in"});
@@ -65,11 +135,8 @@ class _ScanCheckState extends State<ScanCheck> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Check-in successful!")),
       );
-      // Pop back to the scan page after a short delay
       Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          Navigator.pop(context);
-        }
+        if (mounted) Navigator.pop(context);
       });
     } catch (e) {
       print("Error updating check-in status: $e");
@@ -79,10 +146,12 @@ class _ScanCheckState extends State<ScanCheck> {
     }
   }
 
-  // Update status to Check-out and record check-out time
   Future<void> _handleCheckOut() async {
-    final ticketRef =
-        FirebaseFirestore.instance.collection('bookings').doc(widget.bookingId);
+    if (collectionType == null) return;
+
+    final ticketRef = FirebaseFirestore.instance
+        .collection(collectionType!)
+        .doc(widget.bookingId);
     final now = DateTime.now();
 
     try {
@@ -92,16 +161,13 @@ class _ScanCheckState extends State<ScanCheck> {
       });
       setState(() {
         status = "check-out";
-        checkOutTime = now; // For immediate UI update; can be updated when fetched from server
+        checkOutTime = now;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Check-out successful!")),
       );
-      // Pop back to the scan page after a short delay
       Future.delayed(const Duration(seconds: 1), () {
-        if (mounted) {
-          Navigator.pop(context);
-        }
+        if (mounted) Navigator.pop(context);
       });
     } catch (e) {
       print("Error updating check-out status: $e");
@@ -111,7 +177,6 @@ class _ScanCheckState extends State<ScanCheck> {
     }
   }
 
-  // Format DateTime nicely
   String _formatDateTime(DateTime dt) {
     return DateFormat('hh:mm a, MMM d, yyyy').format(dt);
   }
@@ -121,7 +186,7 @@ class _ScanCheckState extends State<ScanCheck> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Ticket Status"),
-        backgroundColor: Colors.deepPurple,
+        backgroundColor: Colors.blue,
       ),
       body: Container(
         decoration: const BoxDecoration(
@@ -148,13 +213,34 @@ class _ScanCheckState extends State<ScanCheck> {
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: Colors.deepPurple,
+                      color: Colors.blue,
                     ),
                   ),
                   const SizedBox(height: 20),
                   Text(
                     "Status: ${status == 'loading' ? 'Fetching...' : status}",
                     style: const TextStyle(fontSize: 20),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Ticket ID: ${widget.bookingId}',
+                              style: const TextStyle(fontSize: 18)),
+                          const SizedBox(height: 8),
+                          Text('Status: $status',
+                              style: const TextStyle(fontSize: 18)),
+                          const SizedBox(height: 8),
+                          if (checkOutTime != null)
+                            Text(
+                                'Check-out Time: ${_formatDateTime(checkOutTime!)}',
+                                style: const TextStyle(fontSize: 18)),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 20),
                   if (status == "pending")
@@ -202,7 +288,8 @@ class _ScanCheckState extends State<ScanCheck> {
                       padding: const EdgeInsets.only(top: 16.0),
                       child: Text(
                         "Checked out at: ${_formatDateTime(checkOutTime!)}",
-                        style: const TextStyle(fontSize: 18, color: Colors.grey),
+                        style:
+                            const TextStyle(fontSize: 18, color: Colors.grey),
                       ),
                     ),
                 ],

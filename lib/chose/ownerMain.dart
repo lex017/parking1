@@ -364,9 +364,9 @@ class _OwnerMainState extends State<ownerMain> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black,
+                    color: Theme.of(context).colorScheme.onBackground,
                   ),
-                ),
+                )
               ],
             ),
           ),
@@ -388,8 +388,8 @@ class _OwnerMainState extends State<ownerMain> {
               label: 'ລາຍຮັບ',
               onPressed: () {
                 Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => DetailMoney()),
-                    );
+                  MaterialPageRoute(builder: (context) => DetailMoney()),
+                );
               },
             ),
           ),
@@ -399,9 +399,9 @@ class _OwnerMainState extends State<ownerMain> {
               iconPath: 'assets/images/ticket.png',
               label: 'ປະຫວັດ',
               onPressed: () {
-                 Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => DetailBooking()),
-                    );
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => DetailBooking()),
+                );
               },
             ),
           ),
@@ -411,9 +411,9 @@ class _OwnerMainState extends State<ownerMain> {
               iconPath: 'assets/images/question.png',
               label: 'ຊ່ວຍເຫຼືອ',
               onPressed: () {
-                 Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => Help()),
-                    );
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => Help()),
+                );
               },
             ),
           ),
@@ -514,13 +514,50 @@ class _OwnerMainState extends State<ownerMain> {
                                     ),
                                   ),
                                   const Spacer(), // Pushes "Car Slots" to the right
-                                  Text(
-                                    "Car Slots: 0/$carSlot",
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                     fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                  StreamBuilder<int>(
+                                    stream: FirebaseFirestore.instance
+                                        .collection('bookings')
+                                        .where('locationId',
+                                            isEqualTo:
+                                                docId) // Use docId as locationId
+                                        .where('Status', whereIn: [
+                                          'check-in',
+                                          'pending'
+                                        ]) // Filter for 'check-in' or 'pending' statuses
+                                        .snapshots()
+                                        .map((snapshot) => snapshot.docs
+                                            .length), // Count the number of checked-in cars
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return const Center(
+                                            child: CircularProgressIndicator());
+                                      }
+
+                                      if (snapshot.hasError) {
+                                        return const Center(
+                                            child: Text(
+                                                'Error fetching checked-in data'));
+                                      }
+
+                                      final checkedInCount = snapshot.data ??
+                                          0; // Number of cars occupying slots
+                                      final totalSlots =
+                                          locationData['car_slot'] ??
+                                              0; // Total car slots available
+
+                                      return Padding(
+                                        padding: const EdgeInsets.all(16.0),
+                                        child: Text(
+                                          "CAR: $checkedInCount/$totalSlots", // Display checked-in cars out of total slots
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  )
                                 ],
                               ),
                               const SizedBox(height: 8),
@@ -533,12 +570,12 @@ class _OwnerMainState extends State<ownerMain> {
                               ),
                               Divider(),
                               Text(
-                                    "Status : online",
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                "Status : online",
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -928,7 +965,7 @@ class _OwnerMainState extends State<ownerMain> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       appBar: AppBar(
         title: const Text("Owner Main"),
       ),
@@ -954,7 +991,7 @@ class _OwnerMainState extends State<ownerMain> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).cardColor,
         onPressed: () {
           showModalBottomSheet(
             context: context,
@@ -982,8 +1019,9 @@ class _OwnerMainState extends State<ownerMain> {
                       title: const Text('Add Employee'),
                       onTap: () {
                         Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => emp_register()),
-                    );
+                          MaterialPageRoute(
+                              builder: (context) => emp_register()),
+                        );
                       },
                     ),
                   ],
@@ -995,7 +1033,7 @@ class _OwnerMainState extends State<ownerMain> {
         child: const Icon(
           Icons.add,
           size: 35,
-          color: Colors.black,
+          color: Colors.blue,
         ),
       ),
     );

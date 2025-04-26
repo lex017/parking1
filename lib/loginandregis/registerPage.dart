@@ -31,7 +31,7 @@ class _RegisterPageState extends State<RegisterPage> {
     style: TextStyle(
       fontSize: 35.0,
       fontWeight: FontWeight.bold,
-      color: Theme.of(context).textTheme.titleLarge?.color, // Dynamically adjust color
+      color: Colors.blue, // Dynamically adjust color
       fontFamily: 'Lobster',
     ),
   );
@@ -305,7 +305,8 @@ Widget login() {
   @override
 Widget build(BuildContext context) {
   return Scaffold(
-  backgroundColor: Theme.of(context).colorScheme.background, // Dynamic background color based on the theme
+  backgroundColor: Theme.of(context)
+                  .scaffoldBackgroundColor, // Dynamic background color based on the theme
   body: SingleChildScrollView(
     child: Center(
       child: Container(

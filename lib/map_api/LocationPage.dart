@@ -200,12 +200,47 @@ class _LocationPageState extends State<LocationPage> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.end,
                                       children: [
-                                        Text(
-                                          "CAR: 0/${location['car_slot'] ?? '0/0'}",
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                        StreamBuilder<int>(
+                                          stream: FirebaseFirestore.instance
+                                              .collection('bookings')
+                                               .where('locationId', isEqualTo: documentId)
+                                              .where('Status', whereIn: ['check-in', 'pending']) // Assuming 'check-in' status means the car is occupying a slot
+                                              .snapshots()
+                                              .map((snapshot) => snapshot.docs
+                                                  .length), // Count the number of checked-in cars
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return const Center(
+                                                  child:
+                                                      CircularProgressIndicator());
+                                            }
+
+                                            if (snapshot.hasError) {
+                                              return const Center(
+                                                  child: Text(
+                                                      'Error fetching checked-in data'));
+                                            }
+
+                                            final checkedInCount = snapshot
+                                                    .data ??
+                                                0; // Number of cars occupying slots
+                                            final totalSlots = location[
+                                                    'car_slot'] ??
+                                                0; // Total car slots available
+
+                                            return Padding(
+                                              padding:
+                                                  const EdgeInsets.all(16.0),
+                                              child: Text(
+                                                "CAR: $checkedInCount/$totalSlots", // Display checked-in cars out of total slots
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            );
+                                          },
                                         ),
                                       ],
                                     ),

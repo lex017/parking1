@@ -271,7 +271,8 @@ class _SettingPageState extends State<SettingPage> {
   Color? tileColor, 
 }) {
   return Card(
-    color: tileColor ?? Colors.white, 
+    color: tileColor ?? Theme.of(context).cardColor,
+
 
     margin: const EdgeInsets.symmetric(vertical: 6),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

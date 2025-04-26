@@ -137,7 +137,7 @@ class _MainPageState extends State<mainPage> {
           width: double.infinity,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) => Image.asset(
-            'assets/images/placeholder.png',
+            'assets/images/profile-user.png',
             fit: BoxFit.cover,
           ),
         ),
@@ -243,7 +243,7 @@ class _MainPageState extends State<mainPage> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
               ],

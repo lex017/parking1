@@ -96,10 +96,7 @@ class _LoginPageState extends State<loginPage> {
       style: TextStyle(
         fontSize: 35.0,
         fontWeight: FontWeight.bold,
-        color: Theme.of(context)
-            .textTheme
-            .titleLarge
-            ?.color, // Dynamically adjust color
+        color: Colors.blue, // Dynamically adjust color
         fontFamily: 'Lobster',
       ),
     );
@@ -107,7 +104,7 @@ class _LoginPageState extends State<loginPage> {
 
   Widget showText1() {
     return Text(
-      "Welcome to my app",
+      "Welcome to 4Jord",
       style: TextStyle(
         fontSize: 20.0,
         fontWeight: FontWeight.bold,
@@ -309,9 +306,7 @@ class _LoginPageState extends State<loginPage> {
           child: Text(
             "Click here",
             style: TextStyle(
-              color: Theme.of(context)
-                  .colorScheme
-                  .secondary, // Adjusts link color dynamically
+              color: Colors.blue, // Adjusts link color dynamically
               fontWeight: FontWeight.bold,
             ),
           ),

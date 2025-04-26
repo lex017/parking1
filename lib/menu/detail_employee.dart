@@ -6,16 +6,20 @@ class DetailEmployee extends StatefulWidget {
   const DetailEmployee({super.key});
 
   @override
-  State<DetailEmployee> createState() => _DetailEmployeeState();
+  State<DetailEmployee> createState() => _DetailBookingState();
 }
 
-class _DetailEmployeeState extends State<DetailEmployee> {
+class _DetailBookingState extends State<DetailEmployee> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  String selectedFilter = 'All';
+
+  String selectedStatus = 'All';
+  String selectedDateFilter = 'All Day';
+  DateTime? startDate;
+  DateTime? endDate;
 
   Future<List<Map<String, dynamic>>> fetchBookings() async {
     QuerySnapshot snapshot = await _firestore
-        .collection('bookings')
+        .collection('ticketreal')
         .orderBy('timestamp', descending: true)
         .get();
 
@@ -23,60 +27,98 @@ class _DetailEmployeeState extends State<DetailEmployee> {
       return {'id': doc.id, ...doc.data() as Map<String, dynamic>};
     }).toList();
 
-    // Get today's date without time
-    DateTime today = DateTime.now();
-    String todayString = DateFormat('yyyy-MM-dd').format(today);
+    if (selectedStatus != 'All') {
+      allBookings = allBookings
+          .where((booking) => booking['Status'] == selectedStatus)
+          .toList();
+    }
 
-    List<Map<String, dynamic>> filteredBookings = allBookings.where((booking) {
-      DateTime? checkInTime = booking['checkInTime']?.toDate();
-      DateTime? checkOutTime = booking['checkOutTime']?.toDate();
+    if (selectedDateFilter == 'Today') {
+      DateTime now = DateTime.now();
+      allBookings = allBookings.where((booking) {
+        DateTime date = booking['timestamp'].toDate();
+        return date.year == now.year &&
+            date.month == now.month &&
+            date.day == now.day;
+      }).toList();
+    } else if (selectedDateFilter == 'This Week') {
+      DateTime now = DateTime.now();
+      DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      DateTime endOfWeek = startOfWeek.add(const Duration(days: 6));
+      allBookings = allBookings.where((booking) {
+        DateTime date = booking['timestamp'].toDate();
+        return date.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
+            date.isBefore(endOfWeek.add(const Duration(days: 1)));
+      }).toList();
+    } else if (selectedDateFilter == 'Custom Range' &&
+        startDate != null &&
+        endDate != null) {
+      allBookings = allBookings.where((booking) {
+        DateTime date = booking['timestamp'].toDate();
+        return date.isAfter(startDate!.subtract(const Duration(days: 1))) &&
+            date.isBefore(endDate!.add(const Duration(days: 1)));
+      }).toList();
+    }
 
-      bool isTodayCheckIn = checkInTime != null &&
-          DateFormat('yyyy-MM-dd').format(checkInTime) == todayString;
+    return allBookings;
+  }
 
-      bool isTodayCheckOut = checkOutTime != null &&
-          DateFormat('yyyy-MM-dd').format(checkOutTime) == todayString;
+  Future<void> pickDateRange() async {
+    DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
 
-      if (selectedFilter == 'Check-in') {
-        return isTodayCheckIn;
-      } else if (selectedFilter == 'Check-out') {
-        return isTodayCheckOut;
-      } else if (selectedFilter == 'Timeout') {
-        return booking['timeout'] != null;
-      }
-      return isTodayCheckIn || isTodayCheckOut; // Show today's check-ins and check-outs
-    }).toList();
-
-    return filteredBookings;
+    if (picked != null) {
+      setState(() {
+        startDate = picked.start;
+        endDate = picked.end;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Today's Scan History")),
+      appBar: AppBar(title: const Text("Booking History")),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 30.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                DropdownButton<String>(
-                  value: selectedFilter,
-                  onChanged: (newValue) {
-                    setState(() {
-                      selectedFilter = newValue!;
-                    });
-                  },
-                  items: ['All', 'Check-in', 'Check-out', 'Timeout']
-                      .map((filter) => DropdownMenuItem(
-                            value: filter,
-                            child: Text(filter),
-                          ))
-                      .toList(),
-                ),
-              ],
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              DropdownButton<String>(
+                value: selectedStatus,
+                onChanged: (newValue) {
+                  setState(() {
+                    selectedStatus = newValue!;
+                  });
+                },
+                items: ['All', 'check-in', 'check-out']
+                    .map((filter) => DropdownMenuItem(
+                          value: filter,
+                          child: Text(filter),
+                        ))
+                    .toList(),
+              ),
+              DropdownButton<String>(
+                value: selectedDateFilter,
+                onChanged: (newValue) async {
+                  if (newValue == 'Custom Range') {
+                    await pickDateRange();
+                  }
+                  setState(() {
+                    selectedDateFilter = newValue!;
+                  });
+                },
+                items: ['All Day', 'Today', 'This Week', 'Custom Range']
+                    .map((filter) => DropdownMenuItem(
+                          value: filter,
+                          child: Text(filter),
+                        ))
+                    .toList(),
+              ),
+            ],
           ),
           Expanded(
             child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -90,30 +132,28 @@ class _DetailEmployeeState extends State<DetailEmployee> {
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(
-                      child: Text("No booking history available for today."));
+                      child: Text("No booking history available."));
                 }
 
-                List<Map<String, dynamic>> bookings = snapshot.data!;
+                List<Map<String, dynamic>> ticketreal = snapshot.data!;
                 return ListView.builder(
-                  itemCount: bookings.length,
+                  itemCount: ticketreal.length,
                   itemBuilder: (context, index) {
-                    Map<String, dynamic> booking = bookings[index];
+                    Map<String, dynamic> booking = ticketreal[index];
                     return Card(
                       margin: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
                       child: ListTile(
-                        title: Text(booking['userName'] ?? 'Unknown User',
+                        title: Text(booking['empId'] ?? 'Unknown User',
                             style:
                                 const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                                "Parking: ${booking['nameparking'] ?? 'Unknown'}"),
+                                "Parking: ${booking['locationId'] ?? 'Unknown'}"),
                             Text(
-                                "Check-in: ${booking['checkInTime'] != null ? DateFormat('hh:mm a').format(booking['checkInTime'].toDate()) : 'N/A'}"),
-                            Text(
-                                "Check-out: ${booking['checkOutTime'] != null ? DateFormat('hh:mm a').format(booking['checkOutTime'].toDate()) : 'N/A'}"),
+                                "Date: ${DateFormat('yyyy-MM-dd HH:mm').format(booking['timestamp'].toDate())}"),
                             Text("Status: ${booking['Status'] ?? 'Pending'}"),
                           ],
                         ),

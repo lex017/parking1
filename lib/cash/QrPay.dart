@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -6,14 +7,17 @@ import 'package:parking1/cash/payPage.dart';
 class QrPay extends StatefulWidget {
   final String documentId;
   final String selectedCar;
-  final TimeOfDay selectedTime;  // TimeOfDay should be passed correctly here
+
   final String selectedVehicleId;
+  final int pricePerHour;
 
   const QrPay({
     super.key,
     required this.documentId,
     required this.selectedCar,
-    required this.selectedTime, required this.selectedVehicleId,  // Ensuring TimeOfDay is passed correctly
+
+    required this.selectedVehicleId,
+    required this.pricePerHour, // Ensuring TimeOfDay is passed correctly
   });
 
   @override
@@ -25,6 +29,7 @@ class _QrPayState extends State<QrPay> {
   bool isLoading = true; // Check image loading status
   late Timer _timer; // Timer instance
   int _remainingTime = 600; // Start time (10 minutes) in seconds
+  int pricePerHour = 0;
 
   @override
   void initState() {
@@ -41,20 +46,39 @@ class _QrPayState extends State<QrPay> {
 
   // Function to fetch QR code image from Cloudinary (or any source)
   Future<void> fetchQrImage() async {
-    try {
-      const String cloudinaryUrl =
-          'https://res.cloudinary.com/doiq3nkso/image/upload/v1736478510/zgpbt7fp1w9d9tua7ujp.jpg'; // Placeholder URL
+  try {
+    final doc = await FirebaseFirestore.instance
+        .collection('parking') // 🔁 Replace with your actual collection name
+        .doc(widget.documentId)
+        .get();
+
+    if (doc.exists) {
+      final data = doc.data();
+      if (data != null && data.containsKey('qrImage')) {
+        setState(() {
+          imageUrl = data['qrImage']; // Fetch from Firestore
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          imageUrl = null;
+          isLoading = false;
+        });
+        print('QR URL not found in document.');
+      }
+    } else {
       setState(() {
-        imageUrl = cloudinaryUrl; // Set the URL
         isLoading = false;
       });
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      print('Error fetching image: $e');
+      print('Document does not exist.');
     }
+  } catch (e) {
+    setState(() {
+      isLoading = false;
+    });
+    print('Error fetching QR image: $e');
   }
+}
 
   void startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -132,15 +156,18 @@ class _QrPayState extends State<QrPay> {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (c) => PayPage(
-                        selectedTime: widget.selectedTime, // Directly pass selectedTime
-                        documentId: widget.documentId, selectedCar: widget.selectedCar,selectedVehicleId: widget.selectedVehicleId
-                      ),
+                        
+                          documentId: widget.documentId,
+                          selectedCar: widget.selectedCar,
+                          selectedVehicleId: widget.selectedVehicleId,
+                          pricePerHour: widget.pricePerHour,),
                     ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   textStyle: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold),
                 ),
@@ -153,4 +180,3 @@ class _QrPayState extends State<QrPay> {
     );
   }
 }
- 

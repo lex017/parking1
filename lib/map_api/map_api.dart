@@ -249,7 +249,8 @@ class _MapApiState extends State<map_api> {
                 // Location name
                 Text(
                   locationName,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold,color: Theme.of(context).cardColor,
+),
                 ),
                 const SizedBox(height: 12),
                 // Display image with rounded corners

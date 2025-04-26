@@ -25,6 +25,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   TextEditingController _phoneController = TextEditingController();
   TextEditingController _usernameController = TextEditingController();
+  TextEditingController _emailController = TextEditingController();
   String? _profileImage;
   String? _selectedGender = 'Male';
 
@@ -48,6 +49,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         final data = userDoc.data() as Map<String, dynamic>;
         setState(() {
           _usernameController.text = data['username'] ?? '';
+          _emailController.text = data['email'] ?? '';
           _phoneController.text = data['phoneNumber'] ?? '';
           _selectedGender = data['gender'] ?? 'Male';
           _profileImage = data['profileImage'];
@@ -118,6 +120,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           .doc(FirebaseAuth.instance.currentUser?.uid)
           .update({
         'username': _usernameController.text,
+        'email': _emailController.text,
         'phoneNumber': _phoneController.text,
         'gender': _selectedGender,
         'profileImage': _profileImage,
@@ -170,6 +173,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
               controller: _usernameController,
               decoration: const InputDecoration(
                 labelText: 'Username',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                labelText: 'Email',
                 border: OutlineInputBorder(),
               ),
             ),

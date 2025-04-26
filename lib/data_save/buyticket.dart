@@ -17,7 +17,7 @@ class BuyTicket extends StatefulWidget {
 class _BuyTicketState extends State<BuyTicket> {
   late Future<Map<String, dynamic>> _ticketFuture;
   Timer? _timer;
-  int remainingSeconds = 30 * 60; // 30 minutes in seconds
+  int remainingSeconds = 60 * 60; // 30 minutes in seconds
   late String userName;
   late String numberplate;
 
@@ -272,15 +272,16 @@ class _BuyTicketState extends State<BuyTicket> {
               String bookingDate = bookingData['bookingDate'] ?? 'N/A';
               String bookingTime = bookingData['bookingTime'] ?? 'N/A';
               String transactionId = bookingData['paymentId'] ?? 'N/A';
+              String locationId = bookingData['locationId'] ?? 'N/A';
               String parkingStatus = bookingData['Status'] ?? 'N/A';
               String car = bookingData['vehicle'] ?? 'N/A';
-              String amount = paymentData['amount'] ?? '0.00';
+              int amount = paymentData['amount'] ?? '0.00';
               GeoPoint location = bookingData['location'];
               double latitude = location.latitude;
               double longitude = location.longitude;
 
               String qrData =
-                  "BookingID: ${widget.bookingId}\nUser: $userName\nDate: $bookingDate\nTime: $bookingTime\nPaymentID: $transactionId\nStatus: $parkingStatus\nAmount: $amount";
+                  "BookingID: ${widget.bookingId}\nUser: $userName\nDate: $bookingDate\nTime: $bookingTime\nPaymentID: $transactionId\nStatus: $parkingStatus\nAmount: $amount\nNumplate: $numberplate\nVehicle: $car\nlocationId:$locationId";
 
               // Modern front card with a gradient background and refined styling.
               Widget frontCard = Container(
