@@ -306,7 +306,7 @@ class _EmpMainState extends State<emp_main> {
                   Divider(),
                   const SizedBox(height: 3),
                   Text(
-                    "Count Scan:",
+                    "Count Scan: $_totalMoney",
                     style: const TextStyle(
                       fontSize: 15,
                       color: Colors.grey,
@@ -363,6 +363,7 @@ class _EmpMainState extends State<emp_main> {
                   width: 28,
                   height: 28,
                   fit: BoxFit.contain,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
                 const SizedBox(height: 18),
                 Text(
@@ -371,7 +372,7 @@ class _EmpMainState extends State<emp_main> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black,
+                    color:Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
               ],

@@ -25,8 +25,6 @@ class _BtnLocationState extends State<detailPay> {
     _fetchCarList();
   }
 
-  
-
   void _showImagePopup(String imageUrl) {
     showDialog(
       context: context,
@@ -51,26 +49,26 @@ class _BtnLocationState extends State<detailPay> {
 
   // Fetch user's registered vehicles from Firestore
   Future<void> _fetchCarList() async {
-  String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-  if (currentUserId == null) {
-    return; // No user logged in
+    if (currentUserId == null) {
+      return; // No user logged in
+    }
+
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('vehicles')
+        .where('userId', isEqualTo: currentUserId) // Only get user's cars
+        .get();
+
+    setState(() {
+      carList = snapshot.docs.map((doc) {
+        return {
+          'vehicleId': doc.id, // Store vehicleId
+          'brandName': doc['brandName'] as String,
+        };
+      }).toList();
+    });
   }
-
-  QuerySnapshot snapshot = await FirebaseFirestore.instance
-      .collection('vehicles')
-      .where('userId', isEqualTo: currentUserId) // Only get user's cars
-      .get();
-
-  setState(() {
-    carList = snapshot.docs.map((doc) {
-      return {
-        'vehicleId': doc.id, // Store vehicleId
-        'brandName': doc['brandName'] as String,
-      };
-    }).toList();
-  });
-}
 
   // Function to select a car
   Future<void> _selectCar() async {
@@ -268,9 +266,9 @@ class _BtnLocationState extends State<detailPay> {
                             child: Text(
                               nameLocation,
                               style: const TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black),
                             ),
                           ),
                         ],
@@ -280,9 +278,9 @@ class _BtnLocationState extends State<detailPay> {
                       Text(
                         "Price: $pricePerHour LAK",
                         style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black),
                       ),
 
                       const SizedBox(height: 20),
@@ -297,35 +295,58 @@ class _BtnLocationState extends State<detailPay> {
                                 const Text(
                                   "Select Car: ",
                                   style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
                                 ),
                                 const SizedBox(width: 10),
-                                DropdownButton<String>(
-                                  value: selectedCar, // Currently selected car
-                                  hint: const Text("Choose a Car"),
-                                  onChanged: (String? newValue) {
-                                    setState(() {
-                                      selectedCar = newValue;
-
-                                      // Find the selected vehicle ID based on brand name
-                                      selectedVehicleId = carList.firstWhere(
-                                        (car) => car['brandName'] == newValue,
-                                        orElse: () => {
-                                          'vehicleId': ''
-                                        }, // Provide a default empty ID
-                                      )['vehicleId'];
-                                    });
-                                  },
-                                  items: carList.map<DropdownMenuItem<String>>(
-                                      (Map<String, String> car) {
-                                    return DropdownMenuItem<String>(
-                                      value: car[
-                                          'brandName'], // Use brandName as the value
-                                      child: Text(car['brandName'] ??
-                                          "Unknown"), // Display brandName
-                                    );
-                                  }).toList(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12.0),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        Colors.blue.shade50, // Background color
+                                    borderRadius: BorderRadius.circular(10.0),
+                                    border: Border.all(
+                                        color: Colors.blueAccent, width: 1.0),
+                                  ),
+                                  child: DropdownButtonHideUnderline(
+                                    child: DropdownButton<String>(
+                                      dropdownColor: Colors
+                                          .white, // Dropdown background color
+                                      value: selectedCar,
+                                      hint: const Text(
+                                        "Choose a Car",
+                                        style: TextStyle(color: Colors.black54),
+                                      ),
+                                      icon: const Icon(Icons.arrow_drop_down,
+                                          color: Colors.blueAccent),
+                                      onChanged: (String? newValue) {
+                                        setState(() {
+                                          selectedCar = newValue;
+                                          selectedVehicleId =
+                                              carList.firstWhere(
+                                            (car) =>
+                                                car['brandName'] == newValue,
+                                            orElse: () => {'vehicleId': ''},
+                                          )['vehicleId'];
+                                        });
+                                      },
+                                      items: carList
+                                          .map<DropdownMenuItem<String>>(
+                                              (Map<String, String> car) {
+                                        return DropdownMenuItem<String>(
+                                          value: car['brandName'],
+                                          child: Text(
+                                            car['brandName'] ?? "Unknown",
+                                            style: const TextStyle(
+                                                color: Colors.black),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -358,24 +379,22 @@ class _BtnLocationState extends State<detailPay> {
                             ],
                           ),
                           ElevatedButton.icon(
-                            onPressed:
-                                selectedCar == null 
-                                    ? null
-                                    : () {
-                                        Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                            builder: (c) => QrPay(
-                                              documentId: widget.documentId,
-                                              selectedCar:
-                                                  selectedCar!, // Pass selected car
-                                             
-                                              selectedVehicleId: 
-                                                  selectedVehicleId!,
-                                              pricePerHour: pricePerHour, 
-                                            ),
-                                          ),
-                                        );
-                                      },
+                            onPressed: selectedCar == null
+                                ? null
+                                : () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (c) => QrPay(
+                                          documentId: widget.documentId,
+                                          selectedCar:
+                                              selectedCar!, // Pass selected car
+
+                                          selectedVehicleId: selectedVehicleId!,
+                                          pricePerHour: pricePerHour,
+                                        ),
+                                      ),
+                                    );
+                                  },
                             icon: const Icon(Icons.arrow_forward,
                                 color: Colors.white),
                             label: const Text(
@@ -386,10 +405,9 @@ class _BtnLocationState extends State<detailPay> {
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 24, vertical: 14),
-                              backgroundColor:
-                                  selectedCar == null 
-                                      ? Colors.grey
-                                      : Colors.blue,
+                              backgroundColor: selectedCar == null
+                                  ? Colors.grey
+                                  : Colors.blue,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
                               ),

@@ -162,7 +162,7 @@ Widget ExpiryDateInput() {
       readOnly: true,
       decoration: InputDecoration(
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        labelText: 'Expiry Date',
+        labelText: 'BirthofDate',
         filled: true,
         fillColor: Colors.white,
         prefixIcon: Icon(
@@ -196,100 +196,135 @@ Widget ExpiryDateInput() {
 
 
  Widget SaveButton() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: SizedBox(
-        width: double.infinity,
-        height: 50,
-        child: ElevatedButton(
-          onPressed: () async {
-            final User? user = FirebaseAuth.instance.currentUser;
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+    child: SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton(
+        onPressed: () async {
+          final User? user = FirebaseAuth.instance.currentUser;
 
-            if (user == null) {
+          if (user == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("User not logged in.")),
+            );
+            return;
+          }
+
+          String userEmail = user.email ?? "";
+
+          if (formkey.currentState?.validate() ?? false) {
+            formkey.currentState?.save();
+
+            if (myOwner.fname.isEmpty ||
+                myOwner.lname.isEmpty ||
+                myOwner.age.isEmpty ||
+                myOwner.idcard.isEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("User not logged in.")),
+                const SnackBar(content: Text("Please fill all fields.")),
               );
               return;
             }
 
-            String userEmail = user.email ?? "";
+            try {
+              _profileImageUrl =
+                  await _uploadImageToCloudinary(_profileImage, _profileBytes);
+              _idCardImageUrl =
+                  await _uploadImageToCloudinary(_idCardImage, _idCardBytes);
 
-            if (formkey.currentState?.validate() ?? false) {
-              formkey.currentState?.save();
-
-              if (myOwner.fname.isEmpty ||
-                  myOwner.lname.isEmpty ||
-                  myOwner.age.isEmpty ||
-                  myOwner.idcard.isEmpty) {
+              if (_profileImageUrl == null || _idCardImageUrl == null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Please fill all fields.")),
+                  const SnackBar(content: Text("Image upload failed.")),
                 );
                 return;
               }
 
-              try {
-                _profileImageUrl =
-                    await _uploadImageToCloudinary(_profileImage, _profileBytes);
-                _idCardImageUrl =
-                    await _uploadImageToCloudinary(_idCardImage, _idCardBytes);
+              final snapshot = await _OwnerCollection.get();
+              final newOwnerId = "owner${snapshot.docs.length + 1}";
 
-                if (_profileImageUrl == null || _idCardImageUrl == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Image upload failed.")),
+              await _OwnerCollection.doc(newOwnerId).set({
+                "email": userEmail,
+                "fname": myOwner.fname,
+                "lname": myOwner.lname,
+                "age": myOwner.age,
+                "idcard": myOwner.idcard,
+                "Dateofbirth": expiryDateController.text,
+                "verify": 'pending',
+                "status": 'N/A',
+                "profile_image_url": _profileImageUrl,
+                "imageidenity": _idCardImageUrl,
+                "created_at": Timestamp.now(),
+              });
+
+              formkey.currentState?.reset();
+
+              // Show loading dialog
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) {
+                  return const AlertDialog(
+                    content: Row(
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(width: 16),
+                        Text("Waiting for verification..."),
+                      ],
+                    ),
                   );
-                  return;
-                }
+                },
+              );
 
-                final snapshot = await _OwnerCollection.get();
-                final newOwnerId =
-                    "owner${snapshot.docs.length + 1}"; // e.g., owner1, owner2, etc.
+              // Start listening for payment/verification status
+              listenForPaymentStatus(newOwnerId);
 
-                await _OwnerCollection.doc(newOwnerId).set({
-                  "email": userEmail,
-                  "fname": myOwner.fname,
-                  "lname": myOwner.lname,
-                  "age": myOwner.age,
-                  "idcard": myOwner.idcard,
-                  "Dateofbirth": expiryDateController.text,
-                  "profile_image_url": _profileImageUrl,
-                  "imageidenity": _idCardImageUrl,
-                  "created_at": Timestamp.now(),
-                });
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Data saved successfully with ID: $newOwnerId")),
-                );
-
-                formkey.currentState?.reset();
-
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => ownerMain()),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Error saving data: $e")),
-                );
-              }
-            } else {
+            } catch (e) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Please fill all fields correctly.")),
+                SnackBar(content: Text("Error saving data: $e")),
               );
             }
-          },
-          child: const Text(
-            "Save",
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 20.0,
-            ),
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Please fill all fields correctly.")),
+            );
+          }
+        },
+        child: const Text(
+          "Save",
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 20.0,
           ),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
         ),
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
       ),
-    );
-  }
+    ),
+  );
+}
+
+// Listen for verification success
+void listenForPaymentStatus(String newOwnerId) {
+  FirebaseFirestore.instance
+      .collection('Owner')
+      .doc(newOwnerId)
+      .snapshots()
+      .listen((snapshot) {
+    if (snapshot.exists && snapshot.data()?['verify'] == "success") {
+      // Close the loading dialog
+      Navigator.of(context, rootNavigator: true).pop();
+
+      // Navigate to ownerMain
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ownerMain(),
+        ),
+      );
+    }
+  });
+}
 
 
   Widget showText() {

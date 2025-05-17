@@ -118,12 +118,12 @@ class _BuyTicketState extends State<BuyTicket> {
         ? paymentSnapshot.data() as Map<String, dynamic>
         : {};
 
-    int lastRemaining = bookingData['remainingSeconds'] ?? (30 * 60);
+    int lastRemaining = bookingData['remainingSeconds'] ?? (60 * 60);
     Timestamp? lastUpdated = bookingData['lastUpdated'];
 
     if (lastUpdated != null) {
       int elapsed = DateTime.now().difference(lastUpdated.toDate()).inSeconds;
-      remainingSeconds = (lastRemaining - elapsed).clamp(0, 30 * 60);
+      remainingSeconds = (lastRemaining - elapsed).clamp(0, 60 * 60);
     } else {
       remainingSeconds = lastRemaining;
     }

@@ -68,7 +68,12 @@ class _MyrealTicketState extends State<MyrealTicket> {
                 if (statusB == 'check-out' || statusB == 'Time-out') return -1;
                 return 0;
               });
-
+                 // Sort by timestamp descending
+              tickets.sort((a, b) {
+                Timestamp timeA = a['timestamp'] ?? Timestamp(0, 0);
+                Timestamp timeB = b['timestamp'] ?? Timestamp(0, 0);
+                return timeB.compareTo(timeA);
+              });
               return ListView.builder(
                 padding: const EdgeInsets.all(8),
                 itemCount: tickets.length,

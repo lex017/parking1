@@ -29,16 +29,16 @@ class _EditEmployeeState extends State<EditEmployee> {
   }
 
   void editEmployee(String employeeId) {
-    Navigator.push(
+   
+  }
+
+  void addEmployee() {
+     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => emp_register(),
       ),
     );
-  }
-
-  void addEmployee() {
-    // Add employee logic
   }
 
   @override

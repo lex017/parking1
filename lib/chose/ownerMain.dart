@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:parking1/chose/detail_ownner.dart';
 import 'package:parking1/chose/mapapi.dart';
 import 'package:parking1/data_save/btnadd_parking.dart';
+import 'package:parking1/data_save/subscription_package.dart';
 import 'package:parking1/detailownner/detail_booking.dart';
 import 'package:parking1/detailownner/detail_money.dart';
 import 'package:parking1/map_api/btnlocation.dart';
@@ -65,7 +66,7 @@ class _OwnerMainState extends State<ownerMain> {
     String newStatus = currentStatus == "Online" ? "Offline" : "Online";
 
     await FirebaseFirestore.instance
-        .collection('parking') // Reference the "parking" collection
+        .collection('Owner') // Reference the "parking" collection
         .doc(parkingId) // Specify the document to update
         .update({'status': newStatus});
   }
@@ -356,6 +357,7 @@ class _OwnerMainState extends State<ownerMain> {
                   width: 28,
                   height: 28,
                   fit: BoxFit.contain,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
                 const SizedBox(height: 18),
                 Text(
@@ -422,6 +424,17 @@ class _OwnerMainState extends State<ownerMain> {
     );
   }
 
+  DateTime addMonths(DateTime date, int monthsToAdd) {
+    int newMonth = date.month + monthsToAdd;
+    int yearOffset = (newMonth - 1) ~/ 12;
+    int finalMonth = ((newMonth - 1) % 12) + 1;
+    int finalYear = date.year + yearOffset;
+    int day = date.day;
+    int lastDayOfMonth = DateTime(finalYear, finalMonth + 1, 0).day;
+    return DateTime(
+        finalYear, finalMonth, day > lastDayOfMonth ? lastDayOfMonth : day);
+  }
+
   Widget parkLocation() {
     User? currentUser = FirebaseAuth.instance.currentUser;
     String ownerId = currentUser?.uid ?? '';
@@ -430,6 +443,7 @@ class _OwnerMainState extends State<ownerMain> {
       stream: FirebaseFirestore.instance
           .collection('parking')
           .where('ownerId', isEqualTo: ownerId)
+          .where('isActive', isEqualTo: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -462,18 +476,30 @@ class _OwnerMainState extends State<ownerMain> {
                   locationData['nameparking'] ?? 'Unknown Location';
               final carSlot = locationData['car_slot'] ?? 'Unknown';
               final imageUrl = locationData['imageUrl'] ?? '';
+              final pricePerMonth = locationData['pricePerMonth'] ?? '';
+              final price = locationData['price'] ?? '';
+
+              final startDate =
+                  (locationData['packageStartDate'] as Timestamp?)?.toDate();
+              final months = locationData['packageMonths'] ?? 1;
+              final expiryDate = startDate != null
+                  ? addMonths(startDate, months)
+                  : DateTime.now();
+              final isExpired = DateTime.now().isAfter(expiryDate);
 
               return GestureDetector(
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => DetailOwner(documentId: docId),
-                    ),
-                  );
-                },
+                onTap: isExpired
+                    ? null
+                    : () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                DetailOwner(documentId: docId),
+                          ),
+                        );
+                      },
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(
-                      16.0), // Rounded border for the whole card
+                  borderRadius: BorderRadius.circular(16.0),
                   child: Card(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16.0),
@@ -487,8 +513,7 @@ class _OwnerMainState extends State<ownerMain> {
                         if (imageUrl.isNotEmpty)
                           ClipRRect(
                             borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(
-                                    16.0)), // Ensures top corners are rounded
+                                top: Radius.circular(16.0)),
                             child: Image.network(
                               imageUrl,
                               height: 150,
@@ -509,73 +534,94 @@ class _OwnerMainState extends State<ownerMain> {
                                   Text(
                                     "Parking Location ${index + 1}",
                                     style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold),
                                   ),
-                                  const Spacer(), // Pushes "Car Slots" to the right
-                                  StreamBuilder<int>(
-                                    stream: FirebaseFirestore.instance
-                                        .collection('bookings')
-                                        .where('locationId',
-                                            isEqualTo:
-                                                docId) // Use docId as locationId
-                                        .where('Status', whereIn: [
-                                          'check-in',
-                                          'pending'
-                                        ]) // Filter for 'check-in' or 'pending' statuses
-                                        .snapshots()
-                                        .map((snapshot) => snapshot.docs
-                                            .length), // Count the number of checked-in cars
-                                    builder: (context, snapshot) {
-                                      if (snapshot.connectionState ==
-                                          ConnectionState.waiting) {
-                                        return const Center(
-                                            child: CircularProgressIndicator());
-                                      }
-
-                                      if (snapshot.hasError) {
-                                        return const Center(
-                                            child: Text(
-                                                'Error fetching checked-in data'));
-                                      }
-
-                                      final checkedInCount = snapshot.data ??
-                                          0; // Number of cars occupying slots
-                                      final totalSlots =
-                                          locationData['car_slot'] ??
-                                              0; // Total car slots available
-
-                                      return Padding(
-                                        padding: const EdgeInsets.all(16.0),
-                                        child: Text(
-                                          "CAR: $checkedInCount/$totalSlots", // Display checked-in cars out of total slots
+                                  const Spacer(),
+                                  if (!isExpired)
+                                    StreamBuilder<int>(
+                                      stream: FirebaseFirestore.instance
+                                          .collection('bookings')
+                                          .where('locationId', isEqualTo: docId)
+                                          .where('Status',
+                                              whereIn: ['check-in', 'pending'])
+                                          .snapshots()
+                                          .map((snapshot) =>
+                                              snapshot.docs.length),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.connectionState ==
+                                            ConnectionState.waiting) {
+                                          return const CircularProgressIndicator();
+                                        }
+                                        if (snapshot.hasError) {
+                                          return const Text('Error');
+                                        }
+                                        final count = snapshot.data ?? 0;
+                                        return Text(
+                                          "CAR: $count/$carSlot",
                                           style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  )
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold),
+                                        );
+                                      },
+                                    )
                                 ],
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 "Location: $locationName",
                                 style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                    fontSize: 16, fontWeight: FontWeight.w500),
                               ),
-                              Divider(),
+                              const Divider(),
                               Text(
-                                "Status : online",
-                                style: const TextStyle(
+                                isExpired
+                                    ? "Pagekage Time out"
+                                    : "Status : online",
+                                style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
+                                  color: isExpired ? Colors.red : Colors.green,
                                 ),
                               ),
+                              if (isExpired)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      minimumSize: const Size(double.infinity,
+                                          50), 
+                                      backgroundColor:
+                                          Colors.blueAccent,
+                                      foregroundColor:
+                                          Colors.white, 
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12), 
+                                      ),
+                                      elevation: 4,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              SubscriptionPackage(
+                                            parkingId: docId,
+                                            name: locationName,
+                                            price: price,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: const Text(
+                                      "Renew",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                         ),

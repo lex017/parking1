@@ -272,6 +272,7 @@ class _BtnLocationState extends State<btnLocation> {
                               style: const TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
+                                color: Colors.black
                               ),
                             ),
                           ),

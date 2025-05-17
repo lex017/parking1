@@ -3,38 +3,24 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:parking1/data_save/qr_parking.dart';
+import 'package:parking1/data_save/qr_sub.dart';
 
-class ParkingPagekage extends StatefulWidget {
+class SubscriptionPackage extends StatefulWidget {
   final String name;
-  final String address;
-  final String description;
   final int price;
-  final String evSupport;
-  final double latitude;
-  final double longitude;
-  final Uint8List parkingImageBytes;
-  final Uint8List qrImageBytes;
-  final File parkingImage;
-  final File qrImage;
+  final String parkingId;
 
-  const ParkingPagekage({
+  const SubscriptionPackage({
     super.key,
     required this.name,
-    required this.address,
-    required this.description,
-    required this.price,
-    required this.evSupport,
-    required this.latitude,
-    required this.longitude,
-    required this.parkingImageBytes,
-    required this.qrImageBytes, required this.parkingImage, required this.qrImage,
+    required this.price, required this.parkingId,
   });
 
   @override
-  State<ParkingPagekage> createState() => _ParkingPagekageState();
+  State<SubscriptionPackage> createState() => _ParkingPagekageState();
 }
 
-class _ParkingPagekageState extends State<ParkingPagekage> {
+class _ParkingPagekageState extends State<SubscriptionPackage> {
   String selectedPackage = "1 Month";
   TextEditingController customMonthsController = TextEditingController();
   TextEditingController carSlotController = TextEditingController();
@@ -126,25 +112,6 @@ class _ParkingPagekageState extends State<ParkingPagekage> {
               ),
               const SizedBox(height: 10),
             ],
-            TextField(
-              controller: carSlotController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: "Enter car slots (min 10)",
-                border: const OutlineInputBorder(),
-                errorText: carSlotError,
-              ),
-              onChanged: (value) {
-                int? val = int.tryParse(value);
-                if (val == null || val < 10) {
-                  carSlotError = "Minimum slot is 10";
-                } else {
-                  carSlotError = null;
-                }
-                setState(() {});
-              },
-            ),
-            const SizedBox(height: 16),
             _buildDetailBox(detail, months, slots),
             const Spacer(),
             ElevatedButton(
@@ -172,24 +139,16 @@ class _ParkingPagekageState extends State<ParkingPagekage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => QrParking(
+                    builder: (context) => QrSub(
                       name: widget.name,
-                      address: widget.address,
-                      description: widget.description,
+                      slots: slots,
+                      months: months,
+                      packageType: selectedPackage,
                       price:widget.price,
                       pricePerDay: priceInfo['perDay'],
                       pricePerMonth: priceInfo['perMonth'],
                       totalPrice: priceInfo['totalPrice'],
-                      latitude: widget.latitude,
-                      longitude: widget.longitude,
-                      slots: slots,
-                      months: months,
-                      packageType: selectedPackage,
-                      evSupport: widget.evSupport,
-                      parkingImageBytes: widget.parkingImageBytes,
-                      qrImageBytes: widget.qrImageBytes,
-                      parkingImage: widget.parkingImage,
-                      qrImage: widget.qrImage,
+                      parkingId: widget.parkingId,
                     ),
                   ),
                 );

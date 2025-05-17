@@ -6,6 +6,7 @@ import 'package:parking1/chose/comment.dart';
 import 'package:parking1/detailownner/detail_map.dart';
 import 'package:parking1/detailownner/detail_review.dart';
 import 'package:parking1/detailownner/edit_employee.dart';
+import 'package:parking1/map_api/mapscreen.dart';
 
 class DetailOwner extends StatefulWidget {
   final String documentId;
@@ -200,10 +201,13 @@ class _DetailOwnerState extends State<DetailOwner> {
                                 color: Colors.black, size: 30),
                             onPressed: () {
                               Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => Comment(
-                                          documentId: widget.documentId)));
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => MapScreen(
+                                      documentId: widget
+                                          .documentId), // ส่ง documentId ไปยัง MapScreen
+                                ),
+                              );
                             },
                           ),
                         ],
@@ -212,7 +216,6 @@ class _DetailOwnerState extends State<DetailOwner> {
                       Text(address,
                           style: const TextStyle(
                               fontSize: 16, height: 1.6, color: Colors.grey)),
-               
 
                       // Real-time Check-in Counter
                       // StreamBuilder<int>(
@@ -226,7 +229,6 @@ class _DetailOwnerState extends State<DetailOwner> {
                       //   },
                       // ),
 
-               
                       DefaultTabController(
                         length: 3,
                         child: Column(
@@ -248,14 +250,20 @@ class _DetailOwnerState extends State<DetailOwner> {
                               ],
                             ),
                             SizedBox(
-                              height:363, // Adjust as needed
+                              height: 363, // Adjust as needed
                               child: TabBarView(
                                 children: [
                                   Center(
                                       child: DetailMap(
                                           documentId: widget.documentId)),
-                                  Center(child: EditEmployee(locationId: widget.documentId,)),
-                                  Center(child: DetailReview(parkingId: widget.documentId,)),
+                                  Center(
+                                      child: EditEmployee(
+                                    locationId: widget.documentId,
+                                  )),
+                                  Center(
+                                      child: DetailReview(
+                                    parkingId: widget.documentId,
+                                  )),
                                 ],
                               ),
                             )

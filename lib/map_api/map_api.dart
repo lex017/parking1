@@ -249,7 +249,7 @@ class _MapApiState extends State<map_api> {
                 // Location name
                 Text(
                   locationName,
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold,color: Theme.of(context).cardColor,
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold,color: Colors.black,
 ),
                 ),
                 const SizedBox(height: 12),

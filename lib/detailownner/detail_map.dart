@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:parking1/detailownner/edit_map.dart';
+import 'package:parking1/detailownner/selectslot.dart';
 
 class DetailMap extends StatefulWidget {
   final String documentId;
@@ -50,7 +51,7 @@ class _DetailMapState extends State<DetailMap> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => EditMap(),
+        builder: (context) => Selectslot(documentId: widget.documentId,),
       ),
     );
   }

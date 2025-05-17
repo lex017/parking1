@@ -13,7 +13,6 @@ class MyTicket extends StatefulWidget {
 class _MyTicketState extends State<MyTicket> {
   final user = FirebaseAuth.instance.currentUser;
 
-  // Function to fetch the userName from the users collection
   Future<String> getUserName(String userId) async {
     try {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
@@ -22,12 +21,12 @@ class _MyTicketState extends State<MyTicket> {
           .get();
 
       if (userDoc.exists) {
-        return userDoc['username'] ?? 'Unknown'; // Return userName or 'Unknown'
+        return userDoc['username'] ?? 'Unknown';
       }
-      return 'Unknown'; // In case the document doesn't exist
+      return 'Unknown';
     } catch (e) {
       print("Error fetching userName: $e");
-      return 'Unknown'; // Return 'Unknown' in case of error
+      return 'Unknown';
     }
   }
 
@@ -46,8 +45,7 @@ class _MyTicketState extends State<MyTicket> {
         if (user == null) {
           return Scaffold(
             appBar: AppBar(title: const Text("My Tickets")),
-            body:
-                const Center(child: Text("กรุณาเข้าสู่ระบบเพื่อดูตั๋วของคุณ")),
+            body: const Center(child: Text("Please log in to view your tickets")),
           );
         }
 
@@ -60,7 +58,6 @@ class _MyTicketState extends State<MyTicket> {
           body: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('bookings')
-                .where('paymentStatus', isEqualTo: 'success')
                 .where('userId', isEqualTo: user.uid)
                 .snapshots(),
             builder: (context, snapshot) {
@@ -69,25 +66,20 @@ class _MyTicketState extends State<MyTicket> {
               }
 
               if (snapshot.hasError) {
-                return const Center(child: Text("เกิดข้อผิดพลาดในการโหลดตั๋ว"));
+                return const Center(child: Text("There was an error loading tickets"));
               }
 
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return const Center(child: Text("NO tickets available"));
               }
 
-              var tickets = snapshot.data!.docs;
+              var tickets = snapshot.data!.docs.toList();
 
-              // Sorting the tickets so that check-out or time-out tickets are at the bottom
+              // Sort by timestamp descending
               tickets.sort((a, b) {
-                String statusA = a['Status'] ?? 'check-in';
-                String statusB = b['Status'] ?? 'check-in';
-
-                if (statusA == 'check-out' || statusA == 'Time-out')
-                  return 1; // Move to bottom
-                if (statusB == 'check-out' || statusB == 'Time-out')
-                  return -1; // Move to bottom
-                return 0; // Keep other tickets as they are
+                Timestamp timeA = a['timestamp'] ?? Timestamp(0, 0);
+                Timestamp timeB = b['timestamp'] ?? Timestamp(0, 0);
+                return timeB.compareTo(timeA);
               });
 
               return ListView.builder(
@@ -101,101 +93,93 @@ class _MyTicketState extends State<MyTicket> {
                   String bookingname = ticket['nameparking'] ?? 'N/A';
                   String bookingTime = ticket['bookingTime'] ?? 'N/A';
                   String status = ticket['Status'] ?? 'N/A';
-                  GeoPoint location = ticket['location'] ?? GeoPoint(0.0, 0.0);
-                  String parkingStatus = ticket['Status'] ?? 'check-in';
-                  bool isCheckOut = parkingStatus == 'check-out';
+                  String paymentStatus = ticket['paymentStatus'] ?? 'pending';
+                  bool isClickable = paymentStatus == 'success';
 
                   return FutureBuilder<String>(
-                    future:
-                        getUserName(user.uid), // Fetch username from Firestore
+                    future: getUserName(user.uid),
                     builder: (context, userNameSnapshot) {
-                      if (userNameSnapshot.connectionState ==
-                          ConnectionState.waiting) {
+                      if (userNameSnapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
                       }
 
-                      String username = userNameSnapshot.data ?? 'Unknown';
-                      return Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        margin: const EdgeInsets.symmetric(
-                            vertical: 10, horizontal: 16),
-                        color: isCheckOut ? Colors.grey[300] : Colors.white,
-                        child: InkWell(
-                          onTap: isCheckOut
-                              ? null
-                              : () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          BuyTicket(bookingId: bookingId),
+                      return Opacity(
+                        opacity: isClickable ? 1.0 : 0.5,
+                        child: Card(
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                          child: InkWell(
+                            onTap: isClickable
+                                ? () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => BuyTicket(bookingId: bookingId),
+                                      ),
+                                    );
+                                  }
+                                : null,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(context).primaryColor,
+                                      shape: BoxShape.circle,
                                     ),
-                                  );
-                                },
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: isCheckOut
-                                        ? Colors.grey
-                                        : Theme.of(context).primaryColor,
-                                    shape: BoxShape.circle,
+                                    child: Image.asset(
+                                      'assets/images/history.png',
+                                      width: 28,
+                                      height: 28,
+                                      color: Colors.white,
+                                    ),
                                   ),
-                                  child: Image.asset(
-                                    'assets/images/history.png', 
-                                    width: 28, 
-                                    height: 28,
-                                    color:
-                                        Colors.white, 
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Location: $bookingname", // Use the fetched username
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: isCheckOut
-                                              ? Colors.grey[700]
-                                              : Colors.black,
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Location: $bookingname",
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "Date: $bookingDate | Time: $bookingTime",
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: isCheckOut
-                                              ? Colors.grey[600]
-                                              : Colors.black54,
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          "Date: $bookingDate | Time: $bookingTime",
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black54,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                        if (!isClickable)
+                                          const Text(
+                                            "Waiting for payment confirmation...",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.redAccent,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  "$status",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: isCheckOut
-                                        ? Colors.grey[700]
-                                        : Colors.black,
+                                  Text(
+                                    status,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),

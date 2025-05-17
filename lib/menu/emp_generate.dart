@@ -193,6 +193,7 @@ class _EmpGenerateState extends State<EmpGenerate> {
       "locationId": locationId, // Add locationId here
       "imageUrl": imageUrl ?? "", // Handle optional image
       "Status": "check-in",
+      "ticketId": ticketId,
       "timestamp": FieldValue.serverTimestamp(),
     };
 

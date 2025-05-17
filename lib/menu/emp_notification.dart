@@ -7,10 +7,10 @@ class EmpNotification extends StatefulWidget {
   final String empId;
   final String locationId;
 
+
   const EmpNotification({
     super.key,
-    required this.locationId,
-    required this.empId,
+    required this.empId, required this.locationId,
   });
 
   @override
@@ -18,13 +18,42 @@ class EmpNotification extends StatefulWidget {
 }
 
 class _EmpNotificationState extends State<EmpNotification> {
-  late String locationId;
+  String locationId = '';
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    locationId = widget.locationId;
-    print('Loaded Location ID: $locationId');
+    fetchEmployeeLocationId();
+  }
+
+  Future<void> fetchEmployeeLocationId() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('employees')
+          .doc(widget.empId)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null && data.containsKey('locationId')) {
+          setState(() {
+            locationId = data['locationId'];
+            isLoading = false;
+          });
+          print('Loaded Location ID: $locationId');
+        } else {
+          setState(() => isLoading = false);
+          print('locationId not found in employee data.');
+        }
+      } else {
+        setState(() => isLoading = false);
+        print('Employee document not found.');
+      }
+    } catch (e) {
+      print('Error fetching employee locationId: $e');
+      setState(() => isLoading = false);
+    }
   }
 
   @override
@@ -32,7 +61,7 @@ class _EmpNotificationState extends State<EmpNotification> {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
-        if (authSnapshot.connectionState == ConnectionState.waiting) {
+        if (authSnapshot.connectionState == ConnectionState.waiting || isLoading) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
@@ -43,6 +72,12 @@ class _EmpNotificationState extends State<EmpNotification> {
           return Scaffold(
             appBar: AppBar(title: const Text("My Tickets")),
             body: const Center(child: Text("กรุณาเข้าสู่ระบบเพื่อดูตั๋วของคุณ")),
+          );
+        }
+
+        if (locationId.isEmpty) {
+          return const Scaffold(
+            body: Center(child: Text("ไม่พบรหัสสถานที่ของพนักงาน")),
           );
         }
 
@@ -99,7 +134,10 @@ class _EmpNotificationState extends State<EmpNotification> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => EmpVerify(paymentId: paymentId, locationId: locationId,),
+                                  builder: (context) => EmpVerify(
+                                    paymentId: paymentId,
+                                    locationId: locationId,
+                                  ),
                                 ),
                               );
                             },

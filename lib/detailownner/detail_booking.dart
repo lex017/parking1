@@ -63,62 +63,54 @@ class _DetailBookingState extends State<DetailBooking> {
     return allBookings;
   }
 
-  Future<void> pickDateRange() async {
-    DateTimeRange? picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-    );
-
-    if (picked != null) {
-      setState(() {
-        startDate = picked.start;
-        endDate = picked.end;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text("Booking History")),
+      appBar: AppBar(
+        title: const Text("Booking History"),
+        backgroundColor: Colors.blue,
+        elevation: 4,
+        centerTitle: true,
+      ),
       body: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              DropdownButton<String>(
-                value: selectedStatus,
-                onChanged: (newValue) {
-                  setState(() {
-                    selectedStatus = newValue!;
-                  });
-                },
-                items: ['All', 'check-in', 'check-out', 'Time-out']
-                    .map((filter) => DropdownMenuItem(
-                          value: filter,
-                          child: Text(filter),
-                        ))
-                    .toList(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                elevation: 5,
               ),
-              DropdownButton<String>(
-                value: selectedDateFilter,
-                onChanged: (newValue) async {
-                  if (newValue == 'Custom Range') {
-                    await pickDateRange();
-                  }
-                  setState(() {
-                    selectedDateFilter = newValue!;
-                  });
-                },
-                items: ['All', 'Today', 'This Week', 'Custom Range']
-                    .map((filter) => DropdownMenuItem(
-                          value: filter,
-                          child: Text(filter),
-                        ))
-                    .toList(),
+              icon: const Icon(Icons.filter_alt, size: 20),
+              label: const Text(
+                "Filter Bookings",
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,color: Colors.white),
               ),
-            ],
+              onPressed: () async {
+                final result = await showDialog<Map<String, dynamic>>(
+                  context: context,
+                  builder: (context) => FilterDialog(
+                    selectedStatus: selectedStatus,
+                    selectedDateFilter: selectedDateFilter,
+                    startDate: startDate,
+                    endDate: endDate,
+                  ),
+                );
+
+                if (result != null) {
+                  setState(() {
+                    selectedStatus = result['status'];
+                    selectedDateFilter = result['dateFilter'];
+                    startDate = result['startDate'];
+                    endDate = result['endDate'];
+                  });
+                }
+              },
+            ),
           ),
           Expanded(
             child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -128,42 +120,89 @@ class _DetailBookingState extends State<DetailBooking> {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text("Error: ${snapshot.error}"));
+                  return Center(
+                    child: Text(
+                      "Error: ${snapshot.error}",
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
+                  );
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                      child: Text("No booking history available."));
+                  return Center(
+                    child: Text(
+                      "No booking history available.",
+                      style: theme.textTheme.titleMedium
+                          ?.copyWith(color: Colors.grey[600]),
+                    ),
+                  );
                 }
 
                 List<Map<String, dynamic>> bookings = snapshot.data!;
                 return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: bookings.length,
                   itemBuilder: (context, index) {
                     Map<String, dynamic> booking = bookings[index];
+                    final status = booking['Status'] ?? 'Pending';
+                    final bool isCompleted = status.toLowerCase() == 'completed';
+                    final timestamp = booking['timestamp']?.toDate();
+
                     return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15)),
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      elevation: 6,
+                      shadowColor: Colors.deepPurpleAccent.withOpacity(0.3),
                       child: ListTile(
-                        title: Text(booking['userName'] ?? 'Unknown User',
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        title: Text(
+                          booking['userName'] ?? 'Unknown User',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade700),
+                        ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            const SizedBox(height: 6),
                             Text(
-                                "Parking: ${booking['nameparking'] ?? 'Unknown'}"),
+                              "Parking: ${booking['nameparking'] ?? 'Unknown'}",
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: 4),
                             Text(
-                                "Date: ${DateFormat('yyyy-MM-dd HH:mm').format(booking['timestamp'].toDate())}"),
-                            Text("Status: ${booking['Status'] ?? 'Pending'}"),
+                              timestamp != null
+                                  ? "Date: ${DateFormat('yyyy-MM-dd HH:mm').format(timestamp)}"
+                                  : "Date: Unknown",
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: isCompleted
+                                    ? Colors.green.withOpacity(0.15)
+                                    : Colors.orange.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                "Status: $status",
+                                style: TextStyle(
+                                  color: isCompleted
+                                      ? Colors.green.shade700
+                                      : Colors.orange.shade700,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                         trailing: Icon(
-                          booking['Status'] == 'Completed'
-                              ? Icons.check_circle
-                              : Icons.pending,
-                          color: booking['Status'] == 'Completed'
-                              ? Colors.green
-                              : Colors.orange,
+                          isCompleted ? Icons.check_circle : Icons.pending,
+                          color: isCompleted ? Colors.green : Colors.orange,
+                          size: 30,
                         ),
                       ),
                     );
@@ -174,6 +213,191 @@ class _DetailBookingState extends State<DetailBooking> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class FilterDialog extends StatefulWidget {
+  final String selectedStatus;
+  final String selectedDateFilter;
+  final DateTime? startDate;
+  final DateTime? endDate;
+
+  const FilterDialog({
+    super.key,
+    required this.selectedStatus,
+    required this.selectedDateFilter,
+    this.startDate,
+    this.endDate,
+  });
+
+  @override
+  State<FilterDialog> createState() => _FilterDialogState();
+}
+
+class _FilterDialogState extends State<FilterDialog> {
+  late String tempSelectedStatus;
+  late String tempSelectedDateFilter;
+  DateTime? tempStartDate;
+  DateTime? tempEndDate;
+
+  @override
+  void initState() {
+    super.initState();
+    tempSelectedStatus = widget.selectedStatus;
+    tempSelectedDateFilter = widget.selectedDateFilter;
+    tempStartDate = widget.startDate;
+    tempEndDate = widget.endDate;
+  }
+
+  Future<void> pickDateRange() async {
+    DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      initialDateRange: tempStartDate != null && tempEndDate != null
+          ? DateTimeRange(start: tempStartDate!, end: tempEndDate!)
+          : null,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Colors.blue,
+              onPrimary: Colors.white,
+              onSurface: Colors.blue,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(foregroundColor: Colors.blue),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        tempStartDate = picked.start;
+        tempEndDate = picked.end;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text(
+        "Filter Bookings",
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<String>(
+              value: tempSelectedStatus,
+              decoration: const InputDecoration(
+                labelText: "Select Status",
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  tempSelectedStatus = value!;
+                });
+              },
+              items: ['All', 'check-in', 'check-out', 'Time-out']
+                  .map((status) => DropdownMenuItem(
+                        value: status,
+                        child: Text(
+                          status[0].toUpperCase() + status.substring(1),
+                        ),
+                      ))
+                  .toList(),
+            ),
+            const SizedBox(height: 20),
+            DropdownButtonFormField<String>(
+              value: tempSelectedDateFilter,
+              decoration: const InputDecoration(
+                labelText: "Select Date Filter",
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              onChanged: (value) async {
+                if (value == 'Custom Range') {
+                  await pickDateRange();
+                }
+                setState(() {
+                  tempSelectedDateFilter = value!;
+                  if (value != 'Custom Range') {
+                    tempStartDate = null;
+                    tempEndDate = null;
+                  }
+                });
+              },
+              items: ['All', 'Today', 'This Week', 'Custom Range']
+                  .map((filter) => DropdownMenuItem(
+                        value: filter,
+                        child: Text(filter),
+                      ))
+                  .toList(),
+            ),
+            if (tempSelectedDateFilter == 'Custom Range' &&
+                tempStartDate != null &&
+                tempEndDate != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Text(
+                    "From: ${DateFormat('yyyy-MM-dd').format(tempStartDate!)}\nTo: ${DateFormat('yyyy-MM-dd').format(tempEndDate!)}",
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.blue.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+      actionsPadding: const EdgeInsets.only(right: 12, bottom: 12),
+      actions: [
+        TextButton(
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.blue,
+            textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancel"),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          onPressed: () {
+            Navigator.pop(context, {
+              'status': tempSelectedStatus,
+              'dateFilter': tempSelectedDateFilter,
+              'startDate': tempStartDate,
+              'endDate': tempEndDate,
+            });
+          },
+          child: const Text("Apply"),
+        ),
+      ],
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ffi';
 import 'dart:typed_data';
 import 'dart:io';
@@ -11,50 +12,77 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:lottie/lottie.dart';
-import 'package:parking1/bottombar/maingPage.dart';
-
-import 'package:parking1/data_save/buyticket.dart';
+import 'package:parking1/chose/ownerMain.dart';
 import 'package:parking1/homepage.dart';
 
-class PayPage extends StatefulWidget {
-  final String documentId;
-  final String selectedCar;
-  final String selectedVehicleId;
-  final int pricePerHour;
+class PayParking extends StatefulWidget {
+  final String name;
+  final String address;
+  final String description;
+  final num? pricePerDay;
+  final num? pricePerMonth;
+  final num? totalPrice;
+  final int slots;
+  final int price;
+  final int months;
+  final String packageType;
+  final double latitude;
+  final double longitude;
+  final String evSupport;
+  final Uint8List parkingImageBytes;
+  final Uint8List qrImageBytes;
+  final File parkingImage;
+  final File qrImage;
 
-  const PayPage(
-      {super.key,
-      required this.documentId,
-      required this.selectedCar,
-      required this.selectedVehicleId,
-      required this.pricePerHour});
+  const PayParking({
+    super.key,
+    required this.name,
+    required this.address,
+    required this.description,
+    this.pricePerDay,
+    this.pricePerMonth,
+    this.totalPrice,
+    required this.slots,
+    required this.months,
+    required this.packageType,
+    required this.latitude,
+    required this.longitude,
+    required this.evSupport,
+    required this.parkingImageBytes,
+    required this.qrImageBytes,
+    required this.price,
+    required this.parkingImage,
+    required this.qrImage,
+  });
 
   @override
-  State<PayPage> createState() => _PayPageState();
+  State<PayParking> createState() => _PayPageState();
 }
 
-class _PayPageState extends State<PayPage> {
+class _PayPageState extends State<PayParking> {
   File? _selectedImage;
   Uint8List? _imageBytes;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
+  bool _isButtonDisabled = false;
 
-  final TextEditingController amountController = TextEditingController();
-  final TextEditingController accountController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
   final TextEditingController timeController = TextEditingController();
-  final TextEditingController nameController = TextEditingController();
 
   final String cloudinaryUrl =
       "https://api.cloudinary.com/v1_1/doiq3nkso/image/upload";
   final String uploadPreset = "parking";
+
   @override
   void initState() {
     super.initState();
-    // Listen for payment status with a placeholder transaction ID
-    // You should pass the correct transactionId here
-    String bookingId = "bookings${DateTime.now().millisecondsSinceEpoch}";
-    listenForPaymentStatus(bookingId);
+  }
+
+  Future<String> generateLocationId() async {
+    QuerySnapshot snapshot =
+        await FirebaseFirestore.instance.collection('parking').get();
+    int count = snapshot.docs.length;
+    return "location${count + 1}";
   }
 
   Future<void> _pickImage() async {
@@ -151,49 +179,12 @@ class _PayPageState extends State<PayPage> {
     }
   }
 
-  Future<void> _sendNotification(String transactionId) async {
-    try {
-      FirebaseAuth auth = FirebaseAuth.instance;
-      String? uid = auth.currentUser?.uid;
-
-      if (uid == null) {
-        print("No user logged in");
-        return;
-      }
-
-      // Get the employee's locationId from Firestore
-      DocumentSnapshot empDoc = await FirebaseFirestore.instance
-          .collection('employees')
-          .doc(uid)
-          .get();
-
-      if (!empDoc.exists) {
-        print("Employee document not found");
-        return;
-      }
-
-      String? locationId = empDoc.get('locationId');
-
-      // Save the notification with locationId
-      await FirebaseFirestore.instance.collection('notifications').add({
-        'title': 'New Payment Verification',
-        'body':
-            'Payment for transaction ID: $transactionId requires verification.',
-        'locationId': locationId,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-
-      print("Notification saved with locationId: $locationId");
-    } catch (e) {
-      print("Error sending notification: $e");
-    }
-  }
-
-  Future<void> _savePaymentAndBooking() async {
+  Future<void> _savebillAndBooking() async {
     setState(() {
-      _isLoading = true;
+      _isButtonDisabled = true;
     });
-    final user = FirebaseAuth.instance.currentUser; // Get the logged-in user
+
+    final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -220,93 +211,164 @@ class _PayPageState extends State<PayPage> {
       return;
     }
 
-    String transactionId = "payment${DateTime.now().millisecondsSinceEpoch}";
-    String bookingId = "bookings${DateTime.now().millisecondsSinceEpoch}";
+    Future<String> uploadFileToCloudinary(File file) async {
+      var request = http.MultipartRequest('POST', Uri.parse(cloudinaryUrl))
+        ..fields['upload_preset'] = uploadPreset
+        ..files.add(await http.MultipartFile.fromPath('file', file.path));
 
-    // Fetch user data (username)
-    String username = "Unknown User"; // Default value
-    try {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final response = await request.send();
+      final responseData = await http.Response.fromStream(response);
 
-      if (userDoc.exists) {
-        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-        username = userData['username'] ?? "Unknown User";
+      if (response.statusCode == 200) {
+        final data = jsonDecode(responseData.body);
+        return data['secure_url'];
+      } else {
+        throw Exception('Failed to upload image: ${response.reasonPhrase}');
       }
-    } catch (e) {
-      print("Error fetching username: $e");
     }
 
-    // Fetch location data from Firestore
-    String locationId = widget.documentId;
-    String nameLocation = "";
-    GeoPoint location = const GeoPoint(0, 0); // Default value to avoid errors
+    String parkingImage = await uploadFileToCloudinary(widget.parkingImage);
+    String qrImage = await uploadFileToCloudinary(widget.qrImage);
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    String ownerId = currentUser?.uid ?? 'unknown_owner';
+    String locationId = await generateLocationId();
+    String transactionId = "bill$locationId";
 
     try {
-      var locationSnapshot = await FirebaseFirestore.instance
+      // Save to parking_bill collection
+      await FirebaseFirestore.instance
+          .collection('parking_bill')
+          .doc(transactionId)
+          .set({
+        'nameparking': widget.name,
+        'ownerId': ownerId,
+        'price': widget.price,
+        'pricePerDay': widget.pricePerDay ?? 0,
+        'pricePerMonth': widget.pricePerMonth ?? 0,
+        'totalPrice': widget.totalPrice ?? 0,
+        'car_slot': widget.slots,
+        'imageBill': imageUrl,
+        'status': "pending",
+        'pagekage': "standard",
+        'months': widget.months,
+        'packageType': widget.packageType,
+        'tag': widget.evSupport,
+        'locationId': locationId,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      // Save to parking collection
+      await FirebaseFirestore.instance
           .collection('parking')
           .doc(locationId)
-          .get();
+          .set({
+        'nameparking': widget.name,
+        'ownerId': ownerId,
+        'address': widget.address,
+        'description': widget.description,
+        'price': widget.price,
+        'pricePerDay': widget.pricePerDay ?? 0,
+        'pricePerMonth': widget.pricePerMonth ?? 0,
+        'totalPrice': widget.totalPrice ?? 0,
+        'car_slot': widget.slots,
+        'status': "N/A",
+        'months': widget.months,
+        'qrImage': qrImage,
+        'imageUrl': parkingImage,
+        'packageType': widget.packageType,
+        'location': GeoPoint(widget.latitude, widget.longitude),
+        'tag': widget.evSupport,
+        'isActive': true, // Mark as inactive initially
+        'packageStartDate': FieldValue.serverTimestamp(), // Record when added
+        'packageMonths': widget.months,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
 
-      if (locationSnapshot.exists) {
-        var locationData = locationSnapshot.data() as Map<String, dynamic>;
-        nameLocation = locationData['nameparking'] ?? "Unknown Location";
-
-        if (locationData['location'] is GeoPoint) {
-          location = locationData['location'];
-        } else {
-          print("Error: Invalid location format in Firestore.");
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No location found.")),
-        );
-        return;
-      }
-    } catch (e) {
-      print("Error fetching location: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to retrieve location.")),
+        const SnackBar(
+            content: Text("Bill submitted. Waiting for verification...")),
       );
-      return;
-    }
 
-    // Show loading dialog
+      _showVerificationDialog(transactionId);
+    } catch (error) {
+      print("Error saving bill or booking: $error");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to save booking. Try again.")),
+      );
+      setState(() {
+        _isButtonDisabled = false;
+      });
+    }
+  }
+
+  Future<void> deactivateExpiredParkings() async {
+    final now = DateTime.now();
+
+    final query = await FirebaseFirestore.instance
+        .collection('parking')
+        .where('isActive', isEqualTo: true)
+        .get();
+
+    for (var doc in query.docs) {
+      final data = doc.data();
+      final startDate = (data['packageStartDate'] as Timestamp).toDate();
+      final months = data['packageMonths'] ?? 1;
+
+      final expiryDate = addMonths(startDate, months);
+
+      if (now.isAfter(expiryDate)) {
+        await doc.reference.update({'isActive': false});
+      }
+    }
+  }
+
+  DateTime addMonths(DateTime date, int monthsToAdd) {
+    int newMonth = date.month + monthsToAdd;
+    int yearOffset = (newMonth - 1) ~/ 12;
+    int finalMonth = ((newMonth - 1) % 12) + 1;
+    int finalYear = date.year + yearOffset;
+
+    int day = date.day;
+    int lastDayOfMonth = DateTime(finalYear, finalMonth + 1, 0).day;
+    return DateTime(
+        finalYear, finalMonth, day > lastDayOfMonth ? lastDayOfMonth : day);
+  }
+
+  void _showVerificationDialog(String transactionId) {
+    bool isVerified = false;
+    
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            bool isVerified = false; // Track verification status
-
             FirebaseFirestore.instance
-                .collection('payments')
+                .collection('parking_bill')
                 .doc(transactionId)
                 .snapshots()
                 .listen((docSnapshot) {
-              if (docSnapshot.exists &&
-                  docSnapshot.data()?['paymentStatus'] == "success") {
-                setState(() {
-                  isVerified = true; // Update UI to success
-                });
+              if (!isVerified &&
+                  docSnapshot.exists &&
+                  docSnapshot.data()?['status'] == "success") {
+                isVerified = true; // persist success
 
-                // Close the dialog after showing success animation
                 Future.delayed(const Duration(seconds: 2), () {
-                  Navigator.pop(context);
+                  Navigator.of(context, rootNavigator: true).pop();
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => ownerMain()),
+                  );
                 });
               }
             });
-
             return AlertDialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16.0),
-              ),
+                  borderRadius: BorderRadius.circular(16.0)),
               title: Center(
                 child: Text(
-                  isVerified ? "Payment Successful" : "Payment Verification",
+                  isVerified ? "Bill Successful" : "Bill Verification",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
@@ -345,15 +407,15 @@ class _PayPageState extends State<PayPage> {
                     const SizedBox(height: 20),
                     Text(
                       isVerified
-                          ? "Payment Verified Successfully!"
-                          : "Waiting for payment verification...",
+                          ? "Bill Verified Successfully!"
+                          : "Waiting for bill verification...",
                       style: const TextStyle(fontSize: 18),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 10),
                     Text(
                       isVerified
-                          ? "Thank you for your payment."
+                          ? "Thank you for your bill."
                           : "Please do not close the app.",
                       style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       textAlign: TextAlign.center,
@@ -362,7 +424,8 @@ class _PayPageState extends State<PayPage> {
                     Center(
                         child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white, backgroundColor: Colors.blueAccent, // Text color
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.blueAccent, // Text color
                         shape: RoundedRectangleBorder(
                           borderRadius:
                               BorderRadius.circular(12.0), // Rounded corners
@@ -399,100 +462,14 @@ class _PayPageState extends State<PayPage> {
         );
       },
     );
-
-    // Save payment data with username
-    FirebaseFirestore.instance.collection('payments').doc(transactionId).set({
-      "userId": user.uid,
-      "userName": username, // Added username
-      "amount": widget.pricePerHour,
-      "date": dateController.text,
-      "time": timeController.text,
-      "bookingId": bookingId,
-      "vechicle": widget.selectedCar,
-      "imageBill": imageUrl,
-      "locationId": locationId,
-      "status": "pending",
-      "timestamp": FieldValue.serverTimestamp(),
-    });
-
-    // Save booking data with username
-    FirebaseFirestore.instance.collection('bookings').doc(bookingId).set({
-      "userId": user.uid,
-      "userName": username, // Added username
-      "bookingDate": dateController.text,
-      "bookingTime": timeController.text,
-      "paymentId": transactionId,
-      "locationId": locationId,
-      "nameparking": nameLocation,
-      "location": location,
-      "vehicle": widget.selectedCar,
-      "vehicleId": widget.selectedVehicleId,
-      "paymentStatus": "pending",
-      "Status": "pending",
-      "timestamp": FieldValue.serverTimestamp(),
-    }).then((_) {
-      _sendNotification(transactionId);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Payment submitted. Waiting for verification.")),
-      );
-    }).catchError((error) {
-      print("Error saving booking: $error");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to save booking. Try again.")),
-      );
-    });
-    setState(() {
-      _isLoading = false;
-    });
-    // Listen for payment status update
-    listenForPaymentStatus(bookingId);
-  }
-
-  Future<int> countCheckedInTickets() async {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-
-    QuerySnapshot ticketSnapshot = await FirebaseFirestore.instance
-        .collection(
-            'bookings') // Make sure this matches your Firestore collection name
-        .where('userId', isEqualTo: userId)
-        .where('Status', isEqualTo: 'check-in') // Filter only "check-in" status
-        .get();
-
-    return ticketSnapshot.docs.length; // Return the count of filtered tickets
-  }
-
-  void listenForPaymentStatus(String bookingId) {
-    FirebaseFirestore.instance
-        .collection('bookings')
-        .doc(bookingId)
-        .snapshots()
-        .listen((snapshot) async {
-      if (snapshot.exists && snapshot.data()?['paymentStatus'] == "success") {
-        // Close the loading dialog
-        Navigator.of(context, rootNavigator: true)
-            .pop(); // Closes the loading dialog
-        await Future.delayed(const Duration(seconds: 2));
-
-        // Navigate to BuyTicketPage only if payment is successful
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => BuyTicket(
-              bookingId: bookingId, // Pass transaction ID
-            ),
-          ),
-        );
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Payment & Booking'),
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        title: const Text('Bill For Parking'),
+        backgroundColor: Colors.white,
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -500,24 +477,9 @@ class _PayPageState extends State<PayPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Payment & Booking Details",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50, // Light green background
-                border: Border.all(color: Colors.green, width: 2),
-                borderRadius: BorderRadius.circular(10), // Rounded corners
-              ),
-              child: Text(
-                "Amount: ${widget.pricePerHour}",
-                style: TextStyle(
-                  fontSize: 20,
-                  color: Colors.green,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+            const Text(
+              "Bill & Booking Details",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             TextFormField(
@@ -550,8 +512,10 @@ class _PayPageState extends State<PayPage> {
               readOnly: true,
             ),
             const SizedBox(height: 20),
-            const Text("Upload Picture",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              "Upload Picture",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 10),
             GestureDetector(
               onTap: _pickImage,
@@ -574,35 +538,16 @@ class _PayPageState extends State<PayPage> {
                                 Image.memory(_imageBytes!, fit: BoxFit.cover),
                           )
                         : const Center(
-                            child: Text("Tap to upload",
-                                style: TextStyle(color: Colors.grey)),
-                          ),
+                            child: Icon(Icons.add_a_photo,
+                                size: 50, color: Colors.grey)),
               ),
             ),
-            const SizedBox(height: 40),
-            Center(
+            const SizedBox(height: 30),
+            SizedBox(
+              width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isLoading
-                    ? null
-                    : _savePaymentAndBooking, // Disable when loading
-                style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  backgroundColor: Colors.white,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.black, // Match text color
-                          strokeWidth: 3,
-                        ),
-                      )
-                    : const Text("Pay Now",
-                        style: TextStyle(fontSize: 18, color: Colors.black)),
+                onPressed: _isButtonDisabled ? null : _savebillAndBooking,
+                child: const Text("Submit Bill For parking"),
               ),
             ),
           ],
