@@ -1,13 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:parking1/homepage.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+
+
 class BuyTicket extends StatefulWidget {
   final String bookingId;
-
+  
   const BuyTicket({super.key, required this.bookingId});
 
   @override
@@ -20,14 +23,27 @@ class _BuyTicketState extends State<BuyTicket> {
   int remainingSeconds = 60 * 60; // 30 minutes in seconds
   late String userName;
   late String numberplate;
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
     super.initState();
     _ticketFuture = fetchTicketData();
+    _initializeNotifications();
     startTimer();
   }
 
+  void _initializeNotifications() async {
+  const AndroidInitializationSettings androidSettings =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const InitializationSettings initSettings = InitializationSettings(
+    android: androidSettings,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initSettings);
+}
 // Function to fetch the userName from the users collection
   Future<String> getUserName(String userId) async {
     try {
@@ -98,13 +114,13 @@ class _BuyTicketState extends State<BuyTicket> {
 
     var bookingData = bookingSnapshot.data() as Map<String, dynamic>;
     String userId = bookingData[
-        'userId']; // Assuming userId is stored in the booking document
+        'userId']; 
     userName = await getUserName(
-        userId); // Fetch the username from the 'users' collection
+        userId); 
 
      String vehicleId = bookingData[
-        'vehicleId']; // Assuming userId is stored in the booking document
-    numberplate = await getNumberPlate(vehicleId); // Fetch the username from the 'users' collection
+        'vehicleId']; 
+    numberplate = await getNumberPlate(vehicleId); 
 
     String transactionId = bookingData['paymentId'] ?? '';
     var parkingStatus = bookingData['Status'] ?? 'pending';
@@ -159,62 +175,101 @@ class _BuyTicketState extends State<BuyTicket> {
     };
   }
 
-  void startTimer() {
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      if (remainingSeconds > 0) {
-        setState(() {
-          remainingSeconds--;
-        });
+  
+ void startTimer() {
+  _timer?.cancel();
+  _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+    if (remainingSeconds > 0) {
+      setState(() {
+        remainingSeconds--;
+      });
 
-        if (remainingSeconds % 10 == 0) {
-          await FirebaseFirestore.instance
-              .collection('bookings')
-              .doc(widget.bookingId)
-              .update({
-            'remainingSeconds': remainingSeconds,
-            'lastUpdated': FieldValue.serverTimestamp(),
-          });
-        }
-      } else {
-        timer.cancel();
-        await updateParkingStatusToCheckout();
+      // ✅ Show local notification at 10 minutes remaining
+      if (remainingSeconds == 600) {
+        await flutterLocalNotificationsPlugin.show(
+          1,
+          '10 Minutes Left',
+          'Your parking session will end in 10 minutes.',
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'reminder_channel',
+              'Reminder Notifications',
+              channelDescription: 'Notifications for parking reminders',
+              importance: Importance.max,
+              priority: Priority.high,
+              playSound: true,
+            ),
+          ),
+        );
       }
-    });
-  }
+
+      // 🔁 Update Firestore every 5 seconds
+      if (remainingSeconds % 5 == 0) {
+        await FirebaseFirestore.instance
+            .collection('bookings')
+            .doc(widget.bookingId)
+            .update({
+          'remainingSeconds': remainingSeconds,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+      }
+    } else {
+      timer.cancel();
+      await updateParkingStatusToCheckout();
+    }
+  });
+}
 
   void stopTimer() {
     _timer?.cancel();
   }
 
   Future<void> updateParkingStatusToCheckout() async {
-    await FirebaseFirestore.instance
-        .collection('bookings')
-        .doc(widget.bookingId)
-        .update({'Status': 'Time-out'});
+  await FirebaseFirestore.instance
+      .collection('bookings')
+      .doc(widget.bookingId)
+      .update({'Status': 'Time-out'});
 
-    if (mounted) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("Time Expired"),
-          content: const Text("Your 30-minute parking session has ended."),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => Homepage()),
-                  (route) =>
-                      false, // This removes all previous routes from the stack
-                );
-              },
-              child: const Text("OK"),
-            ),
-          ],
-        ),
-      );
-    }
+  // ✅ Show local notification
+  await flutterLocalNotificationsPlugin.show(
+    0,
+    'Time Expired',
+    'Your 60-minute parking session has ended.',
+    const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'timeout_channel',
+        'Timeout Notifications',
+        channelDescription: 'Notifications for parking timeout',
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+      ),
+    ),
+  );
+
+  // ✅ Optional: Show dialog as well
+  if (mounted) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Time Expired"),
+        content: const Text("Your 60-minute parking session has ended."),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => Homepage()),
+                (route) => false,
+              );
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
   }
+}
+
 
   String formatTime(int seconds) {
     int minutes = seconds ~/ 60;

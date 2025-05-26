@@ -1,17 +1,19 @@
-import 'dart:ffi';
+
 import 'dart:typed_data';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:firebase_messaging/firebase_messaging.dart';
+
 import 'package:lottie/lottie.dart';
-import 'package:parking1/bottombar/maingPage.dart';
+import 'package:parking1/bottombar/chatPage.dart';
+
 
 import 'package:parking1/data_save/buyticket.dart';
 import 'package:parking1/homepage.dart';
@@ -45,16 +47,18 @@ class _PayPageState extends State<PayPage> {
   final TextEditingController timeController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
 
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
   final String cloudinaryUrl =
       "https://api.cloudinary.com/v1_1/doiq3nkso/image/upload";
   final String uploadPreset = "parking";
   @override
   void initState() {
     super.initState();
-    // Listen for payment status with a placeholder transaction ID
-    // You should pass the correct transactionId here
+    _initializeNotifications();
     String bookingId = "bookings${DateTime.now().millisecondsSinceEpoch}";
-    listenForPaymentStatus(bookingId);
+    listenForPaymentStatus(bookingId,context);
   }
 
   Future<void> _pickImage() async {
@@ -118,7 +122,16 @@ class _PayPageState extends State<PayPage> {
       });
     }
   }
+   void _initializeNotifications() async {
+  const AndroidInitializationSettings androidSettings =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
 
+  const InitializationSettings initSettings = InitializationSettings(
+    android: androidSettings,
+  );
+
+  await flutterLocalNotificationsPlugin.initialize(initSettings);
+}
   Future<String?> _uploadImageToCloudinary() async {
     try {
       if (_selectedImage == null && _imageBytes == null) {
@@ -190,10 +203,12 @@ class _PayPageState extends State<PayPage> {
   }
 
   Future<void> _savePaymentAndBooking() async {
-    setState(() {
-      _isLoading = true;
-    });
-    final user = FirebaseAuth.instance.currentUser; // Get the logged-in user
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -206,8 +221,7 @@ class _PayPageState extends State<PayPage> {
         timeController.text.isEmpty ||
         (_selectedImage == null && _imageBytes == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Please fill all fields and upload an image.")),
+        const SnackBar(content: Text("Please fill all fields and upload an image.")),
       );
       return;
     }
@@ -223,14 +237,12 @@ class _PayPageState extends State<PayPage> {
     String transactionId = "payment${DateTime.now().millisecondsSinceEpoch}";
     String bookingId = "bookings${DateTime.now().millisecondsSinceEpoch}";
 
-    // Fetch user data (username)
-    String username = "Unknown User"; // Default value
+    String username = "Unknown User";
     try {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
-
       if (userDoc.exists) {
         Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
         username = userData['username'] ?? "Unknown User";
@@ -239,10 +251,9 @@ class _PayPageState extends State<PayPage> {
       print("Error fetching username: $e");
     }
 
-    // Fetch location data from Firestore
     String locationId = widget.documentId;
     String nameLocation = "";
-    GeoPoint location = const GeoPoint(0, 0); // Default value to avoid errors
+    GeoPoint location = const GeoPoint(0, 0);
 
     try {
       var locationSnapshot = await FirebaseFirestore.instance
@@ -273,14 +284,13 @@ class _PayPageState extends State<PayPage> {
       return;
     }
 
-    // Show loading dialog
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            bool isVerified = false; // Track verification status
+            bool isVerified = false;
 
             FirebaseFirestore.instance
                 .collection('payments')
@@ -290,12 +300,7 @@ class _PayPageState extends State<PayPage> {
               if (docSnapshot.exists &&
                   docSnapshot.data()?['paymentStatus'] == "success") {
                 setState(() {
-                  isVerified = true; // Update UI to success
-                });
-
-                // Close the dialog after showing success animation
-                Future.delayed(const Duration(seconds: 2), () {
-                  Navigator.pop(context);
+                  isVerified = true;
                 });
               }
             });
@@ -360,35 +365,35 @@ class _PayPageState extends State<PayPage> {
                     ),
                     const SizedBox(height: 10),
                     Center(
-                        child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white, backgroundColor: Colors.blueAccent, // Text color
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(12.0), // Rounded corners
-                        ),
-                        padding: EdgeInsets.symmetric(
-                            vertical: 12.0, horizontal: 20.0), // Button padding
-                        elevation: 5, // Shadow effect
-                      ),
-                      onPressed: () {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const Homepage(), // Replace with your main page
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          backgroundColor: Colors.blueAccent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.0),
                           ),
-                          (route) => false,
-                        );
-                      },
-                      child: const Text(
-                        "Go to Main",
-                        style: TextStyle(
-                          fontSize: 16.0, // Text size
-                          fontWeight: FontWeight.bold, // Make text bold
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 12.0, horizontal: 20.0),
+                          elevation: 5,
+                        ),
+                        onPressed: () {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const Homepage(),
+                            ),
+                            (route) => false,
+                          );
+                        },
+                        child: const Text(
+                          "Go to Main",
+                          style: TextStyle(
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    )),
+                    ),
                   ],
                 ),
               ),
@@ -400,10 +405,9 @@ class _PayPageState extends State<PayPage> {
       },
     );
 
-    // Save payment data with username
-    FirebaseFirestore.instance.collection('payments').doc(transactionId).set({
+    await FirebaseFirestore.instance.collection('payments').doc(transactionId).set({
       "userId": user.uid,
-      "userName": username, // Added username
+      "userName": username,
       "amount": widget.pricePerHour,
       "date": dateController.text,
       "time": timeController.text,
@@ -415,10 +419,9 @@ class _PayPageState extends State<PayPage> {
       "timestamp": FieldValue.serverTimestamp(),
     });
 
-    // Save booking data with username
-    FirebaseFirestore.instance.collection('bookings').doc(bookingId).set({
+    await FirebaseFirestore.instance.collection('bookings').doc(bookingId).set({
       "userId": user.uid,
-      "userName": username, // Added username
+      "userName": username,
       "bookingDate": dateController.text,
       "bookingTime": timeController.text,
       "paymentId": transactionId,
@@ -430,24 +433,27 @@ class _PayPageState extends State<PayPage> {
       "paymentStatus": "pending",
       "Status": "pending",
       "timestamp": FieldValue.serverTimestamp(),
-    }).then((_) {
-      _sendNotification(transactionId);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text("Payment submitted. Waiting for verification.")),
-      );
-    }).catchError((error) {
-      print("Error saving booking: $error");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to save booking. Try again.")),
-      );
     });
+
+    _sendNotification(transactionId);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Payment submitted. Waiting for verification.")),
+    );
+
+    listenForPaymentStatus(bookingId, context);
+  } catch (e) {
+    print("Unexpected error: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Something went wrong. Please try again.")),
+    );
+  } finally {
     setState(() {
       _isLoading = false;
     });
-    // Listen for payment status update
-    listenForPaymentStatus(bookingId);
   }
+}
+
 
   Future<int> countCheckedInTickets() async {
     String userId = FirebaseAuth.instance.currentUser!.uid;
@@ -461,31 +467,103 @@ class _PayPageState extends State<PayPage> {
 
     return ticketSnapshot.docs.length; // Return the count of filtered tickets
   }
+  final Set<String> shownBookingNotifications = {};
+  Future<void> showPaymentSuccessNotification() async {
+  const androidDetails = AndroidNotificationDetails(
+    'payment_channel',
+    'Payment Notifications',
+    channelDescription: 'Notifies when a payment is successful',
+    importance: Importance.max,
+    priority: Priority.high,
+  );
+  
 
-  void listenForPaymentStatus(String bookingId) {
-    FirebaseFirestore.instance
-        .collection('bookings')
-        .doc(bookingId)
-        .snapshots()
-        .listen((snapshot) async {
-      if (snapshot.exists && snapshot.data()?['paymentStatus'] == "success") {
-        // Close the loading dialog
-        Navigator.of(context, rootNavigator: true)
-            .pop(); // Closes the loading dialog
-        await Future.delayed(const Duration(seconds: 2));
+  const notificationDetails = NotificationDetails(android: androidDetails);
 
-        // Navigate to BuyTicketPage only if payment is successful
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => BuyTicket(
-              bookingId: bookingId, // Pass transaction ID
+  await flutterLocalNotificationsPlugin.show(
+    0,
+    'Payment Successful',
+    'Your booking payment was successful! ✅',
+    notificationDetails,
+  );
+}
+ Future<void> showPaymentRejectNotification() async {
+  const androidDetails = AndroidNotificationDetails(
+    'payment_channel',
+    'Payment Notifications',
+    channelDescription: 'Notifies when a payment is Reject',
+    importance: Importance.max,
+    priority: Priority.high,
+  );
+  
+
+  const notificationDetails = NotificationDetails(android: androidDetails);
+
+  await flutterLocalNotificationsPlugin.show(
+    0,
+    'Payment Successful',
+    'Your booking payment was Reject! ⚠️',
+    notificationDetails,
+  );
+}
+
+
+
+void listenForPaymentStatus(String bookingId, BuildContext context) {
+  FirebaseFirestore.instance
+      .collection('bookings')
+      .doc(bookingId)
+      .snapshots()
+      .listen((snapshot) async {
+    if (!snapshot.exists) return;
+
+    final data = snapshot.data();
+    final status = data?['paymentStatus'];
+
+    if (status == "success" && !shownBookingNotifications.contains(bookingId)) {
+      shownBookingNotifications.add(bookingId); // prevent multiple notifications
+
+      await showPaymentSuccessNotification();
+      Navigator.of(context, rootNavigator: true).pop();
+
+      await Future.delayed(const Duration(seconds: 2));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BuyTicket(bookingId: bookingId),
+        ),
+      );
+    } else if (status == "reject") {
+      await showPaymentRejectNotification(); // <-- ADD THIS LINE
+
+      Navigator.of(context, rootNavigator: true).pop();
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Payment Rejected"),
+          content: const Text("Your payment was rejected.\nPlease contact the admin."),
+          actions: [
+          TextButton(
+          onPressed: () {
+            Navigator.of(context).pop(); // Close the dialog
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatPage(bookingId: bookingId),
+              ),
+            );
+          },
+          child: const Text("Go to Admin"),
             ),
-          ),
-        );
-      }
-    });
-  }
+          ],
+        ),
+      );
+    }
+  });
+}
+
+
 
   @override
   Widget build(BuildContext context) {

@@ -1,8 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:parking1/cash/QrPay.dart';
-import 'package:parking1/chose/comment.dart';
+
 import 'package:parking1/detailownner/detail_map.dart';
 import 'package:parking1/detailownner/detail_review.dart';
 import 'package:parking1/detailownner/edit_employee.dart';

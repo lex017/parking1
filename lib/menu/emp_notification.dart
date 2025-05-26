@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:parking1/menu/emp_verify.dart';
 
 class EmpNotification extends StatefulWidget {
   final String empId;
   final String locationId;
 
-
   const EmpNotification({
     super.key,
-    required this.empId, required this.locationId,
+    required this.empId,
+    required this.locationId,
   });
 
   @override
@@ -25,6 +26,21 @@ class _EmpNotificationState extends State<EmpNotification> {
   void initState() {
     super.initState();
     fetchEmployeeLocationId();
+    _initializeNotifications();
+  }
+
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  void _initializeNotifications() async {
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const InitializationSettings initSettings = InitializationSettings(
+      android: androidSettings,
+    );
+
+    await flutterLocalNotificationsPlugin.initialize(initSettings);
   }
 
   Future<void> fetchEmployeeLocationId() async {
@@ -56,12 +72,39 @@ class _EmpNotificationState extends State<EmpNotification> {
     }
   }
 
+  final Set<String> shownPaymentIds = {};
+  Future<void> _showNewPaymentNotification(QueryDocumentSnapshot doc) async {
+    final data = doc.data() as Map<String, dynamic>;
+    final userName = data['userName'] ?? 'New User';
+    final time = data['time'] ?? '';
+
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+      'booking_alerts',
+      'Booking Alerts',
+      channelDescription: 'Alerts for new bookings to verify',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    const NotificationDetails platformDetails =
+        NotificationDetails(android: androidDetails);
+
+    await flutterLocalNotificationsPlugin.show(
+      1,
+      'New Booking Alert',
+      '$userName submitted a booking at $time',
+      platformDetails,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
-        if (authSnapshot.connectionState == ConnectionState.waiting || isLoading) {
+        if (authSnapshot.connectionState == ConnectionState.waiting ||
+            isLoading) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
@@ -71,7 +114,8 @@ class _EmpNotificationState extends State<EmpNotification> {
         if (user == null) {
           return Scaffold(
             appBar: AppBar(title: const Text("My Tickets")),
-            body: const Center(child: Text("กรุณาเข้าสู่ระบบเพื่อดูตั๋วของคุณ")),
+            body:
+                const Center(child: Text("กรุณาเข้าสู่ระบบเพื่อดูตั๋วของคุณ")),
           );
         }
 
@@ -99,18 +143,28 @@ class _EmpNotificationState extends State<EmpNotification> {
               }
 
               if (snapshot.hasError) {
-                return const Center(child: Text("เกิดข้อผิดพลาดในการโหลดข้อมูล"));
+                return const Center(
+                    child: Text("เกิดข้อผิดพลาดในการโหลดข้อมูล"));
               }
 
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return const Center(child: Text("ไม่มีรายการที่รอดำเนินการ"));
               }
 
+              final documents = snapshot.data!.docs;
+
+              for (var doc in documents) {
+                if (!shownPaymentIds.contains(doc.id)) {
+                  shownPaymentIds.add(doc.id); // Mark as notified
+                  _showNewPaymentNotification(doc); // 🔔 Show notification
+                }
+              }
+
               return ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: snapshot.data!.docs.length,
+                itemCount: documents.length,
                 itemBuilder: (context, index) {
-                  var doc = snapshot.data!.docs[index];
+                  var doc = documents[index];
                   var ticket = doc.data() as Map<String, dynamic>;
                   var paymentId = doc.id;
 

@@ -136,7 +136,7 @@ class _RegisterPageState extends State<emp_register> {
                   'lastname': lastname,
                   'gender': selectedGender,
                   'age': age,
-                  'location_id': selectedLocation,
+                  'locationId': selectedLocation,
                 });
 
                 Navigator.pushReplacement(

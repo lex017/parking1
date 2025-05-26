@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import 'package:parking1/menu/Help.dart';
 import 'package:parking1/menu/detail_employee.dart';
 import 'package:parking1/menu/emp_generate.dart';
 import 'package:parking1/menu/emp_notification.dart';
+import 'package:parking1/menu/emp_pending.dart';
 import 'package:parking1/menu/emp_verify.dart';
 import 'package:parking1/menu/employee_login.dart';
 import 'package:parking1/menu/employeescan.dart';
@@ -40,16 +42,35 @@ class _EmpMainState extends State<emp_main> {
   List<Map<String, dynamic>> scanRecords = [];
   double _totalMoney = 0.0;
   String _currentDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
-  
 
   @override
   void initState() {
     super.initState();
+    _initializeNotifications();
+    // Assume you fetched this from Firebase Auth or Firestore
+    String employeeLocationId = widget.empId;
+
+    // Start listening for relevant bookings
+    listenForBookings(employeeLocationId);
     empId = widget.empId;
     if (kDebugMode) {
       print('Logged-in empId: $empId');
     }
     _getRealTimeDate();
+  }
+
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  void _initializeNotifications() async {
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const InitializationSettings initSettings = InitializationSettings(
+      android: androidSettings,
+    );
+
+    await flutterLocalNotificationsPlugin.initialize(initSettings);
   }
 
   void _getRealTimeDate() {
@@ -64,7 +85,6 @@ class _EmpMainState extends State<emp_main> {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('emp_id');
-    await prefs.remove('pass_emp');
     await prefs.remove('rememberMe');
 
     setState(() {
@@ -223,7 +243,13 @@ class _EmpMainState extends State<emp_main> {
                   children: [
                     _buildProfileSection(userData['profileImage'], firstName,
                         lastName, parkingName),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 30),
+                    Text(
+                      'Function',
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.w700,color: Colors.blueAccent),
+                    ),
+                    const SizedBox(height: 10),
                     buttonFour(context),
                     const SizedBox(height: 20),
                     _buildScanSummary(),
@@ -237,7 +263,52 @@ class _EmpMainState extends State<emp_main> {
     );
   }
 
-  Widget _buildProfileSection(String profileImage, String firstName,
+  void listenForBookings(String employeeLocationId) {
+    FirebaseFirestore.instance
+        .collection('bookings')
+        .snapshots()
+        .listen((querySnapshot) {
+      for (var docChange in querySnapshot.docChanges) {
+        if (docChange.type == DocumentChangeType.added) {
+          final booking = docChange.doc.data();
+          final bookingLocationId = booking?['locationId'];
+
+          // Only show notification if employee has a locationId and it matches the booking
+          if (employeeLocationId.isNotEmpty &&
+              bookingLocationId == employeeLocationId) {
+            showLocalNotification(
+              title: 'New Booking Alert',
+              body: 'A new booking was made at your location.',
+            );
+          }
+        }
+      }
+    });
+  }
+
+  Future<void> showLocalNotification(
+      {required String title, required String body}) async {
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+      'channel_id',
+      'Booking Alerts',
+      channelDescription: 'Notification for new bookings',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    const NotificationDetails notificationDetails =
+        NotificationDetails(android: androidDetails);
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      title,
+      body,
+      notificationDetails,
+    );
+  }
+
+  Widget _buildProfileSection(String? profileImage, String firstName,
       String lastName, String locationId) {
     return Card(
       color: Colors.white,
@@ -261,7 +332,11 @@ class _EmpMainState extends State<emp_main> {
               ),
               child: CircleAvatar(
                 radius: 40,
-                backgroundImage: NetworkImage(profileImage),
+                backgroundImage:
+                    (profileImage != null && profileImage.isNotEmpty)
+                        ? NetworkImage(profileImage)
+                        : const AssetImage('assets/default_profile.png')
+                            as ImageProvider,
               ),
             ),
             const SizedBox(width: 20), // Spacing between image and text
@@ -372,7 +447,7 @@ class _EmpMainState extends State<emp_main> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color:Theme.of(context).textTheme.bodyLarge?.color,
+                    color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
               ],
@@ -384,73 +459,130 @@ class _EmpMainState extends State<emp_main> {
   }
 
   Widget buttonFour(BuildContext context) {
-    // Accept BuildContext
     return Padding(
       padding: const EdgeInsets.all(20.0),
-      child: GridView.count(
-        crossAxisCount: 2,
-        crossAxisSpacing: 20,
-        mainAxisSpacing: 16,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          DashboardButton(
-            iconPath: 'assets/images/ticket.png',
-            label: 'ປະຫວັດ',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => DetailEmployee()),
-              );
-            },
-          ),
-          DashboardButton(
-            iconPath: 'assets/images/question.png',
-            label: 'ສ້າງປີ້',
-            onPressed: () async {
-              // Fetch the locationId before navigating
-              String locationId = await _getLocationId();
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                  child: _buildDashboardButton(context,
+                      iconPath: 'assets/images/history1.png',
+                      label: 'ປະຫວັດ', onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => DetailEmployee()),
+                );
+              })),
+              const SizedBox(width: 16),
+              Expanded(
+                  child: _buildDashboardButton(context,
+                      iconPath: 'assets/images/ticket1.png',
+                      label: 'ສ້າງປີ້', onPressed: () async {
+                String locationId = await _getLocationId();
 
-              // Pass locationId to EmpGenerate screen after fetching it
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => EmpGenerate(
-                    empId: empId,
-                    locationId: locationId,
+                // Pass locationId to EmpGenerate screen after fetching it
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => EmpGenerate(
+                      empId: empId,
+                      locationId: locationId,
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              })),
+              const SizedBox(width: 16),
+              Expanded(
+                  child: _buildDashboardButton(context,
+                      iconPath: 'assets/images/ticket.png',
+                      label: 'ປີ້ປັດຈຸບັນ', onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) => MyrealTicket(
+                            empId: empId,
+                          )),
+                );
+              })),
+            ],
           ),
-          DashboardButton(
-            iconPath: 'assets/images/question.png',
-            label: 'ປີ້ປັດຈຸບັນ',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (context) => MyrealTicket(
-                          empId: empId,
-                        )),
-              );
-            },
-          ),
-          DashboardButton(
-            iconPath: 'assets/images/question.png',
-            label: 'Verify',
-            onPressed: () async {
-              String locationId = await _getLocationId();
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => EmpNotification(
-                    empId: empId,
-                    locationId: locationId),
-                ),
-              );
-            },
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                  child: _buildDashboardButton(context,
+                      iconPath: 'assets/images/online-booking.png',
+                      label: 'Verify', onPressed: () async {
+                String locationId = await _getLocationId();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        EmpNotification(empId: empId, locationId: locationId),
+                  ),
+                );
+              })),
+              const SizedBox(width: 16),
+              Expanded(
+                  child: _buildDashboardButton(context,
+                      iconPath: 'assets/images/document.png',
+                      label: 'pending', onPressed: () async {
+                String locationId = await _getLocationId();
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) => EmpPending(
+                            empId: empId,
+                            locationId: locationId,
+                          )),
+                );
+              })),
+              // To keep the row with 2 buttons only, you can add a Spacer or empty container here if needed
+              const Spacer(),
+            ],
           ),
         ],
       ),
     );
   }
+
+// Helper method to build styled button
+ Widget _buildDashboardButton(
+  BuildContext context, {
+  required String iconPath,
+  required String label,
+  required VoidCallback onPressed,
+}) {
+  return InkWell(
+    onTap: onPressed,
+    borderRadius: BorderRadius.circular(16),
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(
+            iconPath,
+            width: 48,
+            height: 48,
+            color: Colors.blueAccent,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.blueAccent,
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 
   Widget _buildScanSummary() {
     return Column(

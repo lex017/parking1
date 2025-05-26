@@ -1,0 +1,8 @@
+{
+  "@@locale": "en",
+  "noInternetConnection": "No Internet Connection",
+  "pleaseCheckYourInternet": "Please check your internet connection and try again.",
+  "ok": "OK",
+  "noTitle": "No Title",
+  "noBody": "No Body"
+}

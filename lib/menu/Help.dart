@@ -21,7 +21,7 @@ class _HelpState extends State<Help> {
         onPressed: () {
          Navigator.of(context).pop();
                 MaterialPageRoute route =
-                    MaterialPageRoute(builder: (c) => ChatPage());
+                    MaterialPageRoute(builder: (c) => ChatPage(bookingId: '',));
                 Navigator.of(context).push(route);
         },
         style: ElevatedButton.styleFrom(

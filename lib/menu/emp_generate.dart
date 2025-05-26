@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
+import 'package:parking1/menu/emp_qrpay.dart';
 import 'package:parking1/menu/real_ticket.dart';
 import 'dart:convert';
 
@@ -25,15 +26,21 @@ class EmpGenerate extends StatefulWidget {
 }
 
 class _EmpGenerateState extends State<EmpGenerate> {
+  // For toggling between cash and QR payment
+  bool _isCashPayment = true;
+
   File? _selectedImage;
   Uint8List? _imageBytes;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
   String? _selectedProvince;
   String? _selectedPlateType;
-  // Employee and Location IDs passed via the constructor
-  late String empId = widget.empId;
-  late String locationId = widget.locationId;
+  late String empId;
+  late String locationId;
+  String? imageUrl; // Variable to store QR image URL
+  String? qrimage; // Variable to store QR image URL
+  bool isLoading = true; // Check image loading status
+  int price = 0;
 
   final TextEditingController nameplateController = TextEditingController();
   final TextEditingController plateController = TextEditingController();
@@ -74,6 +81,41 @@ class _EmpGenerateState extends State<EmpGenerate> {
       "text": Colors.lightBlue
     },
   };
+
+  @override
+  void initState() {
+    super.initState();
+    empId = widget.empId;
+    locationId = widget.locationId;
+    fetchParkingData();
+  }
+
+  Future<void> fetchParkingData() async {
+    try {
+      DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection('parking')
+          .doc(locationId)
+          .get();
+
+      if (doc.exists) {
+        setState(() {
+          price = doc['price'];
+          qrimage = doc['qrImage']; // Assuming qr image is stored in 'qrUrl'
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error fetching parking data: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   Future<String?> _uploadImageToCloudinary() async {
     try {
       if (_selectedImage == null && _imageBytes == null) {
@@ -155,7 +197,7 @@ class _EmpGenerateState extends State<EmpGenerate> {
     }
   }
 
-  Future<void> _saveTicketToFirebase() async {
+  Future<void> _saveTicketToFirebase(String paymentMethod) async {
     if (_selectedProvince == null ||
         _selectedPlateType == null ||
         nameplateController.text.isEmpty ||
@@ -169,7 +211,6 @@ class _EmpGenerateState extends State<EmpGenerate> {
       _isLoading = true;
     });
 
-    // Image upload is optional now
     String? imageUrl;
     if (_selectedImage != null || _imageBytes != null) {
       imageUrl = await _uploadImageToCloudinary();
@@ -177,11 +218,10 @@ class _EmpGenerateState extends State<EmpGenerate> {
         setState(() {
           _isLoading = false;
         });
-        return; // Exit if image upload failed
+        return;
       }
     }
 
-    // Custom ticket ID generation
     String ticketId = "ticket${DateTime.now().millisecondsSinceEpoch}";
 
     Map<String, dynamic> ticketData = {
@@ -189,18 +229,19 @@ class _EmpGenerateState extends State<EmpGenerate> {
       "plateType": _selectedPlateType,
       "namePlate": nameplateController.text,
       "plate": plateController.text,
-      "empId": empId, // Add empId here
-      "locationId": locationId, // Add locationId here
-      "imageUrl": imageUrl ?? "", // Handle optional image
+      "empId": empId,
+      "locationId": locationId,
+      "imageUrl": imageUrl ?? "",
       "Status": "check-in",
       "ticketId": ticketId,
       "timestamp": FieldValue.serverTimestamp(),
+      "paymentMethod": paymentMethod,
     };
 
     try {
       await FirebaseFirestore.instance
           .collection("ticketreal")
-          .doc(ticketId) // Use the custom ticket ID
+          .doc(ticketId)
           .set(ticketData);
 
       if (context.mounted) {
@@ -221,135 +262,255 @@ class _EmpGenerateState extends State<EmpGenerate> {
     }
   }
 
+  Widget _buildCashPaymentForm() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DropdownButtonFormField<String>(
+            value: _selectedProvince,
+            items: _provinces.map((String province) {
+              return DropdownMenuItem<String>(
+                  value: province, child: Text(province));
+            }).toList(),
+            decoration: const InputDecoration(
+              labelText: "Province",
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _selectedProvince = value;
+              });
+            },
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            value: _selectedPlateType,
+            items: _plateColors.keys.map((String plateType) {
+              return DropdownMenuItem<String>(
+                value: plateType,
+                child: Text(
+                  plateType,
+                  style: TextStyle(
+                    color: _plateColors[plateType]!['text'],
+                    backgroundColor: _plateColors[plateType]!['background'],
+                  ),
+                ),
+              );
+            }).toList(),
+            decoration: const InputDecoration(
+              labelText: "Plate Type",
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (value) {
+              setState(() {
+                _selectedPlateType = value;
+              });
+            },
+          ),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: nameplateController,
+            inputFormatters: [UpperCaseTextFormatter()],
+            decoration: const InputDecoration(
+              labelText: "Name Plate",
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextFormField(
+            controller: plateController,
+            inputFormatters: [UpperCaseTextFormatter()],
+            decoration: const InputDecoration(
+              labelText: "Plate Number",
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          GestureDetector(
+            onTap: _pickImage,
+            child: Container(
+              height: 150,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: _selectedImage != null
+                  ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                  : _imageBytes != null
+                      ? Image.memory(_imageBytes!, fit: BoxFit.cover)
+                      : const Center(
+                          child: Text("Tap to upload",
+                              style: TextStyle(color: Colors.grey))),
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed:
+                  _isLoading ? null : () => _saveTicketToFirebase("cash"),
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(Icons.receipt_long),
+              label: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 14.0),
+                child: Text(
+                  _isLoading
+                      ? "Processing..."
+                      : "Generate Ticket (Cash Payment)",
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+                elevation: 5,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQRPaymentPage() {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (price == null) {
+      return const Center(child: Text("Unable to load parking data."));
+    }
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          children: [
+            isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(),
+                  )
+                : qrimage == null
+                    ? const Center(
+                        child: Text(
+                          "Failed to load image",
+                          style: TextStyle(fontSize: 18, color: Colors.red),
+                        ),
+                      )
+                    : Center(
+                        child: Image.network(
+                          qrimage!,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+            const SizedBox(height: 20),
+            Text(
+              "QR Payment",
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              "Amount to Pay:",
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Text(
+              "$price LAK",
+              style: const TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
+            ),
+            const SizedBox(height: 40),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _isCashPayment = false;
+                });
+                 Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => EmpQrpay(
+                    empId: empId,
+                    locationId: locationId,
+                  ),
+                ),
+              );
+              },
+              child: const Text("Next"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Generate Ticket'),
-        backgroundColor: Colors.white,
-        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Generate Ticket",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            DropdownButtonFormField<String>(
-              value: _selectedProvince,
-              items: _provinces.map((String province) {
-                return DropdownMenuItem<String>(
-                    value: province, child: Text(province));
-              }).toList(),
-              onChanged: (value) => setState(() => _selectedProvince = value),
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.location_on),
-              ),
-              hint: const Text("Select Province"),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _selectedPlateType,
-              items: _plateColors.keys.map((String color) {
-                return DropdownMenuItem<String>(
-                    value: color, child: Text(color));
-              }).toList(),
-              onChanged: (value) => setState(() => _selectedPlateType = value),
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.car_repair),
-              ),
-              hint: const Text("Select Plate Type"),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: nameplateController,
-              decoration: InputDecoration(
-                labelText: "NamePlate",
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-             const SizedBox(height: 20),
-            TextField(
-              controller: plateController,
-              keyboardType: TextInputType.number, // Set keyboard type to number
-              inputFormatters: <TextInputFormatter>[
-                FilteringTextInputFormatter.digitsOnly, // Allow only digits
+      body: Column(
+        children: [
+          // Payment toggle buttons
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ToggleButtons(
+              isSelected: [_isCashPayment, !_isCashPayment],
+              onPressed: (index) {
+                setState(() {
+                  _isCashPayment = index == 0;
+                });
+              },
+              borderRadius: BorderRadius.circular(8),
+              selectedColor: Colors.white,
+              fillColor: Colors.blue,
+              children: const [
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text("Cash Payment"),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text("QR Payment"),
+                ),
               ],
-              decoration: InputDecoration(
-                labelText: "Plate",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
             ),
-            const SizedBox(height: 20),
-            const Text("Upload Picture",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                height: 150,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: _selectedImage != null
-                    ? Image.file(_selectedImage!, fit: BoxFit.cover)
-                    : _imageBytes != null
-                        ? Image.memory(_imageBytes!, fit: BoxFit.cover)
-                        : const Center(
-                            child: Text("Tap to upload",
-                                style: TextStyle(color: Colors.grey))),
-              ),
-            ),
-            const SizedBox(height: 40),
-            Center(
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _saveTicketToFirebase,
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: _isLoading
-                      ? Colors.grey
-                      : Colors.blueAccent, // Button color
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 40,
-                      vertical: 16), // Increased padding for a larger button
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10), // More rounded
-                  ),
-                  elevation: _isLoading ? 0 : 5, // Add shadow when not loading
-                  minimumSize:
-                      const Size(200, 60), // Set a minimum size for the button
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white), // Spinner color
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text(
-                        "Generate",
-                        style: TextStyle(
-                          fontSize:
-                              20, // Increased font size for better visibility
-                          fontWeight: FontWeight.bold, // Bold text
-                        ),
-                      ),
-              ),
-            ),
-          ],
-        ),
+          ),
+          Expanded(
+            child: _isCashPayment
+                ? _buildCashPaymentForm()
+                : _buildQRPaymentPage(),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+// Utility formatter to make input uppercase
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
     );
   }
 }

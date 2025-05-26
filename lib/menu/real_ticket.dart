@@ -27,6 +27,7 @@ class _RealTicketState extends State<RealTicket> {
     final locationId = ticketData["locationId"] ?? '';
     final imageUrl = ticketData["imageUrl"];
     final status = ticketData["Status"] ?? '';
+    final paymentMethod = ticketData["paymentMethod"] ?? '';
     final timestamp = ticketData["timestamp"]?.toString() ?? '';
 
     String qrData = '''
@@ -38,6 +39,7 @@ Plate: $plate
 Employee ID: $empId
 Location ID: $locationId
 Status: $status
+paymentMethod: $paymentMethod
 Time: $timestamp
 ''';
 
@@ -123,6 +125,7 @@ Time: $timestamp
                     _buildInfoRow("Employee ID", empId),
                     _buildInfoRow("Location ID", locationId),
                     _buildInfoRow("Status", status),
+                    _buildInfoRow("paymentMethod", paymentMethod),
                     const SizedBox(height: 10),
                     Center(
                       child: Container(

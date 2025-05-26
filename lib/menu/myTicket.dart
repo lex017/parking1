@@ -45,7 +45,8 @@ class _MyTicketState extends State<MyTicket> {
         if (user == null) {
           return Scaffold(
             appBar: AppBar(title: const Text("My Tickets")),
-            body: const Center(child: Text("Please log in to view your tickets")),
+            body:
+                const Center(child: Text("Please log in to view your tickets")),
           );
         }
 
@@ -66,7 +67,8 @@ class _MyTicketState extends State<MyTicket> {
               }
 
               if (snapshot.hasError) {
-                return const Center(child: Text("There was an error loading tickets"));
+                return const Center(
+                    child: Text("There was an error loading tickets"));
               }
 
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -75,7 +77,18 @@ class _MyTicketState extends State<MyTicket> {
 
               var tickets = snapshot.data!.docs.toList();
 
-              // Sort by timestamp descending
+// 🔴 Filter out tickets with status 'Time-out'
+              tickets = tickets.where((doc) {
+                final status = doc['Status'] ?? '';
+                return status != 'Time-out';
+              }).toList();
+              // 🔴 Filter out tickets with status 'Time-out'
+              tickets = tickets.where((doc) {
+                final status = doc['paymentStatus'] ?? '';
+                return status != 'reject';
+              }).toList();
+
+// Sort by timestamp descending
               tickets.sort((a, b) {
                 Timestamp timeA = a['timestamp'] ?? Timestamp(0, 0);
                 Timestamp timeB = b['timestamp'] ?? Timestamp(0, 0);
@@ -99,7 +112,8 @@ class _MyTicketState extends State<MyTicket> {
                   return FutureBuilder<String>(
                     future: getUserName(user.uid),
                     builder: (context, userNameSnapshot) {
-                      if (userNameSnapshot.connectionState == ConnectionState.waiting) {
+                      if (userNameSnapshot.connectionState ==
+                          ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
                       }
 
@@ -110,14 +124,16 @@ class _MyTicketState extends State<MyTicket> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                          margin: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 16),
                           child: InkWell(
                             onTap: isClickable
                                 ? () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => BuyTicket(bookingId: bookingId),
+                                        builder: (context) =>
+                                            BuyTicket(bookingId: bookingId),
                                       ),
                                     );
                                   }
@@ -143,7 +159,8 @@ class _MyTicketState extends State<MyTicket> {
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           "Location: $bookingname",

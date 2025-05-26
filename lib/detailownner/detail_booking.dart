@@ -14,9 +14,33 @@ class _DetailBookingState extends State<DetailBooking> {
 
   String selectedStatus = 'All';
   String selectedDateFilter = 'All';
+  String selectedParking = 'All';
   DateTime? startDate;
   DateTime? endDate;
+  List<String> parkingOptions = ['All'];
 
+@override
+  void initState() {
+    super.initState();
+    fetchParkingOptions();
+  }
+
+  Future<void> fetchParkingOptions() async {
+    try {
+      QuerySnapshot snapshot =
+          await FirebaseFirestore.instance.collection('bookings').get();
+      final names = snapshot.docs.map((doc) {
+        var data = doc.data() as Map<String, dynamic>;
+        return data['nameparking'] ?? 'Unknown';
+      }).toSet();
+
+      setState(() {
+        parkingOptions = ['All', ...names.cast<String>()];
+      });
+    } catch (e) {
+      print('Error: $e');
+    }
+  }
   Future<List<Map<String, dynamic>>> fetchBookings() async {
     QuerySnapshot snapshot = await _firestore
         .collection('bookings')
@@ -97,13 +121,14 @@ class _DetailBookingState extends State<DetailBooking> {
                     selectedStatus: selectedStatus,
                     selectedDateFilter: selectedDateFilter,
                     startDate: startDate,
-                    endDate: endDate,
+                    endDate: endDate, selectedParking: selectedParking, parkingList: [],
                   ),
                 );
 
                 if (result != null) {
                   setState(() {
                     selectedStatus = result['status'];
+                    selectedParking = result['nameparking'];
                     selectedDateFilter = result['dateFilter'];
                     startDate = result['startDate'];
                     endDate = result['endDate'];
@@ -220,6 +245,8 @@ class _DetailBookingState extends State<DetailBooking> {
 class FilterDialog extends StatefulWidget {
   final String selectedStatus;
   final String selectedDateFilter;
+  final String selectedParking;
+  final List<String> parkingList;
   final DateTime? startDate;
   final DateTime? endDate;
 
@@ -227,6 +254,8 @@ class FilterDialog extends StatefulWidget {
     super.key,
     required this.selectedStatus,
     required this.selectedDateFilter,
+    required this.selectedParking,
+    required this.parkingList,
     this.startDate,
     this.endDate,
   });
@@ -238,6 +267,7 @@ class FilterDialog extends StatefulWidget {
 class _FilterDialogState extends State<FilterDialog> {
   late String tempSelectedStatus;
   late String tempSelectedDateFilter;
+  late String tempSelectedParking;
   DateTime? tempStartDate;
   DateTime? tempEndDate;
 
@@ -246,6 +276,7 @@ class _FilterDialogState extends State<FilterDialog> {
     super.initState();
     tempSelectedStatus = widget.selectedStatus;
     tempSelectedDateFilter = widget.selectedDateFilter;
+    tempSelectedParking = widget.selectedParking;
     tempStartDate = widget.startDate;
     tempEndDate = widget.endDate;
   }
@@ -261,7 +292,7 @@ class _FilterDialogState extends State<FilterDialog> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: Colors.blue,
               onPrimary: Colors.white,
               onSurface: Colors.blue,
@@ -318,6 +349,29 @@ class _FilterDialogState extends State<FilterDialog> {
                   .toList(),
             ),
             const SizedBox(height: 20),
+
+            // 🅿️ Parking Filter
+            DropdownButtonFormField<String>(
+              value: tempSelectedParking,
+              decoration: const InputDecoration(
+                labelText: "Select Parking",
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  tempSelectedParking = value!;
+                });
+              },
+              items: ['All', ...widget.parkingList]
+                  .map((parking) => DropdownMenuItem(
+                        value: parking,
+                        child: Text(parking),
+                      ))
+                  .toList(),
+            ),
+            const SizedBox(height: 20),
+
             DropdownButtonFormField<String>(
               value: tempSelectedDateFilter,
               decoration: const InputDecoration(
@@ -383,14 +437,14 @@ class _FilterDialogState extends State<FilterDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blue,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             textStyle: const TextStyle(fontWeight: FontWeight.bold),
           ),
           onPressed: () {
             Navigator.pop(context, {
               'status': tempSelectedStatus,
               'dateFilter': tempSelectedDateFilter,
+              'parking': tempSelectedParking,
               'startDate': tempStartDate,
               'endDate': tempEndDate,
             });
