@@ -1,12 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:geocoding/geocoding.dart';
@@ -140,24 +135,6 @@ class _MapApiState extends State<MapApi> {
     }
   }
 
-  Future<void> _saveParkingLocation() async {
-    try {
-      await FirebaseFirestore.instance.collection('parking_locations').add({
-        "location": GeoPoint(
-            _centerMarkerPosition.latitude, _centerMarkerPosition.longitude),
-        "address": _currentAddress,
-        "timestamp": FieldValue.serverTimestamp(),
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Parking location saved successfully!")),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to save location: $e")),
-      );
-    }
-  }
-
   // Zoom in and Zoom out methods
   Future<void> _zoomIn() async {
     final currentZoom = await _mapController.getZoomLevel();
@@ -173,7 +150,6 @@ class _MapApiState extends State<MapApi> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
-      // Transparent AppBar with bold title
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -185,6 +161,7 @@ class _MapApiState extends State<MapApi> {
       ),
       body: Stack(
         children: [
+          // Google Map
           GoogleMap(
             initialCameraPosition: CameraPosition(
               target: _centerMarkerPosition,
@@ -207,30 +184,42 @@ class _MapApiState extends State<MapApi> {
             myLocationEnabled: true,
             myLocationButtonEnabled: false,
           ),
-          // Central Pin with Shadow
+          // Central Pin with shadow
           Center(
             child: Container(
+             
               child: Image.asset(
                 'assets/images/pin.png',
-                width: 40,
-                height: 40,
+                width: 48,
+                height: 48,
               ),
             ),
           ),
-          // Glassmorphism Bottom Card for Address & Save Button
+          // Glassmorphism Bottom Card
           Positioned(
             bottom: 20,
             left: 20,
             right: 20,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(24),
               child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                 child: Container(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(20.0),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.5),
-                    borderRadius: BorderRadius.circular(20),
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.white.withOpacity(0.7),
+                        Colors.blue.withOpacity(0.2)
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 1.5,
+                    ),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -238,13 +227,14 @@ class _MapApiState extends State<MapApi> {
                       Text(
                         _currentAddress,
                         style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87),
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 10),
-                      ElevatedButton(
+                      const SizedBox(height: 14),
+                      ElevatedButton.icon(
                         onPressed: () {
                           Navigator.of(context).push(MaterialPageRoute(
                             builder: (context) => BtnaddParking(
@@ -254,13 +244,19 @@ class _MapApiState extends State<MapApi> {
                             ),
                           ));
                         },
+                        icon: const Icon(Icons.save_alt, color: Colors.white),
+                        label: const Text("Save Location",style: TextStyle(color: Colors.white),),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blueAccent,
+                          elevation: 4,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(18),
                           ),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 12, horizontal: 24),
+                          textStyle: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
                         ),
-                        child: const Text("Save Location"),
                       ),
                     ],
                   ),
@@ -268,36 +264,46 @@ class _MapApiState extends State<MapApi> {
               ),
             ),
           ),
-          // Floating Button for My Location
+          // My Location Button
           Positioned(
-            bottom: 80,
-            right: 20,
+            bottom: 780,
+            left: 20,
             child: FloatingActionButton(
               backgroundColor: Colors.white,
+              elevation: 4,
               onPressed: _determinePosition,
               child: const Icon(Icons.my_location, color: Colors.blue),
             ),
           ),
-          // Zoom Controls (Zoom In and Zoom Out)
+          // Zoom Controls
           Positioned(
-            top: 20,
+            top: 700,
             right: 20,
-            child: Column(
-              children: [
-                FloatingActionButton(
-                  mini: true,
-                  backgroundColor: Colors.white,
-                  onPressed: _zoomIn,
-                  child: const Icon(Icons.add, color: Colors.blue),
-                ),
-                const SizedBox(height: 8),
-                FloatingActionButton(
-                  mini: true,
-                  backgroundColor: Colors.white,
-                  onPressed: _zoomOut,
-                  child: const Icon(Icons.remove, color: Colors.blue),
-                ),
-              ],
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.85),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.add, color: Colors.blue),
+                    onPressed: _zoomIn,
+                  ),
+                  const Divider(height: 1, color: Colors.grey),
+                  IconButton(
+                    icon: const Icon(Icons.remove, color: Colors.blue),
+                    onPressed: _zoomOut,
+                  ),
+                ],
+              ),
             ),
           ),
         ],

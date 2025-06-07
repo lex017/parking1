@@ -11,7 +11,10 @@ import 'package:parking1/data_save/pay_parking.dart';
 class QrParking extends StatefulWidget {
   final String name;
   final String address;
+  final String openTime;
+  final String closeTime;
   final String description;
+  final String landmark;
   final num? pricePerDay;
   final num? pricePerMonth;
   final num? totalPrice;
@@ -41,7 +44,7 @@ class QrParking extends StatefulWidget {
     required this.packageType,
     required this.latitude,
     required this.longitude,
-    required this.evSupport, required this.parkingImageBytes, required this.qrImageBytes, required this.price, required this.parkingImage, required this.qrImage, 
+    required this.evSupport, required this.parkingImageBytes, required this.qrImageBytes, required this.price, required this.parkingImage, required this.qrImage, required this.landmark, required this.openTime, required this.closeTime, 
   });
 
   @override
@@ -181,7 +184,10 @@ class _QrPayState extends State<QrParking> {
                         parkingImageBytes: widget.parkingImageBytes, 
                         qrImageBytes: widget.qrImageBytes,
                         parkingImage: widget.parkingImage,
-                        qrImage: widget.qrImage,
+                        qrImage: widget.qrImage, 
+                        landmark: widget.landmark,
+                        openTime: widget.openTime,
+                        closeTime: widget.closeTime,
                         // documentId:widget.documentId, // ✅ ต้องส่ง documentId จริง
                         // ownerId: widget.ownerId, // ✅ ต้องส่ง ownerId จริง
                       ),

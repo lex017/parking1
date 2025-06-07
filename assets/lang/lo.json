@@ -1,0 +1,17 @@
+{
+  "language": "ພາສາ",
+  "select_language": "ເລືອກພາສາ",
+  "english": "ພາສາອັງກິດ",
+  "lao": "ພາສາລາວ",
+  "ok": "ຕົກລົງ",
+  "Cancel": "ຍົກເລີກ",
+  "Change":"ປ່ຽນ",
+  "find_parking": "ຄົ້ນຫາບ່ອນຈອດ",
+  "history": "ປະຫວັດ",
+  "vehicle": "ລົດຂອງຂ້ອຍ",
+  "help": "ຊ່ວຍເຫຼືອ",
+  "enable_notifications": "ເປີດການແຈ້ງເຕືອນ",
+  "change_password": "ປ່ຽນລະຫັດຜ່ານ",
+  "about_app": "ກ່ຽວກັບແອັບ",
+  "logout": "ອອກຈາກລະບົບ"
+}

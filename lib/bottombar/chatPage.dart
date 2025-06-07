@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
-
 import 'package:http/http.dart' as http;
 
 class ChatPage extends StatefulWidget {
@@ -22,8 +21,8 @@ class _ChatPageState extends State<ChatPage> {
   final ImagePicker _picker = ImagePicker();
 
   String _userId = '';
-  String _userName = 'User ';
-  final String _adminId = 'admin'; // Replace with your admin's user ID
+  String _userName = 'User';
+  final String _adminId = 'admin'; // Replace with actual admin UID
 
   @override
   void initState() {
@@ -31,7 +30,6 @@ class _ChatPageState extends State<ChatPage> {
     _loadUserData();
   }
 
-  // Load the current user's data (such as username) from Firestore.
   Future<void> _loadUserData() async {
     User? user = _auth.currentUser;
     if (user != null) {
@@ -70,18 +68,21 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _sendImageMessage() async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? pickedFile =
+        await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       File imageFile = File(pickedFile.path);
 
       const String cloudName = "doiq3nkso";
-      const String uploadPreset = "parking"; // Set this in Cloudinary settings
+      const String uploadPreset = "parking";
 
-      String url = "https://api.cloudinary.com/v1_1/$cloudName/image/upload";
+      String url =
+          "https://api.cloudinary.com/v1_1/$cloudName/image/upload";
 
       var request = http.MultipartRequest("POST", Uri.parse(url));
       request.fields['upload_preset'] = uploadPreset;
-      request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+      request.files
+          .add(await http.MultipartFile.fromPath('file', imageFile.path));
 
       try {
         var response = await request.send();
@@ -91,7 +92,11 @@ class _ChatPageState extends State<ChatPage> {
         if (jsonResponse['secure_url'] != null) {
           String downloadUrl = jsonResponse['secure_url'];
 
-          await _firestore.collection('chats').doc(getChatId()).collection('messages').add({
+          await _firestore
+              .collection('chats')
+              .doc(getChatId())
+              .collection('messages')
+              .add({
             'text': '',
             'senderId': _userId,
             'imageUrl': downloadUrl,
@@ -126,9 +131,7 @@ class _ChatPageState extends State<ChatPage> {
       appBar: AppBar(
         title: const Text('Chat with Admin'),
         flexibleSpace: Container(
-          decoration: BoxDecoration(
-           color: Colors.blue
-          ),
+          decoration: const BoxDecoration(color: Colors.blue),
         ),
       ),
       body: Container(
@@ -224,24 +227,25 @@ class ChatMessage extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10.0),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isMe)
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0),
+            const Padding(
+              padding: EdgeInsets.only(right: 8.0),
               child: CircleAvatar(
-                child: const Text('Ad'),
-                backgroundColor: Colors.grey.shade300,
+                child: Text('Ad'),
+                backgroundColor: Colors.grey,
               ),
             ),
           Flexible(
             child: Container(
               padding: const EdgeInsets.all(12.0),
               decoration: BoxDecoration(
-                color: isMe ? Colors.blue.shade200 : Colors.grey.shade300,
+                color: isMe ? Colors.blue[200] : Colors.grey[300],
                 borderRadius: BorderRadius.circular(20.0),
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(
                     color: Colors.black26,
                     blurRadius: 5.0,
@@ -250,7 +254,8 @@ class ChatMessage extends StatelessWidget {
                 ],
               ),
               child: Column(
-                crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                 children: [
                   if (imageUrl != null)
                     Padding(
@@ -284,7 +289,7 @@ class ChatMessage extends StatelessWidget {
               padding: const EdgeInsets.only(left: 8.0),
               child: CircleAvatar(
                 child: const Text('Me'),
-                backgroundColor: Colors.blue.shade200,
+                backgroundColor: Colors.blue[200],
               ),
             ),
         ],

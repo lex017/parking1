@@ -11,14 +11,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:parking1/chose/ownerMain.dart';
 import 'package:parking1/homepage.dart';
+import 'package:time_picker_spinner/time_picker_spinner.dart';
 
 class PayParking extends StatefulWidget {
   final String name;
   final String address;
+  final String openTime;
+  final String closeTime;
   final String description;
+  final String landmark;
   final num? pricePerDay;
   final num? pricePerMonth;
   final num? totalPrice;
@@ -39,6 +44,7 @@ class PayParking extends StatefulWidget {
     required this.name,
     required this.address,
     required this.description,
+    
     this.pricePerDay,
     this.pricePerMonth,
     this.totalPrice,
@@ -53,6 +59,7 @@ class PayParking extends StatefulWidget {
     required this.price,
     required this.parkingImage,
     required this.qrImage,
+    required this.landmark, required this.openTime, required this.closeTime,
   });
 
   @override
@@ -65,8 +72,9 @@ class _PayPageState extends State<PayParking> {
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
   bool _isButtonDisabled = false;
+  DateTime now = DateTime.now();
 
-  final TextEditingController dateController = TextEditingController();
+
   final TextEditingController timeController = TextEditingController();
 
   final String cloudinaryUrl =
@@ -79,10 +87,19 @@ class _PayPageState extends State<PayParking> {
   }
 
   Future<String> generateLocationId() async {
-    QuerySnapshot snapshot =
-        await FirebaseFirestore.instance.collection('parking').get();
-    int count = snapshot.docs.length;
-    return "location${count + 1}";
+    final snapshot = await FirebaseFirestore.instance
+        .collection('parking')
+        .orderBy('timestamp', descending: true)
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) {
+      return "location1";
+    } else {
+      final lastId = snapshot.docs.first.id; // เช่น "location7"
+      final number = int.tryParse(lastId.replaceAll('location', '')) ?? 0;
+      return "location${number + 1}";
+    }
   }
 
   Future<void> _pickImage() async {
@@ -116,36 +133,51 @@ class _PayPageState extends State<PayParking> {
     }
   }
 
-  Future<void> _pickDate() async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
+  void _pickTime() {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      DateTime selectedTime = DateTime.now();
 
-    if (pickedDate != null) {
-      String formattedDate =
-          "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
-      setState(() {
-        dateController.text = formattedDate;
-      });
-    }
-  }
-
-  Future<void> _pickTime() async {
-    TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-
-    if (pickedTime != null) {
-      String formattedTime = pickedTime.format(context);
-      setState(() {
-        timeController.text = formattedTime;
-      });
-    }
-  }
+      return Container(
+        height: 300,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Expanded(
+              child: TimePickerSpinner(
+                is24HourMode: true, // Set to true for 24-hour mode
+                isShowSeconds: true, // ✅ Show seconds
+                normalTextStyle:
+                    const TextStyle(fontSize: 18, color: Colors.grey),
+                highlightedTextStyle:
+                    const TextStyle(fontSize: 24, color: Colors.black),
+                spacing: 40,
+                itemHeight: 60,
+                isForce2Digits: true,
+                time: selectedTime,
+                onTimeChange: (time) {
+                  selectedTime = time;
+                },
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // ✅ Format as HH:mm:ss (24-hour format)
+                final formatted = DateFormat('HH:mm:ss').format(selectedTime);
+                setState(() {
+                  timeController.text = formatted;
+                });
+                Navigator.pop(context);
+              },
+              child: const Text("Confirm"),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   Future<String?> _uploadImageToCloudinary() async {
     try {
@@ -179,6 +211,27 @@ class _PayPageState extends State<PayParking> {
     }
   }
 
+  bool isParkingOpen(String openTime, String closeTime) {
+  final now = TimeOfDay.now();
+
+  final open = TimeOfDay(
+    hour: int.parse(openTime.split(":")[0]),
+    minute: int.parse(openTime.split(":")[1]),
+  );
+  final close = TimeOfDay(
+    hour: int.parse(closeTime.split(":")[0]),
+    minute: int.parse(closeTime.split(":")[1]),
+  );
+
+  // Compare time
+  if (now.hour > open.hour || (now.hour == open.hour && now.minute >= open.minute)) {
+    if (now.hour < close.hour || (now.hour == close.hour && now.minute <= close.minute)) {
+      return true; // Parking is open
+    }
+  }
+  return false;
+}
+
   Future<void> _savebillAndBooking() async {
     setState(() {
       _isButtonDisabled = true;
@@ -193,8 +246,7 @@ class _PayPageState extends State<PayParking> {
       return;
     }
 
-    if (dateController.text.isEmpty ||
-        timeController.text.isEmpty ||
+    if (timeController.text.isEmpty ||
         (_selectedImage == null && _imageBytes == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -248,6 +300,10 @@ class _PayPageState extends State<PayParking> {
         'totalPrice': widget.totalPrice ?? 0,
         'car_slot': widget.slots,
         'imageBill': imageUrl,
+        'openTime': widget.openTime,
+        'closeTime': widget.closeTime,
+        'timezone': "Asia/Bangkok",
+        "isOpen": true, 
         'status': "pending",
         'pagekage': "standard",
         'months': widget.months,
@@ -266,6 +322,7 @@ class _PayPageState extends State<PayParking> {
         'ownerId': ownerId,
         'address': widget.address,
         'description': widget.description,
+        'landmark': widget.landmark,
         'price': widget.price,
         'pricePerDay': widget.pricePerDay ?? 0,
         'pricePerMonth': widget.pricePerMonth ?? 0,
@@ -273,12 +330,18 @@ class _PayPageState extends State<PayParking> {
         'car_slot': widget.slots,
         'status': "N/A",
         'months': widget.months,
+        'date': DateFormat('d/M/yyyy').format(DateTime.now()),
+        'time': timeController.text,
         'qrImage': qrImage,
         'imageUrl': parkingImage,
         'packageType': widget.packageType,
         'location': GeoPoint(widget.latitude, widget.longitude),
         'tag': widget.evSupport,
         'isActive': true, // Mark as inactive initially
+        'openTime': widget.openTime,
+        'closeTime': widget.closeTime,
+        'timezone': "Asia/Bangkok",
+        "isOpen": true, 
         'packageStartDate': FieldValue.serverTimestamp(), // Record when added
         'packageMonths': widget.months,
         'timestamp': FieldValue.serverTimestamp(),
@@ -336,7 +399,6 @@ class _PayPageState extends State<PayParking> {
 
   void _showVerificationDialog(String transactionId) {
     bool isVerified = false;
-    
 
     showDialog(
       context: context,
@@ -355,7 +417,7 @@ class _PayPageState extends State<PayParking> {
                 isVerified = true; // persist success
 
                 Future.delayed(const Duration(seconds: 2), () {
-                  Navigator.of(context, rootNavigator: true).pop();
+                  // Navigator.of(context, rootNavigator: true).pop();
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(builder: (context) => ownerMain()),
@@ -482,28 +544,35 @@ class _PayPageState extends State<PayParking> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-            TextFormField(
-              controller: dateController,
-              decoration: InputDecoration(
-                labelText: "Select Date",
-                hintText: "DD/MM/YY",
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_today),
-                  onPressed: _pickDate,
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50, // Light green background
+                border: Border.all(color: Colors.green, width: 2),
+                borderRadius: BorderRadius.circular(10), // Rounded corners
+              ),
+              child: Text(
+                "Date: ${DateFormat('yyyy-MM-dd').format(DateTime.now())}",
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              readOnly: true,
             ),
             const SizedBox(height: 20),
+            // Time Picker
             TextFormField(
               controller: timeController,
               decoration: InputDecoration(
                 labelText: "Select Time",
-                hintText: "HH:MM AM/PM",
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                hintText: "HH:MM:SS",
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.access_time),
                   onPressed: _pickTime,

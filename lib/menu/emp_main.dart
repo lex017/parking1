@@ -249,7 +249,7 @@ class _EmpMainState extends State<emp_main> {
                       style:
                           TextStyle(fontSize: 20, fontWeight: FontWeight.w700,color: Colors.blueAccent),
                     ),
-                    const SizedBox(height: 10),
+                
                     buttonFour(context),
                     const SizedBox(height: 20),
                     _buildScanSummary(),
@@ -472,7 +472,7 @@ class _EmpMainState extends State<emp_main> {
                       iconPath: 'assets/images/history1.png',
                       label: 'ປະຫວັດ', onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => DetailEmployee()),
+                  MaterialPageRoute(builder: (context) => DetailEmployee(empId: empId,)),
                 );
               })),
               const SizedBox(width: 16),

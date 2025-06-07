@@ -244,6 +244,7 @@ Widget ExpiryDateInput() {
               final newOwnerId = "owner${snapshot.docs.length + 1}";
 
               await _OwnerCollection.doc(newOwnerId).set({
+                "userId": user.uid,
                 "email": userEmail,
                 "fname": myOwner.fname,
                 "lname": myOwner.lname,

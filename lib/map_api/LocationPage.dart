@@ -13,9 +13,8 @@ class LocationPage extends StatefulWidget {
 class _LocationPageState extends State<LocationPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String searchQuery = '';
-  String? selectedCategory = 'All'; // Default to 'All'
+  String? selectedCategory = 'All';
 
-  // Sample categories for filtering
   final List<String> categories = ['All', 'EV'];
 
   @override
@@ -45,17 +44,13 @@ class _LocationPageState extends State<LocationPage> {
               ),
             ),
           ),
-          // Single Selection Chips for filtering
           Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Align(
-              // Ensures alignment to the left
               alignment: Alignment.centerLeft,
               child: Wrap(
                 spacing: 8.0,
-                alignment:
-                    WrapAlignment.start, // Aligns chips to the start (left)
+                alignment: WrapAlignment.start,
                 children: categories.map((category) {
                   return ChoiceChip(
                     label: Text(category),
@@ -70,10 +65,13 @@ class _LocationPageState extends State<LocationPage> {
               ),
             ),
           ),
-
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore.collection('parking').snapshots(),
+              stream: _firestore
+                  .collection('parking')
+                  .where('status', isEqualTo: 'Online')
+                  .where('isActive', isEqualTo: true)
+                  .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -81,54 +79,48 @@ class _LocationPageState extends State<LocationPage> {
 
                 if (snapshot.hasError) {
                   return const Center(
-                    child: Text("Error fetching data",
-                        style: TextStyle(color: Colors.red)),
+                    child: Text("Error fetching data", style: TextStyle(color: Colors.red)),
                   );
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(
-                    child: Text("No locations found",
-                        style: TextStyle(color: Colors.grey)),
+                    child: Text("No locations found", style: TextStyle(color: Colors.grey)),
                   );
                 }
 
                 final locations = snapshot.data!.docs.where((doc) {
                   final location = doc.data() as Map<String, dynamic>;
                   final name = location['nameparking']?.toLowerCase() ?? '';
-                  final category = location['tag'] ??
-                      ''; // Assuming category field exists in Firestore
+                  final landmark = location['landmark']?.toLowerCase() ?? '';
+                  final address = location['address']?.toLowerCase() ?? '';
+                  final category = location['tag'] ?? '';
 
-                  bool matchesSearch = name.contains(searchQuery);
-                  bool matchesCategory = (selectedCategory == 'All') ||
-                      (selectedCategory == 'EV' && category == 'EV');
+                  bool matchesSearch = name.contains(searchQuery) || address.contains(searchQuery) || landmark.contains(searchQuery);
+                  bool matchesCategory = (selectedCategory == 'All') || (selectedCategory == 'EV' && category == 'EV');
 
                   return matchesSearch && matchesCategory;
                 }).toList();
 
                 if (locations.isEmpty) {
                   return const Center(
-                    child: Text("No matching locations",
-                        style: TextStyle(color: Colors.grey)),
+                    child: Text("No matching locations", style: TextStyle(color: Colors.grey)),
                   );
                 }
 
                 return ListView.builder(
                   itemCount: locations.length,
                   itemBuilder: (context, index) {
-                    final location =
-                        locations[index].data() as Map<String, dynamic>;
-                    final documentId = locations[index].id; // Get document ID
+                    final location = locations[index].data() as Map<String, dynamic>;
+                    final documentId = locations[index].id;
 
                     return Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                       child: GestureDetector(
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  btnLocation(documentId: documentId),
+                              builder: (context) => btnLocation(documentId: documentId),
                             ),
                           );
                         },
@@ -140,8 +132,7 @@ class _LocationPageState extends State<LocationPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (location['imageUrl'] != null &&
-                                  location['imageUrl'].isNotEmpty)
+                              if (location['imageUrl'] != null && location['imageUrl'].isNotEmpty)
                                 ClipRRect(
                                   borderRadius: const BorderRadius.only(
                                     topLeft: Radius.circular(16.0),
@@ -152,17 +143,13 @@ class _LocationPageState extends State<LocationPage> {
                                     height: 150,
                                     width: double.infinity,
                                     fit: BoxFit.cover,
-                                    loadingBuilder:
-                                        (context, child, loadingProgress) {
+                                    loadingBuilder: (context, child, loadingProgress) {
                                       if (loadingProgress == null) return child;
-                                      return const Center(
-                                          child: CircularProgressIndicator());
+                                      return const Center(child: CircularProgressIndicator());
                                     },
                                     errorBuilder: (context, error, stackTrace) {
                                       return const Center(
-                                        child: Text("Failed to load image",
-                                            style:
-                                                TextStyle(color: Colors.red)),
+                                        child: Text("Failed to load image", style: TextStyle(color: Colors.red)),
                                       );
                                     },
                                   ),
@@ -173,12 +160,10 @@ class _LocationPageState extends State<LocationPage> {
                                   children: [
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            location['nameparking'] ??
-                                                'Unknown Name',
+                                            location['nameparking'] ?? 'Unknown Name',
                                             style: const TextStyle(
                                               fontSize: 18,
                                               fontWeight: FontWeight.bold,
@@ -186,8 +171,7 @@ class _LocationPageState extends State<LocationPage> {
                                           ),
                                           const SizedBox(height: 4.0),
                                           Text(
-                                            location['address'] ??
-                                                'Unknown Address',
+                                            location['address'] ?? 'Unknown Address',
                                             style: TextStyle(
                                               fontSize: 14,
                                               color: Colors.grey[600],
@@ -197,43 +181,31 @@ class _LocationPageState extends State<LocationPage> {
                                       ),
                                     ),
                                     Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
+                                      crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [
                                         StreamBuilder<int>(
                                           stream: FirebaseFirestore.instance
                                               .collection('bookings')
-                                               .where('locationId', isEqualTo: documentId)
-                                              .where('Status', whereIn: ['check-in', 'pending']) // Assuming 'check-in' status means the car is occupying a slot
+                                              .where('locationId', isEqualTo: documentId)
+                                              .where('Status', whereIn: ['check-in', 'pending'])
                                               .snapshots()
-                                              .map((snapshot) => snapshot.docs
-                                                  .length), // Count the number of checked-in cars
+                                              .map((snapshot) => snapshot.docs.length),
                                           builder: (context, snapshot) {
-                                            if (snapshot.connectionState ==
-                                                ConnectionState.waiting) {
-                                              return const Center(
-                                                  child:
-                                                      CircularProgressIndicator());
+                                            if (snapshot.connectionState == ConnectionState.waiting) {
+                                              return const Center(child: CircularProgressIndicator());
                                             }
 
                                             if (snapshot.hasError) {
-                                              return const Center(
-                                                  child: Text(
-                                                      'Error fetching checked-in data'));
+                                              return const Center(child: Text('Error fetching checked-in data'));
                                             }
 
-                                            final checkedInCount = snapshot
-                                                    .data ??
-                                                0; // Number of cars occupying slots
-                                            final totalSlots = location[
-                                                    'car_slot'] ??
-                                                0; // Total car slots available
+                                            final checkedInCount = snapshot.data ?? 0;
+                                            final totalSlots = location['car_slot'] ?? 0;
 
                                             return Padding(
-                                              padding:
-                                                  const EdgeInsets.all(16.0),
+                                              padding: const EdgeInsets.all(16.0),
                                               child: Text(
-                                                "CAR: $checkedInCount/$totalSlots", // Display checked-in cars out of total slots
+                                                "CAR: $checkedInCount/$totalSlots",
                                                 style: const TextStyle(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.bold,

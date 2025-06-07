@@ -7,10 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:lottie/lottie.dart';
 import 'package:parking1/chose/ownerMain.dart';
 import 'package:parking1/homepage.dart';
+import 'package:time_picker_spinner/time_picker_spinner.dart';
 
 class PaySub extends StatefulWidget {
   final num? pricePerDay;
@@ -58,8 +60,8 @@ class _PayPageState extends State<PaySub> {
   int pricePerDay = 0;
   String status = '';
   String tag = '';
+  DateTime now = DateTime.now();
 
-  final TextEditingController dateController = TextEditingController();
   final TextEditingController timeController = TextEditingController();
 
   final String cloudinaryUrl =
@@ -110,36 +112,51 @@ class _PayPageState extends State<PaySub> {
     }
   }
 
-  Future<void> _pickDate() async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
+  void _pickTime() {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      DateTime selectedTime = DateTime.now();
 
-    if (pickedDate != null) {
-      String formattedDate =
-          "${pickedDate.day.toString().padLeft(2, '0')}/${pickedDate.month.toString().padLeft(2, '0')}/${pickedDate.year}";
-      setState(() {
-        dateController.text = formattedDate;
-      });
-    }
-  }
-
-  Future<void> _pickTime() async {
-    TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-
-    if (pickedTime != null) {
-      String formattedTime = pickedTime.format(context);
-      setState(() {
-        timeController.text = formattedTime;
-      });
-    }
-  }
+      return Container(
+        height: 300,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Expanded(
+              child: TimePickerSpinner(
+                is24HourMode: true, // Set to true for 24-hour mode
+                isShowSeconds: true, // ✅ Show seconds
+                normalTextStyle:
+                    const TextStyle(fontSize: 18, color: Colors.grey),
+                highlightedTextStyle:
+                    const TextStyle(fontSize: 24, color: Colors.black),
+                spacing: 40,
+                itemHeight: 60,
+                isForce2Digits: true,
+                time: selectedTime,
+                onTimeChange: (time) {
+                  selectedTime = time;
+                },
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // ✅ Format as HH:mm:ss (24-hour format)
+                final formatted = DateFormat('HH:mm:ss').format(selectedTime);
+                setState(() {
+                  timeController.text = formatted;
+                });
+                Navigator.pop(context);
+              },
+              child: const Text("Confirm"),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   Future<String?> _uploadImageToCloudinary() async {
     try {
@@ -215,8 +232,7 @@ class _PayPageState extends State<PaySub> {
       return;
     }
 
-    if (dateController.text.isEmpty ||
-        timeController.text.isEmpty ||
+    if (timeController.text.isEmpty ||
         (_selectedImage == null && _imageBytes == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -258,6 +274,8 @@ class _PayPageState extends State<PaySub> {
         'status': "pending",
         'package': "Renew",
         'months': months,
+        'date': DateFormat('d/M/yyyy').format(DateTime.now()),
+        'time': timeController,
         'packageType': packageType,
         'tag': tag,
         'locationId': widget.parkingId,
@@ -413,63 +431,63 @@ class _PayPageState extends State<PaySub> {
   }
 
   void listenForBillStatus(String transactionId) {
-  FirebaseFirestore.instance
-      .collection('parking_bill')
-      .doc(transactionId)
-      .snapshots()
-      .listen((docSnapshot) async {
-    if (docSnapshot.exists) {
-      final data = docSnapshot.data()!;
-      if (data['status'] == 'renew') {
-        String locationId = data['locationId'];
-        int additionalSlots = data['car_slot'] ?? 0;
-        String packageType = data['packageType'] ?? "1 Month";
+    FirebaseFirestore.instance
+        .collection('parking_bill')
+        .doc(transactionId)
+        .snapshots()
+        .listen((docSnapshot) async {
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data()!;
+        if (data['status'] == 'renew') {
+          String locationId = data['locationId'];
+          int additionalSlots = data['car_slot'] ?? 0;
+          String packageType = data['packageType'] ?? "1 Month";
 
-        // Extract number of months from packageType (e.g., "1 Month" → 1)
-        int monthsToAdd = int.tryParse(packageType.split(" ")[0]) ?? 1;
-        Timestamp now = Timestamp.now();
+          // Extract number of months from packageType (e.g., "1 Month" → 1)
+          int monthsToAdd = int.tryParse(packageType.split(" ")[0]) ?? 1;
+          Timestamp now = Timestamp.now();
 
-        final parkingRef =
-            FirebaseFirestore.instance.collection('parking').doc(locationId);
-        final parkingSnapshot = await parkingRef.get();
+          final parkingRef =
+              FirebaseFirestore.instance.collection('parking').doc(locationId);
+          final parkingSnapshot = await parkingRef.get();
 
-        if (parkingSnapshot.exists) {
-          Map<String, dynamic> parkingData = parkingSnapshot.data()!;
-          int currentSlots = parkingData['car_slot'] ?? 0;
-          int currentMonths = parkingData['months'] ?? 0;
-          int updatedSlots = currentSlots + additionalSlots;
-          int updatedMonths = currentMonths + monthsToAdd;
+          if (parkingSnapshot.exists) {
+            Map<String, dynamic> parkingData = parkingSnapshot.data()!;
+            int currentSlots = parkingData['car_slot'] ?? 0;
+            int currentMonths = parkingData['months'] ?? 0;
+            int updatedSlots = currentSlots + additionalSlots;
+            int updatedMonths = currentMonths + monthsToAdd;
 
-          await parkingRef.update({
-            'car_slot': updatedSlots,
-            'months': updatedMonths,
-            'packageMonths': monthsToAdd,
-            'packageStartDate': now,
-            'packageType': packageType,
-            'startdate': now,
-          });
+            await parkingRef.update({
+              'car_slot': updatedSlots,
+              'months': updatedMonths,
+              'packageMonths': monthsToAdd,
+              'packageStartDate': now,
+              'packageType': packageType,
+              'startdate': now,
+            });
 
-          print("✅ Parking renewed:");
-          print("• Slots: $currentSlots + $additionalSlots = $updatedSlots");
-          print("• Months: $currentMonths + $monthsToAdd = $updatedMonths");
-          print("• packageStartDate and startdate updated");
-        } else {
-          // If parking doc doesn't exist, create it
-          await parkingRef.set({
-            'car_slot': additionalSlots,
-            'months': monthsToAdd,
-            'packageMonths': monthsToAdd,
-            'packageStartDate': now,
-            'packageType': packageType,
-            'startdate': now,
-            'status': "active",
-          });
-          print("ℹ️ Created new parking document for renewal.");
+            print("✅ Parking renewed:");
+            print("• Slots: $currentSlots + $additionalSlots = $updatedSlots");
+            print("• Months: $currentMonths + $monthsToAdd = $updatedMonths");
+            print("• packageStartDate and startdate updated");
+          } else {
+            // If parking doc doesn't exist, create it
+            await parkingRef.set({
+              'car_slot': additionalSlots,
+              'months': monthsToAdd,
+              'packageMonths': monthsToAdd,
+              'packageStartDate': now,
+              'packageType': packageType,
+              'startdate': now,
+              'status': "active",
+            });
+            print("ℹ️ Created new parking document for renewal.");
+          }
         }
       }
-    }
-  });
-}
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -489,32 +507,41 @@ class _PayPageState extends State<PaySub> {
             Text(
                 "Total price: ${widget.totalPrice?.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => ',')} Kip"),
             const SizedBox(height: 20),
-            TextFormField(
-              controller: dateController,
-              readOnly: true,
-              decoration: InputDecoration(
-                labelText: "Select Date",
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_today),
-                  onPressed: _pickDate,
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50, // Light green background
+                border: Border.all(color: Colors.green, width: 2),
+                borderRadius: BorderRadius.circular(10), // Rounded corners
+              ),
+              child: Text(
+                "Date: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}",
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
                 ),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
             const SizedBox(height: 16),
+            // Time Picker
             TextFormField(
               controller: timeController,
-              readOnly: true,
               decoration: InputDecoration(
                 labelText: "Select Time",
+                hintText: "HH:MM AM/PM",
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.access_time),
                   onPressed: _pickTime,
                 ),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
+              readOnly: true,
             ),
             const SizedBox(height: 16),
             GestureDetector(

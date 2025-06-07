@@ -9,6 +9,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'dart:convert';
 
 import 'package:lottie/lottie.dart';
@@ -17,6 +18,7 @@ import 'package:parking1/bottombar/chatPage.dart';
 
 import 'package:parking1/data_save/buyticket.dart';
 import 'package:parking1/homepage.dart';
+import 'package:time_picker_spinner/time_picker_spinner.dart';
 
 class PayPage extends StatefulWidget {
   final String documentId;
@@ -40,10 +42,12 @@ class _PayPageState extends State<PayPage> {
   Uint8List? _imageBytes;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
+  DateTime now = DateTime.now();
+
 
   final TextEditingController amountController = TextEditingController();
   final TextEditingController accountController = TextEditingController();
-  final TextEditingController dateController = TextEditingController();
+  
   final TextEditingController timeController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
 
@@ -92,36 +96,55 @@ class _PayPageState extends State<PayPage> {
     }
   }
 
-  Future<void> _pickDate() async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
+ 
 
-    if (pickedDate != null) {
-      String formattedDate =
-          "${pickedDate.day}/${pickedDate.month}/${pickedDate.year}";
-      setState(() {
-        dateController.text = formattedDate;
-      });
-    }
-  }
 
-  Future<void> _pickTime() async {
-    TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
+void _pickTime() {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      DateTime selectedTime = DateTime.now();
 
-    if (pickedTime != null) {
-      String formattedTime = pickedTime.format(context);
-      setState(() {
-        timeController.text = formattedTime;
-      });
-    }
-  }
+      return Container(
+        height: 300,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Expanded(
+              child: TimePickerSpinner(
+                is24HourMode: true, // Set to true for 24-hour mode
+                isShowSeconds: true, // ✅ Show seconds
+                normalTextStyle:
+                    const TextStyle(fontSize: 18, color: Colors.grey),
+                highlightedTextStyle:
+                    const TextStyle(fontSize: 24, color: Colors.black),
+                spacing: 40,
+                itemHeight: 60,
+                isForce2Digits: true,
+                time: selectedTime,
+                onTimeChange: (time) {
+                  selectedTime = time;
+                },
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // ✅ Format as HH:mm:ss (24-hour format)
+                final formatted = DateFormat('HH:mm:ss').format(selectedTime);
+                setState(() {
+                  timeController.text = formatted;
+                });
+                Navigator.pop(context);
+              },
+              child: const Text("Confirm"),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
    void _initializeNotifications() async {
   const AndroidInitializationSettings androidSettings =
       AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -217,7 +240,7 @@ class _PayPageState extends State<PayPage> {
       return;
     }
 
-    if (dateController.text.isEmpty ||
+    if (
         timeController.text.isEmpty ||
         (_selectedImage == null && _imageBytes == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -409,7 +432,7 @@ class _PayPageState extends State<PayPage> {
       "userId": user.uid,
       "userName": username,
       "amount": widget.pricePerHour,
-      "date": dateController.text,
+      "date": DateFormat('d/M/yyyy').format(DateTime.now()),
       "time": timeController.text,
       "bookingId": bookingId,
       "vechicle": widget.selectedCar,
@@ -422,7 +445,7 @@ class _PayPageState extends State<PayPage> {
     await FirebaseFirestore.instance.collection('bookings').doc(bookingId).set({
       "userId": user.uid,
       "userName": username,
-      "bookingDate": dateController.text,
+      "bookingDate": DateFormat('d/M/yyyy').format(DateTime.now()),
       "bookingTime": timeController.text,
       "paymentId": transactionId,
       "locationId": locationId,
@@ -574,118 +597,189 @@ void listenForPaymentStatus(String bookingId, BuildContext context) {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  padding: const EdgeInsets.all(20.0),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text(
+        "Payment & Booking Details",
+        style: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
+      ),
+      const SizedBox(height: 20),
+
+      // Amount Card
+      Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.green.shade100, Colors.green.shade50],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.green.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
           children: [
-            const Text("Payment & Booking Details",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50, // Light green background
-                border: Border.all(color: Colors.green, width: 2),
-                borderRadius: BorderRadius.circular(10), // Rounded corners
-              ),
-              child: Text(
-                "Amount: ${widget.pricePerHour}",
-                style: TextStyle(
-                  fontSize: 20,
-                  color: Colors.green,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextFormField(
-              controller: dateController,
-              decoration: InputDecoration(
-                labelText: "Select Date",
-                hintText: "DD/MM/YY",
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_today),
-                  onPressed: _pickDate,
-                ),
-              ),
-              readOnly: true,
-            ),
-            const SizedBox(height: 20),
-            TextFormField(
-              controller: timeController,
-              decoration: InputDecoration(
-                labelText: "Select Time",
-                hintText: "HH:MM AM/PM",
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.access_time),
-                  onPressed: _pickTime,
-                ),
-              ),
-              readOnly: true,
-            ),
-            const SizedBox(height: 20),
-            const Text("Upload Picture",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                height: 150,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: _selectedImage != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                      )
-                    : _imageBytes != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child:
-                                Image.memory(_imageBytes!, fit: BoxFit.cover),
-                          )
-                        : const Center(
-                            child: Text("Tap to upload",
-                                style: TextStyle(color: Colors.grey)),
-                          ),
-              ),
-            ),
-            const SizedBox(height: 40),
-            Center(
-              child: ElevatedButton(
-                onPressed: _isLoading
-                    ? null
-                    : _savePaymentAndBooking, // Disable when loading
-                style: ElevatedButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  backgroundColor: Colors.white,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.black, // Match text color
-                          strokeWidth: 3,
-                        ),
-                      )
-                    : const Text("Pay Now",
-                        style: TextStyle(fontSize: 18, color: Colors.black)),
+            const Icon(Icons.attach_money, color: Colors.green, size: 28),
+            const SizedBox(width: 10),
+            Text(
+              "Amount: ${widget.pricePerHour}",
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
               ),
             ),
           ],
         ),
       ),
+      const SizedBox(height: 20),
+
+      // Date Card
+      Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blue.shade100, Colors.blue.shade50],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.date_range, color: Colors.blue, size: 28),
+            const SizedBox(width: 10),
+            Text(
+              "Date: ${DateFormat('yyyy-MM-dd').format(DateTime.now())}",
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+              ),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 20),
+
+      // Time Picker
+      TextFormField(
+        controller: timeController,
+        decoration: InputDecoration(
+          labelText: "Select Time",
+          hintText: "HH:MM AM/PM",
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.access_time),
+            onPressed: _pickTime,
+          ),
+        ),
+        readOnly: true,
+      ),
+      const SizedBox(height: 30),
+
+      // Upload Picture Title
+      const Text(
+        "Upload Picture",
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      ),
+      const SizedBox(height: 12),
+
+      // Image Upload Container
+      GestureDetector(
+        onTap: _pickImage,
+        child: Container(
+          height: 180,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            border: Border.all(color: Colors.grey.shade400),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: _selectedImage != null
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.file(
+                    _selectedImage!,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                  ),
+                )
+              : _imageBytes != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.memory(
+                        _imageBytes!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      ),
+                    )
+                  : const Center(
+                      child: Text(
+                        "Tap to upload image",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+        ),
+      ),
+      const SizedBox(height: 40),
+
+      // Submit Button
+      Center(
+        child: ElevatedButton(
+          onPressed: _isLoading ? null : _savePaymentAndBooking,
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 16),
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 6,
+          ),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
+                )
+              : const Text(
+                  "Pay Now",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+        ),
+      ),
+    ],
+  ),
+)
+
     );
   }
 }

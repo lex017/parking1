@@ -19,7 +19,7 @@ class _DetailBookingState extends State<DetailBooking> {
   DateTime? endDate;
   List<String> parkingOptions = ['All'];
 
-@override
+  @override
   void initState() {
     super.initState();
     fetchParkingOptions();
@@ -27,8 +27,7 @@ class _DetailBookingState extends State<DetailBooking> {
 
   Future<void> fetchParkingOptions() async {
     try {
-      QuerySnapshot snapshot =
-          await FirebaseFirestore.instance.collection('bookings').get();
+      QuerySnapshot snapshot = await _firestore.collection('bookings').get();
       final names = snapshot.docs.map((doc) {
         var data = doc.data() as Map<String, dynamic>;
         return data['nameparking'] ?? 'Unknown';
@@ -41,6 +40,7 @@ class _DetailBookingState extends State<DetailBooking> {
       print('Error: $e');
     }
   }
+
   Future<List<Map<String, dynamic>>> fetchBookings() async {
     QuerySnapshot snapshot = await _firestore
         .collection('bookings')
@@ -54,6 +54,12 @@ class _DetailBookingState extends State<DetailBooking> {
     if (selectedStatus != 'All') {
       allBookings = allBookings
           .where((booking) => booking['Status'] == selectedStatus)
+          .toList();
+    }
+
+    if (selectedParking != 'All') {
+      allBookings = allBookings
+          .where((booking) => booking['nameparking'] == selectedParking)
           .toList();
     }
 
@@ -92,51 +98,48 @@ class _DetailBookingState extends State<DetailBooking> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Booking History"),
+        title: const Text("Booking History",style: TextStyle(color: Colors.white),),
         backgroundColor: Colors.blue,
         elevation: 4,
         centerTitle: true,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Container(
+              child: IconButton(
+                icon:
+                    const Icon(Icons.filter_alt, color: Colors.white, size: 20),
+                tooltip: 'Filter',
+                onPressed: () async {
+                  final result = await showDialog<Map<String, dynamic>>(
+                    context: context,
+                    builder: (context) => FilterDialog(
+                      selectedStatus: selectedStatus,
+                      selectedDateFilter: selectedDateFilter,
+                      selectedParking: selectedParking,
+                      startDate: startDate,
+                      endDate: endDate,
+                      parkingList: parkingOptions,
+                    ),
+                  );
+
+                  if (result != null) {
+                    setState(() {
+                      selectedStatus = result['status'];
+                      selectedParking = result['nameparking'];
+                      selectedDateFilter = result['dateFilter'];
+                      startDate = result['startDate'];
+                      endDate = result['endDate'];
+                    });
+                  }
+                },
+              ),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                elevation: 5,
-              ),
-              icon: const Icon(Icons.filter_alt, size: 20),
-              label: const Text(
-                "Filter Bookings",
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,color: Colors.white),
-              ),
-              onPressed: () async {
-                final result = await showDialog<Map<String, dynamic>>(
-                  context: context,
-                  builder: (context) => FilterDialog(
-                    selectedStatus: selectedStatus,
-                    selectedDateFilter: selectedDateFilter,
-                    startDate: startDate,
-                    endDate: endDate, selectedParking: selectedParking, parkingList: [],
-                  ),
-                );
-
-                if (result != null) {
-                  setState(() {
-                    selectedStatus = result['status'];
-                    selectedParking = result['nameparking'];
-                    selectedDateFilter = result['dateFilter'];
-                    startDate = result['startDate'];
-                    endDate = result['endDate'];
-                  });
-                }
-              },
-            ),
-          ),
           Expanded(
             child: FutureBuilder<List<Map<String, dynamic>>>(
               future: fetchBookings(),
@@ -168,13 +171,42 @@ class _DetailBookingState extends State<DetailBooking> {
                   itemCount: bookings.length,
                   itemBuilder: (context, index) {
                     Map<String, dynamic> booking = bookings[index];
-                    final status = booking['Status'] ?? 'Pending';
-                    final bool isCompleted = status.toLowerCase() == 'completed';
+                    final status =
+                        (booking['Status'] ?? 'Pending').toLowerCase();
                     final timestamp = booking['timestamp']?.toDate();
+
+                    // Status-based colors
+                    Color statusColor;
+                    Color backgroundColor;
+                    IconData iconData;
+
+                    switch (status) {
+                      case 'check-in':
+                        statusColor = Colors.green.shade700;
+                        backgroundColor = Colors.green.withOpacity(0.15);
+                        iconData = Icons.check_circle;
+                        break;
+                      case 'check-out':
+                        statusColor = Colors.red.shade700;
+                        backgroundColor = Colors.red.withOpacity(0.15);
+                        iconData = Icons.cancel;
+                        break;
+                      case 'time-out':
+                        statusColor = Colors.purpleAccent.shade700;
+                        backgroundColor = Colors.purpleAccent.withOpacity(0.15);
+                        iconData = Icons.timer_off;
+                        break;
+                      default: // pending
+                        statusColor = Colors.orange.shade700;
+                        backgroundColor = Colors.orange.withOpacity(0.15);
+                        iconData = Icons.pending;
+                        break;
+                    }
 
                     return Card(
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15)),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
                       margin: const EdgeInsets.symmetric(vertical: 8),
                       elevation: 6,
                       shadowColor: Colors.deepPurpleAccent.withOpacity(0.3),
@@ -184,8 +216,9 @@ class _DetailBookingState extends State<DetailBooking> {
                         title: Text(
                           booking['userName'] ?? 'Unknown User',
                           style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue.shade700),
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade700,
+                          ),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,17 +240,13 @@ class _DetailBookingState extends State<DetailBooking> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: isCompleted
-                                    ? Colors.green.withOpacity(0.15)
-                                    : Colors.orange.withOpacity(0.15),
+                                color: backgroundColor,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                "Status: $status",
+                                "Status: ${status[0].toUpperCase()}${status.substring(1)}",
                                 style: TextStyle(
-                                  color: isCompleted
-                                      ? Colors.green.shade700
-                                      : Colors.orange.shade700,
+                                  color: statusColor,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -225,8 +254,8 @@ class _DetailBookingState extends State<DetailBooking> {
                           ],
                         ),
                         trailing: Icon(
-                          isCompleted ? Icons.check_circle : Icons.pending,
-                          color: isCompleted ? Colors.green : Colors.orange,
+                          iconData,
+                          color: statusColor,
                           size: 30,
                         ),
                       ),
@@ -289,21 +318,6 @@ class _FilterDialogState extends State<FilterDialog> {
       initialDateRange: tempStartDate != null && tempEndDate != null
           ? DateTimeRange(start: tempStartDate!, end: tempEndDate!)
           : null,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Colors.blue,
-              onPrimary: Colors.white,
-              onSurface: Colors.blue,
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(foregroundColor: Colors.blue),
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {
@@ -316,76 +330,47 @@ class _FilterDialogState extends State<FilterDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return AlertDialog(
+      backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text(
-        "Filter Bookings",
-        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-      ),
+      title: const Text("Filter Bookings"),
       content: SingleChildScrollView(
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String>(
               value: tempSelectedStatus,
               decoration: const InputDecoration(
                 labelText: "Select Status",
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
               onChanged: (value) {
                 setState(() {
                   tempSelectedStatus = value!;
                 });
               },
-              items: ['All', 'check-in', 'check-out', 'Time-out']
+              items: ['All', 'check-in', 'check-out', 'time-out', 'pending']
                   .map((status) => DropdownMenuItem(
                         value: status,
-                        child: Text(
-                          status[0].toUpperCase() + status.substring(1),
-                        ),
+                        child:
+                            Text(status[0].toUpperCase() + status.substring(1)),
                       ))
                   .toList(),
             ),
-            const SizedBox(height: 20),
-
-            // 🅿️ Parking Filter
-            DropdownButtonFormField<String>(
-              value: tempSelectedParking,
-              decoration: const InputDecoration(
-                labelText: "Select Parking",
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  tempSelectedParking = value!;
-                });
-              },
-              items: ['All', ...widget.parkingList]
-                  .map((parking) => DropdownMenuItem(
-                        value: parking,
-                        child: Text(parking),
-                      ))
-                  .toList(),
-            ),
-            const SizedBox(height: 20),
-
+            const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: tempSelectedDateFilter,
               decoration: const InputDecoration(
-                labelText: "Select Date Filter",
+                labelText: "Date Filter",
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
-              onChanged: (value) async {
-                if (value == 'Custom Range') {
-                  await pickDateRange();
-                }
+              onChanged: (value) {
                 setState(() {
                   tempSelectedDateFilter = value!;
-                  if (value != 'Custom Range') {
+                  if (tempSelectedDateFilter != 'Custom Range') {
                     tempStartDate = null;
                     tempEndDate = null;
                   }
@@ -398,58 +383,84 @@ class _FilterDialogState extends State<FilterDialog> {
                       ))
                   .toList(),
             ),
-            if (tempSelectedDateFilter == 'Custom Range' &&
-                tempStartDate != null &&
-                tempEndDate != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue.shade200),
+            const SizedBox(height: 16),
+            if (tempSelectedDateFilter == 'Custom Range') ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(tempStartDate == null
+                      ? 'Start: Not set'
+                      : 'Start: ${DateFormat('yyyy-MM-dd').format(tempStartDate!)}'),
+                  TextButton(
+                    onPressed: pickDateRange,
+                    child: const Text('Pick Date Range'),
                   ),
+                ],
+              ),
+              if (tempEndDate != null)
+                Align(
+                  alignment: Alignment.centerLeft,
                   child: Text(
-                    "From: ${DateFormat('yyyy-MM-dd').format(tempStartDate!)}\nTo: ${DateFormat('yyyy-MM-dd').format(tempEndDate!)}",
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: Colors.blue.shade700,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    'End: ${DateFormat('yyyy-MM-dd').format(tempEndDate!)}',
                   ),
                 ),
+              const SizedBox(height: 16),
+            ],
+            DropdownButtonFormField<String>(
+              value: tempSelectedParking,
+              decoration: const InputDecoration(
+                labelText: "Select Parking",
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
+              onChanged: (value) {
+                setState(() {
+                  tempSelectedParking = value!;
+                });
+              },
+              items: widget.parkingList
+                  .map((parking) => DropdownMenuItem(
+                        value: parking,
+                        child: Text(parking),
+                      ))
+                  .toList(),
+            ),
           ],
         ),
       ),
-      actionsPadding: const EdgeInsets.only(right: 12, bottom: 12),
       actions: [
         TextButton(
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.blue,
-            textStyle: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.of(context).pop(),
           child: const Text("Cancel"),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue,
+            backgroundColor: Colors.blueAccent,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 5,
           ),
           onPressed: () {
-            Navigator.pop(context, {
+            Navigator.of(context).pop({
               'status': tempSelectedStatus,
               'dateFilter': tempSelectedDateFilter,
-              'parking': tempSelectedParking,
+              'nameparking': tempSelectedParking,
               'startDate': tempStartDate,
               'endDate': tempEndDate,
             });
           },
-          child: const Text("Apply"),
+          child: const Text(
+            "Apply Filters",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
         ),
       ],
     );

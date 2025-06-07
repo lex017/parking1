@@ -7,10 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:lottie/lottie.dart';
 import 'package:parking1/chose/ownerMain.dart';
 import 'package:parking1/homepage.dart';
+import 'package:time_picker_spinner/time_picker_spinner.dart';
 
 class PayAddslot extends StatefulWidget {
   final int additionalSlots;
@@ -48,8 +50,8 @@ class _PayPageState extends State<PayAddslot> {
   int pricePerDay = 0;
   String status = '';
   String tag = '';
+  DateTime now = DateTime.now();
 
-  final TextEditingController dateController = TextEditingController();
   final TextEditingController timeController = TextEditingController();
 
   final String cloudinaryUrl =
@@ -100,36 +102,54 @@ class _PayPageState extends State<PayAddslot> {
     }
   }
 
-  Future<void> _pickDate() async {
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
 
-    if (pickedDate != null) {
-      String formattedDate =
-          "${pickedDate.day.toString().padLeft(2, '0')}/${pickedDate.month.toString().padLeft(2, '0')}/${pickedDate.year}";
-      setState(() {
-        dateController.text = formattedDate;
-      });
-    }
-  }
 
-  Future<void> _pickTime() async {
-    TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
+void _pickTime() {
+  showModalBottomSheet(
+    context: context,
+    builder: (context) {
+      DateTime selectedTime = DateTime.now();
 
-    if (pickedTime != null) {
-      String formattedTime = pickedTime.format(context);
-      setState(() {
-        timeController.text = formattedTime;
-      });
-    }
-  }
+      return Container(
+        height: 300,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Expanded(
+              child: TimePickerSpinner(
+                is24HourMode: true, // Set to true for 24-hour mode
+                isShowSeconds: true, // ✅ Show seconds
+                normalTextStyle:
+                    const TextStyle(fontSize: 18, color: Colors.grey),
+                highlightedTextStyle:
+                    const TextStyle(fontSize: 24, color: Colors.black),
+                spacing: 40,
+                itemHeight: 60,
+                isForce2Digits: true,
+                time: selectedTime,
+                onTimeChange: (time) {
+                  selectedTime = time;
+                },
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // ✅ Format as HH:mm:ss (24-hour format)
+                final formatted = DateFormat('HH:mm:ss').format(selectedTime);
+                setState(() {
+                  timeController.text = formatted;
+                });
+                Navigator.pop(context);
+              },
+              child: const Text("Confirm"),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 
   Future<String?> _uploadImageToCloudinary() async {
     try {
@@ -205,8 +225,7 @@ class _PayPageState extends State<PayAddslot> {
       return;
     }
 
-    if (dateController.text.isEmpty ||
-        timeController.text.isEmpty ||
+    if (timeController.text.isEmpty ||
         (_selectedImage == null && _imageBytes == null)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -252,6 +271,8 @@ class _PayPageState extends State<PayAddslot> {
         'packageType': packageType,
         'tag': tag,
         'locationId': widget.parkingId,
+        'date': DateFormat('d/M/yyyy').format(DateTime.now()),
+        'time': timeController,
         'timestamp': FieldValue.serverTimestamp(),
       });
 
@@ -289,20 +310,24 @@ class _PayPageState extends State<PayAddslot> {
                 .listen((docSnapshot) {
               if (!isVerified &&
                   docSnapshot.exists &&
-                  docSnapshot.data()?['status'] == "success") {
+                  docSnapshot.data()?['status'] == "update") {
                 isVerified = true; // persist success
 
                 Future.delayed(const Duration(seconds: 2), () {
                   Navigator.of(context, rootNavigator: true).pop();
-                  Navigator.pushReplacement(
+                  Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (context) => ownerMain()),
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          const ownerMain(), // Replace with your main page
+                    ),
+                    (route) => false,
                   );
                 });
               }
             });
 
-            return  AlertDialog(
+            return AlertDialog(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16.0)),
               title: Center(
@@ -455,32 +480,41 @@ class _PayPageState extends State<PayAddslot> {
             const SizedBox(height: 8),
             Text("Total price: ${widget.totalPrice}"),
             const SizedBox(height: 20),
-            TextFormField(
-              controller: dateController,
-              readOnly: true,
-              decoration: InputDecoration(
-                labelText: "Select Date",
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_today),
-                  onPressed: _pickDate,
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50, // Light green background
+                border: Border.all(color: Colors.green, width: 2),
+                borderRadius: BorderRadius.circular(10), // Rounded corners
+              ),
+              child: Text(
+                "Date: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}",
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.blue,
+                  fontWeight: FontWeight.bold,
                 ),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
             const SizedBox(height: 16),
+            // Time Picker
             TextFormField(
               controller: timeController,
-              readOnly: true,
               decoration: InputDecoration(
                 labelText: "Select Time",
+                hintText: "HH:MM AM/PM",
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.access_time),
                   onPressed: _pickTime,
                 ),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),
+              readOnly: true,
             ),
             const SizedBox(height: 16),
             GestureDetector(
@@ -513,16 +547,34 @@ class _PayPageState extends State<PayAddslot> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _isButtonDisabled ? null : _savebillAndBooking,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      _isButtonDisabled ? Colors.grey : Colors.blueAccent,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 5,
+                ),
                 child: _isButtonDisabled
                     ? const SizedBox(
-                        height: 20,
-                        width: 20,
+                        height: 22,
+                        width: 22,
                         child: CircularProgressIndicator(
                           color: Colors.white,
-                          strokeWidth: 2,
+                          strokeWidth: 2.5,
                         ),
                       )
-                    : const Text("Submit Bill"),
+                    : const Text(
+                        "Submit Bill",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 1,
+                        ),
+                      ),
               ),
             ),
           ],

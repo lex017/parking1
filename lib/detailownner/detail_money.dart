@@ -220,10 +220,25 @@ class _DetailMoneyState extends State<DetailMoney> {
                   ),
                 ),
                 ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    foregroundColor: Colors.white, backgroundColor: Colors.blue, // Icon and label color
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 5,
+                  ),
                   onPressed: () => selectDateRange(context),
-                  icon: const Icon(Icons.date_range),
-                  label: const Text("ເລືອກວັນ"),
-                ),
+                  icon: const Icon(Icons.date_range,color: Colors.white,),
+                  label: const Text(
+                    "ເລືອກວັນ",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                )
               ],
             ),
             const SizedBox(height: 16),

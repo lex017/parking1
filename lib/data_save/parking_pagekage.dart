@@ -7,7 +7,10 @@ import 'package:parking1/data_save/qr_parking.dart';
 class ParkingPagekage extends StatefulWidget {
   final String name;
   final String address;
+  final String openTime;
+  final String closeTime;
   final String description;
+  final String landmark;
   final int price;
   final String evSupport;
   final double latitude;
@@ -27,7 +30,7 @@ class ParkingPagekage extends StatefulWidget {
     required this.latitude,
     required this.longitude,
     required this.parkingImageBytes,
-    required this.qrImageBytes, required this.parkingImage, required this.qrImage,
+    required this.qrImageBytes, required this.parkingImage, required this.qrImage, required this.landmark, required this.openTime, required this.closeTime,
   });
 
   @override
@@ -189,7 +192,10 @@ class _ParkingPagekageState extends State<ParkingPagekage> {
                       parkingImageBytes: widget.parkingImageBytes,
                       qrImageBytes: widget.qrImageBytes,
                       parkingImage: widget.parkingImage,
-                      qrImage: widget.qrImage,
+                      qrImage: widget.qrImage, 
+                      landmark: widget.landmark,
+                      openTime: widget.openTime,
+                      closeTime: widget.closeTime,
                     ),
                   ),
                 );

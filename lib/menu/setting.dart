@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -47,10 +48,15 @@ class _SettingPageState extends State<SettingPage> {
   Future<void> _loadPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _notificationsEnabled = prefs.getBool('notifications') ?? true;
-
       _selectedLanguage = LanguageOption.values[prefs.getInt('language') ?? 0];
     });
+
+    // ตั้งค่า locale ตามที่โหลด
+    if (_selectedLanguage == LanguageOption.english) {
+      context.setLocale(const Locale('en'));
+    } else if (_selectedLanguage == LanguageOption.lao) {
+      context.setLocale(const Locale('lo'));
+    }
   }
 
   Future<void> _loadThemeMode() async {
@@ -116,44 +122,46 @@ class _SettingPageState extends State<SettingPage> {
   }
 
   Future<void> logout() async {
-  bool? confirmLogout = await showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: Colors.white,
-        title: const Text("Logout Confirmation"),
-        content: const Text("Are you sure you want to log out?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false), 
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true), 
-            child: const Text("Logout",style: TextStyle(color: Colors.red,),)
-          ),
-        ],
-      );
-    },
-  );
+    bool? confirmLogout = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: const Text("Logout Confirmation"),
+          content: const Text("Are you sure you want to log out?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text(
+                  "Logout",
+                  style: TextStyle(
+                    color: Colors.red,
+                  ),
+                )),
+          ],
+        );
+      },
+    );
 
- 
-  if (confirmLogout == true) {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('email');
-    await prefs.remove('password');
-    await prefs.remove('rememberMe');
-    await FirebaseAuth.instance.signOut();
-    
-    // Navigate to login page
-    if (context.mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const loginPage()),
-      );
+    if (confirmLogout == true) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('email');
+      await prefs.remove('password');
+      await prefs.remove('rememberMe');
+      await FirebaseAuth.instance.signOut();
+
+      // Navigate to login page
+      if (context.mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const loginPage()),
+        );
+      }
     }
   }
-}
-
 
   Future<void> _uploadImageToCloudinary() async {
     try {
@@ -226,19 +234,19 @@ class _SettingPageState extends State<SettingPage> {
                     if (snapshot.hasError ||
                         !snapshot.hasData ||
                         !snapshot.data!.exists) {
-                      return Image.asset('images/profile-user.png',
+                      return Image.asset('assets/images/profile-user.png',
                           fit: BoxFit.cover, width: 120, height: 120);
                     }
                     final data = snapshot.data!.data() as Map<String, dynamic>;
-                    final profileImage =
-                        data['profileImage'] ?? 'images/profile-user.png';
+                    final profileImage = data['profileImage'] ??
+                        'assets/images/profile-user.png';
                     return Image.network(
                       profileImage,
                       fit: BoxFit.cover,
                       width: 120,
                       height: 120,
                       errorBuilder: (context, error, stackTrace) => Image.asset(
-                          'images/profile-user.png',
+                          'assets/images/profile-user.png',
                           fit: BoxFit.cover,
                           width: 120,
                           height: 120),
@@ -263,29 +271,26 @@ class _SettingPageState extends State<SettingPage> {
     );
   }
 
- Widget _buildSettingsTile({
-  required IconData icon,
-  required String title,
-  required VoidCallback onTap,
-  Color? iconColor,
-  Color? tileColor, 
-}) {
-  return Card(
-    color: tileColor ?? Theme.of(context).cardColor,
-
-
-    margin: const EdgeInsets.symmetric(vertical: 6),
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    child: ListTile(
-      leading: Icon(icon, color: iconColor ?? Colors.blueAccent),
-      title: Text(title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-      onTap: onTap,
-    ),
-  );
-}
-
+  Widget _buildSettingsTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color? iconColor,
+    Color? tileColor,
+  }) {
+    return Card(
+      color: tileColor ?? Theme.of(context).cardColor,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: Icon(icon, color: iconColor ?? Colors.blueAccent),
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: onTap,
+      ),
+    );
+  }
 
   // Define your color here
   final Color _appBarColor = Colors.white; // Adjust to your desired color
@@ -412,7 +417,7 @@ class _SettingPageState extends State<SettingPage> {
 
                     const Divider(),
                     SwitchListTile(
-                      title: const Text("Enable Notifications",
+                      title: Text("enable_notifications".tr(),
                           style: TextStyle(fontWeight: FontWeight.w600)),
                       activeColor: Colors.blueAccent,
                       value: _notificationsEnabled,
@@ -430,7 +435,7 @@ class _SettingPageState extends State<SettingPage> {
             const SizedBox(height: 20),
             _buildSettingsTile(
               icon: Icons.language,
-              title: "Language",
+              title: "language".tr(),
               onTap: () async {
                 final LanguageOption? selectedLanguage =
                     await showDialog<LanguageOption>(
@@ -445,8 +450,8 @@ class _SettingPageState extends State<SettingPage> {
                         children: [
                           Icon(Icons.language, color: Colors.blueAccent),
                           const SizedBox(width: 8),
-                          const Text(
-                            "Select Language",
+                           Text(
+                            "Select Language".tr(),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
@@ -460,7 +465,7 @@ class _SettingPageState extends State<SettingPage> {
                             mainAxisSize: MainAxisSize.min,
                             children: <Widget>[
                               RadioListTile<LanguageOption>(
-                                title: const Text("English"),
+                                title: Text("english".tr()),
                                 value: LanguageOption.english,
                                 groupValue: tempSelected,
                                 activeColor: Colors.blueAccent,
@@ -471,7 +476,7 @@ class _SettingPageState extends State<SettingPage> {
                                 },
                               ),
                               RadioListTile<LanguageOption>(
-                                title: const Text("Lao"),
+                                 title: Text("lao".tr()),
                                 value: LanguageOption.lao,
                                 groupValue: tempSelected,
                                 activeColor: Colors.blueAccent,
@@ -487,11 +492,11 @@ class _SettingPageState extends State<SettingPage> {
                       ),
                       actions: <Widget>[
                         TextButton(
-                          onPressed: () {
+                          onPressed: () async {
                             Navigator.pop(context, tempSelected);
                           },
-                          child: const Text(
-                            "OK",
+                          child: Text(
+                            "ok".tr(),
                             style: TextStyle(
                               color: Colors.blueAccent,
                               fontWeight: FontWeight.bold,
@@ -502,8 +507,8 @@ class _SettingPageState extends State<SettingPage> {
                           onPressed: () {
                             Navigator.pop(context);
                           },
-                          child: const Text(
-                            "Cancel",
+                          child: Text(
+                            "Cancel".tr(),
                             style: TextStyle(
                               color: Colors.grey,
                               fontWeight: FontWeight.bold,
@@ -514,16 +519,28 @@ class _SettingPageState extends State<SettingPage> {
                     );
                   },
                 );
+
                 if (selectedLanguage != null) {
                   setState(() {
                     _selectedLanguage = selectedLanguage;
                   });
+
+                  // เปลี่ยนภาษาใน EasyLocalization
+                  if (_selectedLanguage == LanguageOption.english) {
+                    context.setLocale(const Locale('en'));
+                  } else if (_selectedLanguage == LanguageOption.lao) {
+                    context.setLocale(const Locale('lo'));
+                  }
+
+                  // บันทึกลง SharedPreferences
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setInt('language', _selectedLanguage.index);
                 }
               },
             ),
             _buildSettingsTile(
               icon: Icons.help,
-              title: "Help",
+              title: "help".tr(),
               onTap: () {
                 Navigator.of(context)
                     .push(MaterialPageRoute(builder: (c) => Help()));
@@ -531,15 +548,15 @@ class _SettingPageState extends State<SettingPage> {
             ),
             _buildSettingsTile(
               icon: Icons.lock,
-              title: "Change Password",
+              title: "change_password".tr(),
               onTap: () {
-               Navigator.of(context)
+                Navigator.of(context)
                     .push(MaterialPageRoute(builder: (c) => Changepass()));
               },
             ),
             _buildSettingsTile(
               icon: Icons.info,
-              title: "About App",
+              title: "about_app".tr(),
               onTap: () {
                 showAboutDialog(
                   context: context,
@@ -552,7 +569,7 @@ class _SettingPageState extends State<SettingPage> {
             ),
             _buildSettingsTile(
               icon: Icons.logout,
-              title: "Logout",
+              title: "logout".tr(),
               iconColor: Colors.redAccent,
               onTap: () async {
                 await logout();

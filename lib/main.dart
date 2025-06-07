@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:parking1/menu/emp_check.dart';
+import 'package:parking1/loginandregis/loginPage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:parking1/loginandregis/loginPage.dart';
+import 'package:easy_localization/easy_localization.dart';
 
+/// Background message handler (ต้องเป็น top-level function)
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  print("Handling a background message: ${message.messageId}");
+  await Firebase.initializeApp();
+  print("📩 Background Message: ${message.messageId}");
 }
 
-// Global ValueNotifier for theme mode
+/// Global ValueNotifier สำหรับ theme mode
 final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(ThemeMode.system);
 
+/// โหลด theme mode จาก SharedPreferences
 Future<void> loadThemeMode() async {
   final prefs = await SharedPreferences.getInstance();
   final themeModeIndex = prefs.getInt('themeMode') ?? 0;
@@ -31,12 +34,19 @@ Future<void> loadThemeMode() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await EasyLocalization.ensureInitialized();  // เพิ่มนี้
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
   await loadThemeMode();
 
-  runApp(const ParkingApp());
+  runApp(
+    EasyLocalization(
+      supportedLocales: const [Locale('en'), Locale('lo')],
+      path: 'assets/lang',
+      fallbackLocale: const Locale('en'),
+      child: const ParkingApp(),
+    ),
+  );
 }
 
 class ParkingApp extends StatefulWidget {
@@ -65,7 +75,8 @@ class _ParkingAppState extends State<ParkingApp> {
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       _firebaseMessaging.getToken().then((token) {
-        print("FCM Token: $token");
+        print("📱 FCM Token: $token");
+        // TODO: Save token if needed
       });
 
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -76,18 +87,17 @@ class _ParkingAppState extends State<ParkingApp> {
 
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         if (message.notification != null) {
-          print("Notification clicked! Title: ${message.notification!.title}");
+          print("🖱️ Notification clicked: ${message.notification!.title}");
+          // TODO: Navigate if needed
         }
       });
     } else {
-      print("User declined or has not accepted permission");
+      print("❌ Notification permission declined");
     }
   }
 
   void _checkInternetConnectivity() async {
-    // Delaying the internet check until the widget is fully loaded
-    await Future.delayed(Duration(milliseconds: 100));
-
+    await Future.delayed(const Duration(milliseconds: 100));
     var connectivityResult = await Connectivity().checkConnectivity();
     if (connectivityResult == ConnectivityResult.none) {
       _showNoInternetDialog();
@@ -101,9 +111,7 @@ class _ParkingAppState extends State<ParkingApp> {
   }
 
   void _showNoInternetDialog() {
-    // Use the mounted check to ensure the widget is still in the widget tree
     if (!mounted) return;
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -120,14 +128,12 @@ class _ParkingAppState extends State<ParkingApp> {
   }
 
   void _showNotificationDialog(RemoteNotification notification) {
-    // Ensuring the dialog is shown after the widget is fully mounted
     if (!mounted) return;
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(notification.title ?? "No Title"),
-        content: Text(notification.body ?? "No Body"),
+        title: Text(notification.title ?? "Notification"),
+        content: Text(notification.body ?? "No content"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -144,55 +150,48 @@ class _ParkingAppState extends State<ParkingApp> {
       valueListenable: themeModeNotifier,
       builder: (context, currentTheme, _) {
         return MaterialApp(
+          debugShowCheckedModeBanner: false,
           title: 'Parking App',
+          localizationsDelegates: context.localizationDelegates,  // เพิ่มนี้
+          supportedLocales: context.supportedLocales,              // เพิ่มนี้
+          locale: context.locale,                                  // เพิ่มนี้
           theme: ThemeData(
             brightness: Brightness.light,
-            scaffoldBackgroundColor: Colors.white, 
+            scaffoldBackgroundColor: Colors.white,
             appBarTheme: const AppBarTheme(
               backgroundColor: Colors.white,
-              titleTextStyle: TextStyle(
-                color: Colors.black,
-                fontSize: 22.0,
-              ),
-              iconTheme: IconThemeData(
-                color: Colors.black,
-                size: 33.0,
-              ),
+              titleTextStyle: TextStyle(color: Colors.black, fontSize: 22.0),
+              iconTheme: IconThemeData(color: Colors.black, size: 33.0),
             ),
-            bottomNavigationBarTheme: BottomNavigationBarThemeData(
-              backgroundColor: Colors.white, 
-              selectedItemColor: Colors.blue, 
-              unselectedItemColor: Colors.grey, 
-              selectedLabelStyle: TextStyle(fontSize: 16), 
+            bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+              backgroundColor: Colors.white,
+              selectedItemColor: Colors.blue,
+              unselectedItemColor: Colors.grey,
+              selectedLabelStyle: TextStyle(fontSize: 16),
               unselectedLabelStyle: TextStyle(fontSize: 14),
             ),
           ),
           darkTheme: ThemeData(
             brightness: Brightness.dark,
-            scaffoldBackgroundColor: Colors.black87, 
+            scaffoldBackgroundColor: Colors.black87,
             appBarTheme: const AppBarTheme(
-              backgroundColor: Colors.black87, 
-              titleTextStyle: TextStyle(
-                color: Colors.white,
-                fontSize: 22.0,
-              ),
-              iconTheme: IconThemeData(
-                color: Colors.white,
-                size: 33.0,
-              ),
+              backgroundColor: Colors.black87,
+              titleTextStyle: TextStyle(color: Colors.white, fontSize: 22.0),
+              iconTheme: IconThemeData(color: Colors.white, size: 33.0),
             ),
-            bottomNavigationBarTheme: BottomNavigationBarThemeData(
-              backgroundColor: Colors.black87, 
-              selectedItemColor: Colors.blueAccent, 
-              unselectedItemColor: Colors.grey, 
+            bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+              backgroundColor: Colors.black87,
+              selectedItemColor: Colors.blueAccent,
+              unselectedItemColor: Colors.grey,
               selectedLabelStyle: TextStyle(fontSize: 16),
               unselectedLabelStyle: TextStyle(fontSize: 14),
             ),
           ),
-          themeMode: currentTheme, 
-          home: const loginPage(), 
+          themeMode: currentTheme,
+          home: const loginPage(),
         );
       },
     );
   }
 }
+

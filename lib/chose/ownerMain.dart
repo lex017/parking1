@@ -17,7 +17,8 @@ import 'package:parking1/map_api/btnlocation.dart';
 import 'package:parking1/map_api/map_api.dart';
 import 'package:parking1/menu/Help.dart';
 import 'package:parking1/menu/emp_register.dart';
-
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 
@@ -62,6 +63,51 @@ class _OwnerMainState extends State<ownerMain> {
     }
   }
 
+  Future<void> updateParkingStatus(String parkingId) async {
+  try {
+    tz.initializeTimeZones();
+
+    final docRef = FirebaseFirestore.instance.collection('parking').doc(parkingId);
+    final doc = await docRef.get();
+
+    if (doc.exists) {
+      final data = doc.data()!;
+      final openTimeStr = data['openTime'];
+      final closeTimeStr = data['closeTime'];
+      final timezoneStr = data['timezone'] ?? 'Asia/Bangkok';
+
+      final location = tz.getLocation(timezoneStr);
+      final now = tz.TZDateTime.now(location);
+
+      final openParts = openTimeStr.split(":").map(int.parse).toList();
+      final closeParts = closeTimeStr.split(":").map(int.parse).toList();
+
+      final openTime = tz.TZDateTime(location, now.year, now.month, now.day, openParts[0], openParts[1]);
+      var closeTime = tz.TZDateTime(location, now.year, now.month, now.day, closeParts[0], closeParts[1]);
+
+      // If closeTime is before openTime, assume it closes the next day
+      if (closeTime.isBefore(openTime)) {
+        closeTime = closeTime.add(const Duration(days: 1));
+      }
+
+      final isOpen = now.isAfter(openTime) && now.isBefore(closeTime);
+      final newStatus = isOpen ? "Online" : "Offline";
+      final currentStatus = data['status'];
+
+      if (currentStatus != newStatus) {
+        await docRef.update({'status': newStatus});
+        print("Status updated to: $newStatus");
+      } else {
+        print("Status remains unchanged: $newStatus");
+      }
+    } else {
+      print("Parking document not found");
+    }
+  } catch (e) {
+    print("Error updating status: $e");
+  }
+}
+
   void toggleStatus(String parkingId, String currentStatus) async {
     String newStatus = currentStatus == "Online" ? "Offline" : "Online";
 
@@ -72,167 +118,173 @@ class _OwnerMainState extends State<ownerMain> {
   }
 
   Widget ticketWidget({
-    required String title,
-    required String date,
-    required String status,
-    required String tel,
-    required VoidCallback onToggle,
-    required String profileImageUrl,
-  }) {
-    return Card(
-      shape: RoundedRectangleBorder(
+  required String fullName,
+  required String dateOfBirth,
+  required String age,
+  required String status,
+  required String email,
+  required String idCard,
+  required VoidCallback onToggle,
+  required String profileImageUrl,
+}) {
+  return Card(
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(18.0),
+    ),
+    margin: const EdgeInsets.symmetric(vertical: 8.0),
+    child: Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Colors.blueAccent,
+          width: 1.0,
+        ),
         borderRadius: BorderRadius.circular(18.0),
       ),
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: Colors.blueAccent,
-            width: 1.0,
-          ),
-          borderRadius: BorderRadius.circular(18.0),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Profile and Name
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.grey[300],
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(30),
-                      child: Image.network(
-                        profileImageUrl,
-                        width: 60,
-                        height: 60,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(Icons.person,
-                              size: 30, color: Colors.grey);
-                        },
-                      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Profile and Name
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Colors.grey[300],
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: Image.network(
+                      profileImageUrl,
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.person,
+                            size: 30, color: Colors.grey);
+                      },
                     ),
                   ),
-                  const SizedBox(width: 18),
-                  Text(
-                    title,
+                ),
+                const SizedBox(width: 18),
+                Expanded(
+                  child: Text(
+                    fullName,
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 11),
+                ),
+              ],
+            ),
+            const SizedBox(height: 11),
 
-              // Status Information
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Tel: 020 $tel",
-                    style: TextStyle(
-                      fontSize: 14,
+            // Status and Contact
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Email: $email"),
+                Text(
+                  "Status: $status",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: status.toLowerCase() == 'online'
+                        ? Colors.green
+                        : Colors.red,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 6),
+            const Divider(),
+
+            // Switch
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Status Toggle",
+                  style: TextStyle(fontSize: 14),
+                ),
+                Row(
+                  children: [
+                    Text(status == "Online" ? "Go Offline" : "Go Online"),
+                    const SizedBox(width: 8),
+                    Switch(
+                      value: status.toLowerCase() == 'online',
+                      onChanged: (value) => onToggle(),
+                      activeColor: Colors.green,
+                      activeTrackColor: Colors.lightGreenAccent,
+                      inactiveThumbColor: Colors.red,
+                      inactiveTrackColor: Colors.redAccent,
                     ),
-                  ),
-                  Text(
-                    "Status: $status",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: status.toLowerCase() == 'online'
-                          ? Colors.green
-                          : Colors.red,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 8),
-              const Divider(), // Line added above the switch
-
-              // Switch, Status Toggle, and Date on the Right
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Date: $date",
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  Row(
-                    children: [
-                      Text(status == "Online" ? "Go Offline" : "Go Online"),
-                      const SizedBox(width: 8),
-                      Switch(
-                        value: status.toLowerCase() == 'online',
-                        onChanged: (value) {
-                          onToggle();
-                        },
-                        activeColor: Colors.green,
-                        activeTrackColor: Colors.lightGreenAccent,
-                        inactiveThumbColor: Colors.red,
-                        inactiveTrackColor: Colors.redAccent,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget nameProfile() {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(auth.currentUser?.uid)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        } else if (snapshot.hasError ||
-            !snapshot.hasData ||
-            !snapshot.data!.exists) {
-          return const Center(
-            child: Text(
-              'Error loading profile',
-              style: TextStyle(fontSize: 18, color: Colors.red),
-            ),
-          );
-        } else {
-          final userData = snapshot.data!.data() as Map<String, dynamic>;
-          final username = userData['username'] ?? 'Guest';
-          final status = userData['status'] ?? 'Offline';
-          final tel = userData['phoneNumber'] ?? 'N/A';
-          final profileImageUrl =
-              userData['profileImage'] ?? ''; // Get profile image URL
+  final currentUser = auth.currentUser;
 
-          return StreamBuilder<String>(
-            stream: _realTimeDateStream,
-            builder: (context, dateSnapshot) {
-              final realTimeDate = dateSnapshot.data ?? "Loading...";
-              return ticketWidget(
-                title: username,
-                date: realTimeDate,
-                status: status,
-                tel: tel,
-                onToggle: () => toggleStatus(auth.currentUser!.uid, status),
-                profileImageUrl: profileImageUrl, // Pass the profile image URL
-              );
-            },
-          );
-        }
-      },
+  if (currentUser == null || currentUser.email == null) {
+    return const Center(
+      child: Text('User not logged in',
+          style: TextStyle(fontSize: 18, color: Colors.red)),
     );
   }
+
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance
+        .collection('Owner')
+        .where('email', isEqualTo: currentUser.email)
+        .limit(1)
+        .snapshots(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      } else if (snapshot.hasError || !snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        return const Center(
+          child: Text('Error loading profile',
+              style: TextStyle(fontSize: 18, color: Colors.red)),
+        );
+      } else {
+        final userDoc = snapshot.data!.docs.first;
+        final userData = userDoc.data() as Map<String, dynamic>;
+
+        final fname = userData['fname'] ?? 'Guest';
+        final lname = userData['lname'] ?? '';
+        final fullName = '$fname $lname';
+        final email = userData['email'] ?? 'N/A';
+        final dateOfBirth = userData['Dateofbirth'] ?? 'N/A';
+        final age = userData['age'] ?? 'N/A';
+        final idCard = userData['idcard'] ?? 'N/A';
+        final profileImageUrl = userData['profile_image_url'] ?? '';
+        final status = userData['status'] ?? 'Offline';
+
+        return ticketWidget(
+          fullName: fullName,
+          dateOfBirth: dateOfBirth,
+          age: age,
+          status: status,
+          email: email,
+          idCard: idCard,
+          onToggle: () => toggleStatus(userDoc.id, status),
+          profileImageUrl: profileImageUrl,
+        );
+      }
+    },
+  );
+}
+
+
 
   Future<void> _pickImage() async {
     try {
@@ -435,207 +487,230 @@ class _OwnerMainState extends State<ownerMain> {
         finalYear, finalMonth, day > lastDayOfMonth ? lastDayOfMonth : day);
   }
 
-  Widget parkLocation() {
-    User? currentUser = FirebaseAuth.instance.currentUser;
-    String ownerId = currentUser?.uid ?? '';
+ Widget parkLocation() {
+  User? currentUser = FirebaseAuth.instance.currentUser;
+  String ownerId = currentUser?.uid ?? '';
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('parking')
-          .where('ownerId', isEqualTo: ownerId)
-          .where('isActive', isEqualTo: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError || !snapshot.hasData) {
-          return const Center(
-            child: Text(
-              'Error loading locations',
-              style: TextStyle(fontSize: 18, color: Colors.red),
-            ),
-          );
-        } else if (snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text(
-              'No parking locations available',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-          );
-        } else {
-          final locations = snapshot.data!.docs;
-          return ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: locations.length,
-            itemBuilder: (context, index) {
-              final locationData =
-                  locations[index].data() as Map<String, dynamic>;
-              final docId = locations[index].id;
-              final locationName =
-                  locationData['nameparking'] ?? 'Unknown Location';
-              final carSlot = locationData['car_slot'] ?? 'Unknown';
-              final imageUrl = locationData['imageUrl'] ?? '';
-              final pricePerMonth = locationData['pricePerMonth'] ?? '';
-              final price = locationData['price'] ?? '';
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance
+        .collection('parking')
+        .where('ownerId', isEqualTo: ownerId)
+        .snapshots(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      } else if (snapshot.hasError || !snapshot.hasData) {
+        return const Center(
+          child: Text('Error loading locations',
+              style: TextStyle(fontSize: 18, color: Colors.red)),
+        );
+      } else if (snapshot.data!.docs.isEmpty) {
+        return const Center(
+          child: Text(
+            'No parking locations available',
+            style: TextStyle(fontSize: 18, color: Colors.grey),
+          ),
+        );
+      } else {
+        final locations = snapshot.data!.docs;
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: locations.length,
+          itemBuilder: (context, index) {
+            final locationData =
+                locations[index].data() as Map<String, dynamic>;
+            final docId = locations[index].id;
 
-              final startDate =
-                  (locationData['packageStartDate'] as Timestamp?)?.toDate();
-              final months = locationData['packageMonths'] ?? 1;
-              final expiryDate = startDate != null
-                  ? addMonths(startDate, months)
-                  : DateTime.now();
-              final isExpired = DateTime.now().isAfter(expiryDate);
+            final locationName = locationData['nameparking'] ?? 'Unknown Location';
+            final carSlot = locationData['car_slot'] ?? 'Unknown';
+            final imageUrl = locationData['imageUrl'] ?? '';
+            final pricePerMonth = locationData['pricePerMonth'] ?? '';
+            final price = locationData['price'] ?? '';
+            final status = locationData['status'] ?? "Offline";
 
-              return GestureDetector(
-                onTap: isExpired
-                    ? null
-                    : () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                DetailOwner(documentId: docId),
-                          ),
-                        );
-                      },
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16.0),
-                  child: Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16.0),
-                    ),
-                    elevation: 6,
-                    margin: const EdgeInsets.symmetric(
-                        vertical: 10.0, horizontal: 8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (imageUrl.isNotEmpty)
-                          ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(16.0)),
-                            child: Image.network(
-                              imageUrl,
-                              height: 150,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Center(
-                                      child: Text("Failed to load image")),
-                            ),
-                          ),
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    "Parking Location ${index + 1}",
-                                    style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  const Spacer(),
-                                  if (!isExpired)
-                                    StreamBuilder<int>(
-                                      stream: FirebaseFirestore.instance
-                                          .collection('bookings')
-                                          .where('locationId', isEqualTo: docId)
-                                          .where('Status',
-                                              whereIn: ['check-in', 'pending'])
-                                          .snapshots()
-                                          .map((snapshot) =>
-                                              snapshot.docs.length),
-                                      builder: (context, snapshot) {
-                                        if (snapshot.connectionState ==
-                                            ConnectionState.waiting) {
-                                          return const CircularProgressIndicator();
-                                        }
-                                        if (snapshot.hasError) {
-                                          return const Text('Error');
-                                        }
-                                        final count = snapshot.data ?? 0;
-                                        return Text(
-                                          "CAR: $count/$carSlot",
-                                          style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold),
-                                        );
-                                      },
-                                    )
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                "Location: $locationName",
-                                style: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.w500),
-                              ),
-                              const Divider(),
-                              Text(
-                                isExpired
-                                    ? "Pagekage Time out"
-                                    : "Status : online",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: isExpired ? Colors.red : Colors.green,
-                                ),
-                              ),
-                              if (isExpired)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 8.0),
-                                  child: ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      minimumSize: const Size(double.infinity,
-                                          50), 
-                                      backgroundColor:
-                                          Colors.blueAccent,
-                                      foregroundColor:
-                                          Colors.white, 
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(12), 
-                                      ),
-                                      elevation: 4,
-                                    ),
-                                    onPressed: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              SubscriptionPackage(
-                                            parkingId: docId,
-                                            name: locationName,
-                                            price: price,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    child: const Text(
-                                      "Renew",
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
+            final startDate =
+                (locationData['packageStartDate'] as Timestamp?)?.toDate();
+            final months = locationData['packageMonths'] ?? 1;
+            final expiryDate = startDate != null
+                ? addMonths(startDate, months)
+                : DateTime.now();
+            final isExpired = DateTime.now().isAfter(expiryDate);
+
+            return GestureDetector(
+              onTap: isExpired
+                  ? null
+                  : () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => DetailOwner(documentId: docId),
+                        ),
+                      );
+                    },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16.0),
+                child: Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.0),
+                  ),
+                  elevation: 6,
+                  margin: const EdgeInsets.symmetric(
+                      vertical: 10.0, horizontal: 8.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (imageUrl.isNotEmpty)
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(16.0)),
+                          child: Image.network(
+                            imageUrl,
+                            height: 150,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Center(child: Text("Failed to load image")),
                           ),
                         ),
-                      ],
-                    ),
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  "Parking Location ${index + 1}",
+                                  style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                                const Spacer(),
+                                Switch(
+                                  value: status == "Online",
+                                  onChanged: isExpired
+                                      ? null
+                                      : (value) {
+                                          toggleStatusp(docId, status);
+                                        },
+                                  activeColor: Colors.green,
+                                  inactiveThumbColor: Colors.red,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Location: $locationName",
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.w500),
+                            ),
+                            const Divider(),
+                            Text(
+                              isExpired
+                                  ? "Subscription: Expired"
+                                  : "Subscription: Active",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isExpired ? Colors.red : Colors.green,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Status: $status",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: status == "Online"
+                                    ? Colors.green
+                                    : Colors.orange,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            if (!isExpired && status == "Online")
+                              StreamBuilder<int>(
+                                stream: FirebaseFirestore.instance
+                                    .collection('bookings')
+                                    .where('locationId', isEqualTo: docId)
+                                    .where('Status',
+                                        whereIn: ['check-in', 'pending'])
+                                    .snapshots()
+                                    .map((snapshot) => snapshot.docs.length),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return const CircularProgressIndicator();
+                                  }
+                                  if (snapshot.hasError) {
+                                    return const Text('Error');
+                                  }
+                                  final count = snapshot.data ?? 0;
+                                  return Text(
+                                    "CAR: $count/$carSlot",
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold),
+                                  );
+                                },
+                              ),
+                            if (isExpired)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size(double.infinity, 50),
+                                    backgroundColor: Colors.blueAccent,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 4,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => SubscriptionPackage(
+                                          parkingId: docId,
+                                          name: locationName,
+                                          price: price,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: const Text(
+                                    "Renew",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-          );
-        }
-      },
-    );
-  }
+              ),
+            );
+          },
+        );
+      }
+    },
+  );
+}
+
+void toggleStatusp(String parkingId, String currentStatus) async {
+  String newStatus = currentStatus == "Online" ? "Offline" : "Online";
+
+  await FirebaseFirestore.instance
+      .collection('parking') // updated to 'parking'
+      .doc(parkingId)
+      .update({'status': newStatus});
+}
+
+
 
 // Widget parkLocation() {
 //   User? currentUser = FirebaseAuth.instance.currentUser;

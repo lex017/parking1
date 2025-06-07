@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -271,6 +272,14 @@ class _BuyTicketState extends State<BuyTicket> {
 }
 
 
+Future<void> saveFcmToken(String userId) async {
+  final fcmToken = await FirebaseMessaging.instance.getToken();
+  if (fcmToken != null) {
+    await FirebaseFirestore.instance.collection('users').doc(userId).update({
+      'fcmToken': fcmToken,
+    });
+  }
+}
   String formatTime(int seconds) {
     int minutes = seconds ~/ 60;
     int sec = seconds % 60;
@@ -325,6 +334,7 @@ class _BuyTicketState extends State<BuyTicket> {
               var bookingData = snapshot.data!['booking'];
               var paymentData = snapshot.data!['payment'];
               String bookingDate = bookingData['bookingDate'] ?? 'N/A';
+              String locationName = bookingData['nameparking'] ?? 'N/A';
               String bookingTime = bookingData['bookingTime'] ?? 'N/A';
               String transactionId = bookingData['paymentId'] ?? 'N/A';
               String locationId = bookingData['locationId'] ?? 'N/A';
@@ -404,6 +414,10 @@ class _BuyTicketState extends State<BuyTicket> {
                       ],
                     ),
                     const SizedBox(height: 16),
+                    Text("Location: $locationName",
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
                     Text("PAID: $amount Kip",
                         style: const TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold)),

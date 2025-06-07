@@ -1,0 +1,18 @@
+{
+  "language": "Language",
+  "select_language": "Select Language",
+  "english": "English",
+  "lao": "Lao",
+  "ok": "OK",
+  "Cancel": "Cancel",
+  "change":"change",
+  "find_parking": "Find parking",
+  "history": "History",
+  "vehicle": "Vehicle",
+  "help": "Help",
+  "enable_notifications": "Enable Notifications",
+  "change_password": "Change Password",
+  "about_app": "About App",
+  "logout": "Logout"
+
+}

@@ -63,7 +63,6 @@ class _ScanCheckState extends State<ScanCheck> {
   void initState() {
     super.initState();
     _fetchTicketStatus();
-    _fetchPlateTypeFromVehicle();
   }
 
   Future<void> _fetchTicketStatus() async {
@@ -84,27 +83,11 @@ class _ScanCheckState extends State<ScanCheck> {
             checkOutTime = (data['checkOutTime'] as Timestamp).toDate();
           }
         });
+        await _fetchPlateTypeFromVehicle(); // Fetch vehicle details after getting booking data
       } else {
-        final ticketRealRef =
-            FirebaseFirestore.instance.collection('ticketreal').doc(vehicleId);
-        final ticketRealSnap = await ticketRealRef.get();
-
-        if (ticketRealSnap.exists) {
-          var data = ticketRealSnap.data()!;
-          setState(() {
-            collectionType = 'ticketreal';
-            status = data['Status'] ?? 'unknown';
-            nameParking = data['nameParking'] ?? '-';
-            plateNumber = data['plate'] ?? '-';
-            if (data['checkOutTime'] != null) {
-              checkOutTime = (data['checkOutTime'] as Timestamp).toDate();
-            }
-          });
-        } else {
-          setState(() {
-            status = 'not_found';
-          });
-        }
+        setState(() {
+          status = 'not_found';
+        });
       }
     } catch (e) {
       print("Error fetching ticket status: $e");
@@ -115,6 +98,8 @@ class _ScanCheckState extends State<ScanCheck> {
   }
 
   Future<void> _fetchPlateTypeFromVehicle() async {
+    if (vehicleId == null) return; // Ensure vehicleId is not null
+
     try {
       final vehicleRef =
           FirebaseFirestore.instance.collection('vehicles').doc(vehicleId);
@@ -130,10 +115,10 @@ class _ScanCheckState extends State<ScanCheck> {
         });
       } else {
         setState(() {
-          plateType = plateType;
-          province = province;
-          namePlate = namePlate;
-          plate = plate;
+          plateType = 'not_found';
+          province = 'not_found';
+          namePlate = 'not_found';
+          plate = 'not_found';
         });
       }
     } catch (e) {
@@ -263,7 +248,6 @@ class _ScanCheckState extends State<ScanCheck> {
                       const SizedBox(height: 8),
                       Text('Status: $status', style: const TextStyle(fontSize: 18)),
                       const SizedBox(height: 8),
-                      
                       if (checkOutTime != null)
                         Text('Check-out Time: ${_formatDateTime(checkOutTime!)}',
                             style: const TextStyle(fontSize: 18)),

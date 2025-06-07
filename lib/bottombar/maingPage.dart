@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -30,6 +32,9 @@ class _MainPageState extends State<mainPage> {
   final String uploadPreset = "parking";
   File? _selectedImage;
   Uint8List? _imageBytes;
+  int _currentPage = 0;
+  Timer? _timer;
+  final PageController _pageController = PageController();
   final ImagePicker _picker = ImagePicker();
   final String cloudinaryApiUrl =
       "https://api.cloudinary.com/v1_1/doiq3nkso/resources/image";
@@ -44,6 +49,7 @@ class _MainPageState extends State<mainPage> {
   void initState() {
     super.initState();
     fetchAdImages();
+    _startAutoSlide();
   }
 
   /// Fetch ad images from Cloudinary
@@ -96,8 +102,22 @@ class _MainPageState extends State<mainPage> {
       return 'Unknown'; // Return 'Unknown' in case of error
     }
   }
-
-  Widget adSlider() {
+   void _startAutoSlide() {
+    _timer = Timer.periodic(Duration(seconds: 3), (timer) {
+      if (adImages.isNotEmpty && _pageController.hasClients) {
+        _currentPage++;
+        if (_currentPage >= adImages.length) {
+          _currentPage = 0;
+        }
+        _pageController.animateToPage(
+          _currentPage,
+          duration: Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+   Widget adSlider() {
     if (adImages.isEmpty) {
       return const SizedBox(
         height: 200,
@@ -108,11 +128,10 @@ class _MainPageState extends State<mainPage> {
     return SizedBox(
       height: 200,
       child: PageView.builder(
+        controller: _pageController, // ✅ Added controller
         itemCount: adImages.length,
         itemBuilder: (context, index) {
-          return adCard(
-            imageUrl: adImages[index],
-          );
+          return adCard(imageUrl: adImages[index]);
         },
       ),
     );
@@ -155,8 +174,8 @@ class _MainPageState extends State<mainPage> {
         physics: const NeverScrollableScrollPhysics(),
         children: [
           dashboardButton(
-            iconPath: 'assets/images/location-pin.png',
-            label: 'Find parking',
+            iconPath: 'assets/images/pin5.png',
+            label: 'find_parking'.tr(),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -165,8 +184,8 @@ class _MainPageState extends State<mainPage> {
             },
           ),
           dashboardButton(
-            iconPath: 'assets/images/history.png',
-            label: 'History',
+            iconPath: 'assets/images/file5.png',
+            label: 'history'.tr(),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => history()),
@@ -174,8 +193,8 @@ class _MainPageState extends State<mainPage> {
             },
           ),
           dashboardButton(
-            iconPath: 'assets/images/hatchback.png',
-            label: 'Vehicle',
+            iconPath: 'assets/images/vehicle.png',
+            label: 'vehicle'.tr(),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => Vechicle()),
@@ -183,8 +202,8 @@ class _MainPageState extends State<mainPage> {
             },
           ),
           dashboardButton(
-            iconPath: 'assets/images/help.png',
-            label: 'Help',
+            iconPath: 'assets/images/chat5.png',
+            label: 'help'.tr(),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (context) => Help()),
@@ -213,13 +232,7 @@ class _MainPageState extends State<mainPage> {
           borderRadius: BorderRadius.circular(16),
         ),
         child: Card(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: const Color.fromARGB(255, 227, 227, 227),
-              width: 2.0,
-            ),
-          ),
+          elevation: 2,
           margin: EdgeInsets.zero,
           child: Container(
             width: 120,
@@ -233,6 +246,7 @@ class _MainPageState extends State<mainPage> {
                   width: 48,
                   height: 48,
                   fit: BoxFit.contain,
+                  color: Colors.blueAccent.shade700,
                 ),
                 const SizedBox(height: 10),
                 Text(
@@ -338,183 +352,215 @@ class _MainPageState extends State<mainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-  preferredSize: const Size.fromHeight(100), // ปรับขนาด AppBar
-  child: SafeArea(
-    top: true, // ป้องกันไม่ให้ AppBar ชิดขอบจอ
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0), // ปรับระยะห่าง
-      child: AppBar(
-        toolbarHeight: 90.0, // ปรับความสูงของ AppBar
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        // elevation: 4, // เพิ่มเงาให้ AppBar
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15), // ทำให้มุม AppBar โค้งมน
-        ),
-        title: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              PopupMenuButton<String>(
-                icon: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        print("Image tapped!");
-                      },
-                      child: Image.asset(
-                        'assets/images/reference.png',
-                        width: 30,
-                        height: 30,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'ປ່ຽນ',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
-                      ),
-                    ),
-                  ],
-                ),
-                onSelected: (String result) {
-                  if (result == 'owner') {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => Owner()),
-                    );
-                  } else if (result == 'employee') {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => emp_login()),
-                    );
-                  }
-                },
-                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                  PopupMenuItem<String>(
-                    value: 'owner',
-                    child: Row(
-                      children: <Widget>[
-                        Icon(Icons.manage_accounts, color: Colors.grey),
-                        SizedBox(width: 10),
-                        Text('Owner'),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem<String>(
-                    value: 'employee',
-                    child: Row(
-                      children: <Widget>[
-                        Icon(Icons.emoji_people, color: Colors.grey),
-                        SizedBox(width: 10),
-                        Text('Employee'),
-                      ],
-                    ),
-                  ),
-                ],
+        preferredSize: const Size.fromHeight(100), // ปรับขนาด AppBar
+        child: SafeArea(
+          top: true, // ป้องกันไม่ให้ AppBar ชิดขอบจอ
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 10.0, vertical: 8.0), // ปรับระยะห่าง
+            child: AppBar(
+              toolbarHeight: 90.0, // ปรับความสูงของ AppBar
+              backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+              // elevation: 4, // เพิ่มเงาให้ AppBar
+              shape: RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.circular(15), // ทำให้มุม AppBar โค้งมน
               ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
+              title: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    FutureBuilder<String>(
-                      future: getUserName(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const CircularProgressIndicator();
-                        }
-
-                        if (snapshot.hasError) {
-                          return Text(
-                            'Error loading username',
+                    PopupMenuButton<String>(
+                      icon: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              print("Image tapped!");
+                            },
+                            child: Image.asset(
+                              'assets/images/reference.png',
+                              width: 30,
+                              height: 30,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Change'.tr(),
                             style: TextStyle(
                               fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).textTheme.bodyMedium?.color,
+                              color:
+                                  Theme.of(context).textTheme.bodyLarge?.color,
                             ),
+                          ),
+                        ],
+                      ),
+                      onSelected: (String result) {
+                        if (result == 'owner') {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (context) => Owner()),
+                          );
+                        } else if (result == 'employee') {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (context) => emp_login()),
                           );
                         }
-
-                        final username = snapshot.data ?? 'No Name Found';
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Status: user',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context).textTheme.bodyMedium?.color,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              username,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 22,
-                                color: Theme.of(context).textTheme.titleLarge?.color,
-                              ),
-                            ),
-                          ],
-                        );
                       },
+                      itemBuilder: (BuildContext context) =>
+                          <PopupMenuEntry<String>>[
+                        PopupMenuItem<String>(
+                          value: 'owner',
+                          child: Row(
+                            children: <Widget>[
+                              Icon(Icons.manage_accounts, color: Colors.grey),
+                              SizedBox(width: 10),
+                              Text('Owner'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'employee',
+                          child: Row(
+                            children: <Widget>[
+                              Icon(Icons.emoji_people, color: Colors.grey),
+                              SizedBox(width: 10),
+                              Text('Employee'),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(width: 12),
                     Padding(
                       padding: const EdgeInsets.all(8.0),
-                      child: CircleAvatar(
-                        backgroundColor: Colors.white,
-                        radius: 28,
-                        child: ClipOval(
-                          child: FutureBuilder<DocumentSnapshot>(
-                            future: FirebaseFirestore.instance
-                                .collection('users')
-                                .doc(auth.currentUser?.uid)
-                                .get(),
+                      child: Row(
+                        children: [
+                          FutureBuilder<String>(
+                            future: getUserName(),
                             builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
                                 return const CircularProgressIndicator();
                               }
-                              if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
-                                return Image.asset(
-                                  'images/profile-user.png',
-                                  fit: BoxFit.cover,
-                                  width: 60,
-                                  height: 60,
+
+                              if (snapshot.hasError) {
+                                return Text(
+                                  'Error loading username',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color,
+                                  ),
                                 );
                               }
 
-                              final data = snapshot.data!.data() as Map<String, dynamic>;
-                              final profileImage = data['profileImage'] ?? 'images/profile-user.png';
-
-                              return Image.network(
-                                profileImage,
-                                fit: BoxFit.cover,
-                                width: 60,
-                                height: 60,
-                                errorBuilder: (context, error, stackTrace) => Image.asset(
-                                  'images/profile-user.png',
-                                  fit: BoxFit.cover,
-                                  width: 60,
-                                  height: 60,
-                                ),
+                              final username = snapshot.data ?? 'No Name Found';
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Status: user',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.color,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    username,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 22,
+                                      color: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.color,
+                                    ),
+                                  ),
+                                ],
                               );
                             },
                           ),
-                        ),
+                          SizedBox(width: 12),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: CircleAvatar(
+                              backgroundColor: Colors.white,
+                              radius: 28,
+                              child: ClipOval(
+                                child: FutureBuilder<DocumentSnapshot>(
+                                  future: FirebaseFirestore.instance
+                                      .collection('users')
+                                      .doc(auth.currentUser?.uid)
+                                      .get(),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const CircularProgressIndicator();
+                                    }
+
+                                    if (snapshot.hasError ||
+                                        !snapshot.hasData ||
+                                        !snapshot.data!.exists) {
+                                      return Image.asset(
+                                        'assets/images/profile-user.png',
+                                        fit: BoxFit.cover,
+                                        width: 60,
+                                        height: 60,
+                                      );
+                                    }
+
+                                    final data = snapshot.data!.data()
+                                        as Map<String, dynamic>;
+                                    final profileImage = data['profileImage'];
+
+                                    if (profileImage == null ||
+                                        profileImage.toString().isEmpty) {
+                                      return Image.asset(
+                                        'assets/images/profile-user.png',
+                                        fit: BoxFit.cover,
+                                        width: 60,
+                                        height: 60,
+                                      );
+                                    }
+
+                                    return Image.network(
+                                      profileImage,
+                                      fit: BoxFit.cover,
+                                      width: 60,
+                                      height: 60,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Image.asset(
+                                        'assets/images/profile-user.png',
+                                        fit: BoxFit.cover,
+                                        width: 60,
+                                        height: 60,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          )
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
-    ),
-  ),
-),
 
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       // Background color based on theme
@@ -523,7 +569,6 @@ class _MainPageState extends State<mainPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            
             adSlider(), // Assuming this widget is created somewhere else
             const SizedBox(height: 24),
             const Text(
