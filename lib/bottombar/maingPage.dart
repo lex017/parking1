@@ -571,8 +571,8 @@ class _MainPageState extends State<mainPage> {
           children: [
             adSlider(), // Assuming this widget is created somewhere else
             const SizedBox(height: 24),
-            const Text(
-              'Features',
+             Text(
+              'service'.tr(),
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,

@@ -13,7 +13,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 /// Global ValueNotifier สำหรับ theme mode
-final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(ThemeMode.system);
+final ValueNotifier<ThemeMode> themeModeNotifier =
+    ValueNotifier(ThemeMode.system);
 
 /// โหลด theme mode จาก SharedPreferences
 Future<void> loadThemeMode() async {
@@ -34,14 +35,21 @@ Future<void> loadThemeMode() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await EasyLocalization.ensureInitialized();  // เพิ่มนี้
+  await EasyLocalization.ensureInitialized(); // เพิ่มนี้
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await loadThemeMode();
 
   runApp(
     EasyLocalization(
-      supportedLocales: const [Locale('en'), Locale('lo')],
+      supportedLocales: const [
+        Locale('en'), // English
+        Locale('lo'), // Lao
+        Locale('zh'), // Chinese
+        Locale('ko'), // Korean
+        Locale('vi'), // Vietnamese
+        Locale('th'), // Thai
+      ],
       path: 'assets/lang',
       fallbackLocale: const Locale('en'),
       child: const ParkingApp(),
@@ -116,7 +124,8 @@ class _ParkingAppState extends State<ParkingApp> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("No Internet Connection"),
-        content: const Text("Please check your internet connection and try again."),
+        content:
+            const Text("Please check your internet connection and try again."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -152,9 +161,9 @@ class _ParkingAppState extends State<ParkingApp> {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Parking App',
-          localizationsDelegates: context.localizationDelegates,  // เพิ่มนี้
-          supportedLocales: context.supportedLocales,              // เพิ่มนี้
-          locale: context.locale,                                  // เพิ่มนี้
+          localizationsDelegates: context.localizationDelegates, // เพิ่มนี้
+          supportedLocales: context.supportedLocales, // เพิ่มนี้
+          locale: context.locale, // เพิ่มนี้
           theme: ThemeData(
             brightness: Brightness.light,
             scaffoldBackgroundColor: Colors.white,
@@ -194,4 +203,3 @@ class _ParkingAppState extends State<ParkingApp> {
     );
   }
 }
-

@@ -30,8 +30,8 @@ class _BtnaddParkingState extends State<BtnaddParking> {
   File? _qrImage;
   Uint8List? _qrImageBytes;
   final _picker = ImagePicker();
-  final _openTimeController = TextEditingController(text: '08:00');
-  final _closeTimeController = TextEditingController(text: '18:00');
+  final _openTimeController = TextEditingController();
+  final _closeTimeController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -107,16 +107,18 @@ class _BtnaddParkingState extends State<BtnaddParking> {
         validator: (v) => v == null || v.isEmpty ? 'Required' : null,
       );
 
-  void _pickCustomTime(TextEditingController controller) {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) {
-        DateTime selected = DateTime.now();
-        return SizedBox(
-          height: 320,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: Column(children: [
+ void _pickCustomTime(TextEditingController controller) {
+  DateTime selected = DateTime.now(); // Define it here so it retains value
+
+  showModalBottomSheet(
+    context: context,
+    builder: (_) {
+      return SizedBox(
+        height: 320,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 20),
+          child: Column(
+            children: [
               Expanded(
                 child: TimePickerSpinner(
                   is24HourMode: true,
@@ -129,23 +131,26 @@ class _BtnaddParkingState extends State<BtnaddParking> {
                   itemHeight: 60,
                   isForce2Digits: true,
                   time: selected,
-                  onTimeChange: (time) => selected = time,
+                  onTimeChange: (time) {
+                    selected = time; // ✅ Save the new time
+                  },
                 ),
               ),
               ElevatedButton(
                 onPressed: () {
-                  controller.text = DateFormat('HH:mm').format(selected);
+                  controller.text = DateFormat('HH:mm').format(selected); // ✅ Will now reflect selected time
                   Navigator.pop(context);
                 },
                 child: const Text('Confirm'),
               ),
               const SizedBox(height: 10),
-            ]),
+            ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 
   Widget _buildImagePicker({
     required bool isQR,

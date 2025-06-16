@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,12 +7,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:parking1/homepage.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-
+import 'package:http/http.dart' as http;
 
 class BuyTicket extends StatefulWidget {
   final String bookingId;
-  
+
   const BuyTicket({super.key, required this.bookingId});
 
   @override
@@ -25,7 +25,7 @@ class _BuyTicketState extends State<BuyTicket> {
   late String userName;
   late String numberplate;
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-    FlutterLocalNotificationsPlugin();
+      FlutterLocalNotificationsPlugin();
 
   @override
   void initState() {
@@ -36,15 +36,16 @@ class _BuyTicketState extends State<BuyTicket> {
   }
 
   void _initializeNotifications() async {
-  const AndroidInitializationSettings androidSettings =
-      AndroidInitializationSettings('@mipmap/ic_launcher');
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
-  const InitializationSettings initSettings = InitializationSettings(
-    android: androidSettings,
-  );
+    const InitializationSettings initSettings = InitializationSettings(
+      android: androidSettings,
+    );
 
-  await flutterLocalNotificationsPlugin.initialize(initSettings);
-}
+    await flutterLocalNotificationsPlugin.initialize(initSettings);
+  }
+
 // Function to fetch the userName from the users collection
   Future<String> getUserName(String userId) async {
     try {
@@ -70,8 +71,9 @@ class _BuyTicketState extends State<BuyTicket> {
           .doc(vehicleId)
           .get();
 
-       if (vehicleDoc.exists) {
-        return vehicleDoc['numberplate'] ?? 'Unknown'; // Return userName or 'Unknown'
+      if (vehicleDoc.exists) {
+        return vehicleDoc['numberplate'] ??
+            'Unknown'; // Return userName or 'Unknown'
       }
       return 'Unknown'; // In case the document doesn't exist
     } catch (e) {
@@ -97,7 +99,6 @@ class _BuyTicketState extends State<BuyTicket> {
     userName = await getUserName(userId);
     String numberplate = await getNumberPlate(vehicleId); // Fetch number plate
 
-    
     return {
       'booking': bookingData,
     };
@@ -114,14 +115,11 @@ class _BuyTicketState extends State<BuyTicket> {
     }
 
     var bookingData = bookingSnapshot.data() as Map<String, dynamic>;
-    String userId = bookingData[
-        'userId']; 
-    userName = await getUserName(
-        userId); 
+    String userId = bookingData['userId'];
+    userName = await getUserName(userId);
 
-     String vehicleId = bookingData[
-        'vehicleId']; 
-    numberplate = await getNumberPlate(vehicleId); 
+    String vehicleId = bookingData['vehicleId'];
+    numberplate = await getNumberPlate(vehicleId);
 
     String transactionId = bookingData['paymentId'] ?? '';
     var parkingStatus = bookingData['Status'] ?? 'pending';
@@ -175,115 +173,143 @@ class _BuyTicketState extends State<BuyTicket> {
       'payment': paymentData,
     };
   }
+Future<void> sendFCM(String fcmToken, String title, String body) async {
+  final url = Uri.parse('https://my-vercel-api.vercel.app/api/sendFCM');
+  final response = await http.post(
+    url,
+    headers: {"Content-Type": "application/json"},
+    body: jsonEncode({
+      "token": fcmToken,
+      "title": title,
+      "body": body,
+    }),
+  );
 
-  
- void startTimer() {
-  _timer?.cancel();
-  _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-    if (remainingSeconds > 0) {
-      setState(() {
-        remainingSeconds--;
-      });
-
-      // ✅ Show local notification at 10 minutes remaining
-      if (remainingSeconds == 600) {
-        await flutterLocalNotificationsPlugin.show(
-          1,
-          '10 Minutes Left',
-          'Your parking session will end in 10 minutes.',
-          const NotificationDetails(
-            android: AndroidNotificationDetails(
-              'reminder_channel',
-              'Reminder Notifications',
-              channelDescription: 'Notifications for parking reminders',
-              importance: Importance.max,
-              priority: Priority.high,
-              playSound: true,
-            ),
-          ),
-        );
-      }
-
-      // 🔁 Update Firestore every 5 seconds
-      if (remainingSeconds % 5 == 0) {
-        await FirebaseFirestore.instance
-            .collection('bookings')
-            .doc(widget.bookingId)
-            .update({
-          'remainingSeconds': remainingSeconds,
-          'lastUpdated': FieldValue.serverTimestamp(),
-        });
-      }
-    } else {
-      timer.cancel();
-      await updateParkingStatusToCheckout();
-    }
-  });
+  if (response.statusCode == 200) {
+    print("✅ ส่งแจ้งเตือนสำเร็จ: ${response.body}");
+  } else {
+    print("❌ ส่งแจ้งเตือนไม่สำเร็จ: ${response.body}");
+  }
 }
+  void startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+      if (remainingSeconds > 0) {
+        setState(() {
+          remainingSeconds--;
+        });
+
+        // ✅ Show local notification at 10 minutes remaining
+        if (remainingSeconds == 600) {
+          await flutterLocalNotificationsPlugin.show(
+            1,
+            '10 Minutes Left',
+            'Your parking session will end in 10 minutes.',
+            const NotificationDetails(
+              android: AndroidNotificationDetails(
+                'reminder_channel',
+                'Reminder Notifications',
+                channelDescription: 'Notifications for parking reminders',
+                importance: Importance.max,
+                priority: Priority.high,
+                playSound: true,
+              ),
+            ),
+          );
+        }
+
+        // 🔁 Update Firestore every 5 seconds
+        if (remainingSeconds % 5 == 0) {
+          await FirebaseFirestore.instance
+              .collection('bookings')
+              .doc(widget.bookingId)
+              .update({
+            'remainingSeconds': remainingSeconds,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
+        }
+      } else {
+        timer.cancel();
+        await updateParkingStatusToCheckout();
+      }
+    });
+  }
 
   void stopTimer() {
     _timer?.cancel();
   }
 
   Future<void> updateParkingStatusToCheckout() async {
-  await FirebaseFirestore.instance
-      .collection('bookings')
-      .doc(widget.bookingId)
-      .update({'Status': 'Time-out'});
+    await FirebaseFirestore.instance
+        .collection('bookings')
+        .doc(widget.bookingId)
+        .update({'Status': 'Time-out'});
 
-  // ✅ Show local notification
-  await flutterLocalNotificationsPlugin.show(
-    0,
-    'Time Expired',
-    'Your 60-minute parking session has ended.',
-    const NotificationDetails(
-      android: AndroidNotificationDetails(
-        'timeout_channel',
-        'Timeout Notifications',
-        channelDescription: 'Notifications for parking timeout',
-        importance: Importance.max,
-        priority: Priority.high,
-        playSound: true,
-      ),
-    ),
-  );
-
-  // ✅ Optional: Show dialog as well
-  if (mounted) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Time Expired"),
-        content: const Text("Your 60-minute parking session has ended."),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => Homepage()),
-                (route) => false,
-              );
-            },
-            child: const Text("OK"),
-          ),
-        ],
+    // ✅ Show local notification
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      'Time Expired',
+      'Your 60-minute parking session has ended.',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'timeout_channel',
+          'Timeout Notifications',
+          channelDescription: 'Notifications for parking timeout',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+        ),
       ),
     );
-  }
-}
 
-
-Future<void> saveFcmToken(String userId) async {
-  final fcmToken = await FirebaseMessaging.instance.getToken();
-  if (fcmToken != null) {
-    await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'fcmToken': fcmToken,
-    });
+    // ✅ Optional: Show dialog as well
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Time Expired"),
+          content: const Text("Your 60-minute parking session has ended."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => Homepage()),
+                  (route) => false,
+                );
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+    }
   }
-}
+
+  Future<void> saveFcmToken(String userId) async {
+    final fcmToken = await FirebaseMessaging.instance.getToken();
+    if (fcmToken != null) {
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'fcmToken': fcmToken,
+      });
+    }
+  }
+
   String formatTime(int seconds) {
     int minutes = seconds ~/ 60;
     int sec = seconds % 60;
     return "$minutes:${sec.toString().padLeft(2, '0')}";
+  }
+
+  Future<void> sendNotify(String message) async {
+    final url = Uri.parse('https://my-vercel-api.vercel.app/api/sendNotify');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"message": message}),
+    );
+
+    print('📡 Status: ${response.statusCode}');
+    print('📩 Response: ${response.body}');
   }
 
   Future<void> _launchURL(String latitude, String longitude) async {

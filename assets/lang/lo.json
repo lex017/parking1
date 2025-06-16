@@ -8,10 +8,25 @@
   "Change":"ປ່ຽນ",
   "find_parking": "ຄົ້ນຫາບ່ອນຈອດ",
   "history": "ປະຫວັດ",
-  "vehicle": "ລົດຂອງຂ້ອຍ",
+  "vehicle": "ພາຫະນະ",
   "help": "ຊ່ວຍເຫຼືອ",
   "enable_notifications": "ເປີດການແຈ້ງເຕືອນ",
   "change_password": "ປ່ຽນລະຫັດຜ່ານ",
   "about_app": "ກ່ຽວກັບແອັບ",
-  "logout": "ອອກຈາກລະບົບ"
+  "logout": "ອອກຈາກລະບົບ",
+  "service": "ບໍລິການຂອງພວກເຮົາ",
+  "online": "ອອນລາຍ",
+  "goonline": "ອອນລາຍ",
+  "gooffline": "ອອບລາຍ",
+  "location": "ສະຖານທີ່ຈອດລົດ",
+  "setting": "ການຕັ້ງຄ່າ",
+  "income": "ລາຍຮັບ",
+  "search": "ຄົ້ນຫາ",
+  "myticket": "ປື້",
+  "thememode": "ປ່ຽນສີ",
+  "addparking": "ເພີ່ມບ່ອນຈອດ",
+  "addemp": "ເພີ່ມພະນັກງານ",
+  "ownermain": "ຫນ້າຜູ້ໃຫ້ບໍລິການ",
+  "status": "ສະຖານະ"
+
 }

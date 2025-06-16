@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'editcar.dart'; 
+import 'editcar.dart';
 
 class DetailCar extends StatefulWidget {
-  final String documentId; 
+  final String documentId;
 
   const DetailCar({super.key, required this.documentId});
 
@@ -12,10 +12,10 @@ class DetailCar extends StatefulWidget {
 }
 
 class _DetailCarState extends State<DetailCar> {
-  Map<String, dynamic>? carData; 
-  bool isLoading = true; 
-  bool hasError = false; 
-  bool isTimeout = false; 
+  Map<String, dynamic>? carData;
+  bool isLoading = true;
+  bool hasError = false;
+  bool isTimeout = false;
 
   final Map<String, Map<String, Color>> plateColors = {
     "ລັດບໍລິຫານ": {
@@ -54,7 +54,7 @@ class _DetailCarState extends State<DetailCar> {
   void initState() {
     super.initState();
     FirebaseFirestore.instance.settings =
-        const Settings(persistenceEnabled: true); 
+        const Settings(persistenceEnabled: true);
     _fetchCarDetails();
   }
 
@@ -64,7 +64,7 @@ class _DetailCarState extends State<DetailCar> {
           .collection('vehicles')
           .doc(widget.documentId)
           .get()
-          .timeout(const Duration(seconds: 10)); 
+          .timeout(const Duration(seconds: 10));
 
       if (doc.exists) {
         setState(() {
@@ -199,35 +199,47 @@ class _DetailCarState extends State<DetailCar> {
             const SizedBox(height: 30),
             _buildDetailRow("Brand", carData?["brandName"] ?? "Unknown"),
             _buildDetailRow("Color", carData?["color"] ?? "Unknown"),
-            _buildDetailRow("License Plate", carData?["numberplate"] ?? "Unknown"),
             _buildDetailRow(
-                "City Plate", carData?["province"] ?? "Unknown"),
-            _buildDetailRow(
-                "Plate Type", carData?["typeplate"] ?? "Unknown"),
+                "License Plate", carData?["numberplate"] ?? "Unknown"),
+            _buildDetailRow("City Plate", carData?["province"] ?? "Unknown"),
+            _buildDetailRow("Plate Type", carData?["typeplate"] ?? "Unknown"),
             _buildDetailRow("Name Plate", carData?["charplate"] ?? "Unknown"),
             const SizedBox(height: 30),
             Center(
-              child: ElevatedButton(
+              child: ElevatedButton.icon(
                 onPressed: () async {
                   var updatedData = await Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => EditCar(
-                          documentId: widget.documentId, carData: carData!),
+                        documentId: widget.documentId,
+                        carData: carData!,
+                      ),
                     ),
                   );
                   if (updatedData != null) {
                     setState(() {
-                      carData = updatedData; // Update data after editing
+                      carData = updatedData;
                     });
                   }
                 },
+                icon: const Icon(Icons.edit, size: 20),
+                label: const Text("Edit Car"),
                 style: ElevatedButton.styleFrom(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                  textStyle: const TextStyle(fontSize: 18),
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  textStyle: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  foregroundColor: Colors.white,
+                  backgroundColor: Colors.blueAccent,
+                  elevation: 6,
+                  shadowColor: Colors.blueGrey,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text("Edit Car"),
               ),
             ),
           ],
@@ -237,20 +249,40 @@ class _DetailCarState extends State<DetailCar> {
   }
 
   Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Icon(Icons.label, size: 20, color: Colors.blueAccent), // Optional
+          const SizedBox(width: 10),
           Text(
             "$label: ",
             style: const TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 18),
+              style: const TextStyle(
+                fontSize: 16,
+                color: Colors.black87,
+              ),
             ),
           ),
         ],

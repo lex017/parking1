@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:parking1/drawer.dart';
@@ -22,7 +23,7 @@ class _LocationPageState extends State<LocationPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text("Location"),
+        title:  Text('location'.tr()),
         centerTitle: true,
       ),
       body: Column(
@@ -36,7 +37,7 @@ class _LocationPageState extends State<LocationPage> {
                 });
               },
               decoration: InputDecoration(
-                labelText: 'Search',
+                labelText: 'search'.tr(),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16.0),
                 ),
@@ -89,7 +90,7 @@ class _LocationPageState extends State<LocationPage> {
                   );
                 }
 
-                final locations = snapshot.data!.docs.where((doc) {
+                  final locations = snapshot.data!.docs.where((doc) {
                   final location = doc.data() as Map<String, dynamic>;
                   final name = location['nameparking']?.toLowerCase() ?? '';
                   final landmark = location['landmark']?.toLowerCase() ?? '';

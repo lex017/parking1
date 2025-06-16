@@ -17,7 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 enum ThemeModeOption { system, light, dark }
 
-enum LanguageOption { english, lao }
+enum LanguageOption { english, lao,chinese,korean,vietnamese,thai}
 
 class SettingPage extends StatefulWidget {
   const SettingPage({Key? key}) : super(key: key);
@@ -52,11 +52,20 @@ class _SettingPageState extends State<SettingPage> {
     });
 
     // ตั้งค่า locale ตามที่โหลด
-    if (_selectedLanguage == LanguageOption.english) {
-      context.setLocale(const Locale('en'));
-    } else if (_selectedLanguage == LanguageOption.lao) {
-      context.setLocale(const Locale('lo'));
-    }
+   if (_selectedLanguage == LanguageOption.english) {
+  context.setLocale(const Locale('en'));
+} else if (_selectedLanguage == LanguageOption.lao) {
+  context.setLocale(const Locale('lo'));
+} else if (_selectedLanguage == LanguageOption.chinese) {
+  context.setLocale(const Locale('zh'));
+} else if (_selectedLanguage == LanguageOption.korean) {
+  context.setLocale(const Locale('ko'));
+} else if (_selectedLanguage == LanguageOption.vietnamese) {
+  context.setLocale(const Locale('vi'));
+} else if (_selectedLanguage == LanguageOption.thai) {
+  context.setLocale(const Locale('th'));
+}
+
   }
 
   Future<void> _loadThemeMode() async {
@@ -299,7 +308,7 @@ class _SettingPageState extends State<SettingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Settings"),
+        title: Text('setting'.tr()),
         backgroundColor: Theme.of(context)
             .appBarTheme
             .backgroundColor, // Automatically use theme color
@@ -375,8 +384,8 @@ class _SettingPageState extends State<SettingPage> {
                     ListTile(
                       leading: const Icon(Icons.brightness_6,
                           color: Colors.blueAccent),
-                      title: const Text(
-                        "Theme Mode",
+                      title: Text(
+                        'thememode'.tr(),
                         style: TextStyle(fontWeight: FontWeight.w600),
                       ),
                       trailing: Row(
@@ -450,7 +459,7 @@ class _SettingPageState extends State<SettingPage> {
                         children: [
                           Icon(Icons.language, color: Colors.blueAccent),
                           const SizedBox(width: 8),
-                           Text(
+                          Text(
                             "Select Language".tr(),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
@@ -476,8 +485,52 @@ class _SettingPageState extends State<SettingPage> {
                                 },
                               ),
                               RadioListTile<LanguageOption>(
-                                 title: Text("lao".tr()),
+                                title: Text("lao".tr()),
                                 value: LanguageOption.lao,
+                                groupValue: tempSelected,
+                                activeColor: Colors.blueAccent,
+                                onChanged: (LanguageOption? value) {
+                                  setState(() {
+                                    tempSelected = value!;
+                                  });
+                                },
+                              ),
+                              RadioListTile<LanguageOption>(
+                                title: Text("chinese".tr()),
+                                value: LanguageOption.chinese,
+                                groupValue: tempSelected,
+                                activeColor: Colors.blueAccent,
+                                onChanged: (LanguageOption? value) {
+                                  setState(() {
+                                    tempSelected = value!;
+                                  });
+                                },
+                              ),
+                              RadioListTile<LanguageOption>(
+                                title: Text("korean".tr()),
+                                value: LanguageOption.korean,
+                                groupValue: tempSelected,
+                                activeColor: Colors.blueAccent,
+                                onChanged: (LanguageOption? value) {
+                                  setState(() {
+                                    tempSelected = value!;
+                                  });
+                                },
+                              ),
+                              RadioListTile<LanguageOption>(
+                                title: Text("vietnam".tr()),
+                                value: LanguageOption.vietnamese,
+                                groupValue: tempSelected,
+                                activeColor: Colors.blueAccent,
+                                onChanged: (LanguageOption? value) {
+                                  setState(() {
+                                    tempSelected = value!;
+                                  });
+                                },
+                              ),
+                              RadioListTile<LanguageOption>(
+                                title: Text("thai".tr()),
+                                value: LanguageOption.thai,
                                 groupValue: tempSelected,
                                 activeColor: Colors.blueAccent,
                                 onChanged: (LanguageOption? value) {
@@ -530,6 +583,14 @@ class _SettingPageState extends State<SettingPage> {
                     context.setLocale(const Locale('en'));
                   } else if (_selectedLanguage == LanguageOption.lao) {
                     context.setLocale(const Locale('lo'));
+                  } else if (_selectedLanguage == LanguageOption.lao) {
+                    context.setLocale(const Locale('cn'));
+                  } else if (_selectedLanguage == LanguageOption.lao) {
+                    context.setLocale(const Locale('kr'));
+                  } else if (_selectedLanguage == LanguageOption.lao) {
+                    context.setLocale(const Locale('vn'));
+                  } else if (_selectedLanguage == LanguageOption.lao) {
+                    context.setLocale(const Locale('th'));
                   }
 
                   // บันทึกลง SharedPreferences

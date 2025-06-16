@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -64,255 +65,275 @@ class _OwnerMainState extends State<ownerMain> {
   }
 
   Future<void> updateParkingStatus(String parkingId) async {
-  try {
-    tz.initializeTimeZones();
+    try {
+      tz.initializeTimeZones();
 
-    final docRef = FirebaseFirestore.instance.collection('parking').doc(parkingId);
-    final doc = await docRef.get();
+      final docRef =
+          FirebaseFirestore.instance.collection('parking').doc(parkingId);
+      final doc = await docRef.get();
 
-    if (doc.exists) {
-      final data = doc.data()!;
-      final openTimeStr = data['openTime'];
-      final closeTimeStr = data['closeTime'];
-      final timezoneStr = data['timezone'] ?? 'Asia/Bangkok';
+      if (doc.exists) {
+        final data = doc.data()!;
+        final openTimeStr = data['openTime'];
+        final closeTimeStr = data['closeTime'];
+        final timezoneStr = data['timezone'] ?? 'Asia/Bangkok';
 
-      final location = tz.getLocation(timezoneStr);
-      final now = tz.TZDateTime.now(location);
+        final location = tz.getLocation(timezoneStr);
+        final now = tz.TZDateTime.now(location);
 
-      final openParts = openTimeStr.split(":").map(int.parse).toList();
-      final closeParts = closeTimeStr.split(":").map(int.parse).toList();
+        final openParts = openTimeStr.split(":").map(int.parse).toList();
+        final closeParts = closeTimeStr.split(":").map(int.parse).toList();
 
-      final openTime = tz.TZDateTime(location, now.year, now.month, now.day, openParts[0], openParts[1]);
-      var closeTime = tz.TZDateTime(location, now.year, now.month, now.day, closeParts[0], closeParts[1]);
+        final openTime = tz.TZDateTime(
+            location, now.year, now.month, now.day, openParts[0], openParts[1]);
+        var closeTime = tz.TZDateTime(location, now.year, now.month, now.day,
+            closeParts[0], closeParts[1]);
 
-      // If closeTime is before openTime, assume it closes the next day
-      if (closeTime.isBefore(openTime)) {
-        closeTime = closeTime.add(const Duration(days: 1));
-      }
+        // If closeTime is before openTime, assume it closes the next day
+        if (closeTime.isBefore(openTime)) {
+          closeTime = closeTime.add(const Duration(days: 1));
+        }
 
-      final isOpen = now.isAfter(openTime) && now.isBefore(closeTime);
-      final newStatus = isOpen ? "Online" : "Offline";
-      final currentStatus = data['status'];
+        final isOpen = now.isAfter(openTime) && now.isBefore(closeTime);
+        final newStatus = isOpen ? "Online" : "Offline";
+        final currentStatus = data['status'];
 
-      if (currentStatus != newStatus) {
-        await docRef.update({'status': newStatus});
-        print("Status updated to: $newStatus");
+        if (currentStatus != newStatus) {
+          await docRef.update({'status': newStatus});
+          print("Status updated to: $newStatus");
+        } else {
+          print("Status remains unchanged: $newStatus");
+        }
       } else {
-        print("Status remains unchanged: $newStatus");
+        print("Parking document not found");
       }
-    } else {
-      print("Parking document not found");
+    } catch (e) {
+      print("Error updating status: $e");
     }
-  } catch (e) {
-    print("Error updating status: $e");
   }
-}
 
-  void toggleStatus(String parkingId, String currentStatus) async {
+  void toggleStatus(String userId, String currentStatus) async {
     String newStatus = currentStatus == "Online" ? "Offline" : "Online";
+    final firestore = FirebaseFirestore.instance;
 
-    await FirebaseFirestore.instance
-        .collection('Owner') // Reference the "parking" collection
-        .doc(parkingId) // Specify the document to update
+    // 1. Get the Owner document by userId
+    final ownerSnapshot = await firestore
+        .collection('Owner')
+        .where('userId', isEqualTo: userId)
+        .limit(1)
+        .get();
+
+    if (ownerSnapshot.docs.isEmpty) {
+      print("❌ No Owner found with userId: $userId");
+      return;
+    }
+
+    final ownerDoc = ownerSnapshot.docs.first;
+    final ownerDocId = ownerDoc.id;
+
+    // 2. Update Owner status
+    await firestore
+        .collection('Owner')
+        .doc(ownerDocId)
         .update({'status': newStatus});
+    print("✅ Owner status updated");
+
+    // 3. Update all parking documents with matching ownerId (userId)
+    final parkingSnapshot = await firestore
+        .collection('parking')
+        .where('ownerId', isEqualTo: userId)
+        .get();
+
+    print("Found ${parkingSnapshot.docs.length} parking documents");
+
+    for (var doc in parkingSnapshot.docs) {
+      await doc.reference.update({'status': newStatus});
+      print("✅ Updated parking ${doc.id} to $newStatus");
+    }
   }
 
   Widget ticketWidget({
-  required String fullName,
-  required String dateOfBirth,
-  required String age,
-  required String status,
-  required String email,
-  required String idCard,
-  required VoidCallback onToggle,
-  required String profileImageUrl,
-}) {
-  return Card(
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(18.0),
-    ),
-    margin: const EdgeInsets.symmetric(vertical: 8.0),
-    child: Container(
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.blueAccent,
-          width: 1.0,
+    required String fullName,
+    required String dateOfBirth,
+    required String age,
+    required String status,
+    required String email,
+    required String idCard,
+    required VoidCallback onToggle,
+    required String profileImageUrl,
+  }) {
+    return LayoutBuilder(builder: (context, constraints) {
+      final screenWidth = MediaQuery.of(context).size.width;
+
+      return Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18.0),
         ),
-        borderRadius: BorderRadius.circular(18.0),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Profile and Name
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.grey[300],
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(30),
-                    child: Image.network(
-                      profileImageUrl,
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(Icons.person,
-                            size: 30, color: Colors.grey);
-                      },
+        margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: Colors.blueAccent,
+              width: 1.0,
+            ),
+            borderRadius: BorderRadius.circular(18.0),
+          ),
+          padding: EdgeInsets.all(screenWidth * 0.04),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /// Profile and Name
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: screenWidth * 0.08,
+                    backgroundColor: Colors.grey[300],
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(screenWidth * 0.08),
+                      child: Image.network(
+                        profileImageUrl,
+                        width: screenWidth * 0.16,
+                        height: screenWidth * 0.16,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(Icons.person,
+                              size: 30, color: Colors.grey);
+                        },
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 18),
-                Expanded(
-                  child: Text(
-                    fullName,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      fullName,
+                      style: TextStyle(
+                        fontSize: screenWidth * 0.05,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 11),
+                ],
+              ),
 
-            // Status and Contact
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Email: $email"),
-                Text(
-                  "Status: $status",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: status.toLowerCase() == 'online'
-                        ? Colors.green
-                        : Colors.red,
-                  ),
-                ),
-              ],
-            ),
+              const SizedBox(height: 12),
 
-            const SizedBox(height: 6),
-            const Divider(),
-
-            // Switch
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Status Toggle",
-                  style: TextStyle(fontSize: 14),
-                ),
-                Row(
-                  children: [
-                    Text(status == "Online" ? "Go Offline" : "Go Online"),
-                    const SizedBox(width: 8),
-                    Switch(
-                      value: status.toLowerCase() == 'online',
-                      onChanged: (value) => onToggle(),
-                      activeColor: Colors.green,
-                      activeTrackColor: Colors.lightGreenAccent,
-                      inactiveThumbColor: Colors.red,
-                      inactiveTrackColor: Colors.redAccent,
+              /// Status and Email
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    child: Text(
+                      "Email: $email",
+                      style: TextStyle(fontSize: screenWidth * 0.035),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ],
+                  ),
+                  Text(
+                    "Status: $status",
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.035,
+                      color: status.toLowerCase() == 'online'
+                          ? Colors.green
+                          : Colors.red,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 6),
+              const Divider(),
+
+              /// Switch
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'status'.tr(),
+                    style: TextStyle(fontSize: screenWidth * 0.037),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        status == 'online'.tr()
+                            ? 'gooffline'.tr()
+                            : 'goonline'.tr(),
+                        style: TextStyle(fontSize: screenWidth * 0.035),
+                      ),
+                      const SizedBox(width: 8),
+                      Switch(
+                        value: status.toLowerCase() == 'online',
+                        onChanged: (value) => onToggle(),
+                        activeColor: Colors.green,
+                        activeTrackColor: Colors.lightGreenAccent,
+                        inactiveThumbColor: Colors.red,
+                        inactiveTrackColor: Colors.redAccent,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
-    ),
-  );
-}
-
-
-  Widget nameProfile() {
-  final currentUser = auth.currentUser;
-
-  if (currentUser == null || currentUser.email == null) {
-    return const Center(
-      child: Text('User not logged in',
-          style: TextStyle(fontSize: 18, color: Colors.red)),
-    );
+      );
+    });
   }
 
-  return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance
-        .collection('Owner')
-        .where('email', isEqualTo: currentUser.email)
-        .limit(1)
-        .snapshots(),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
-      } else if (snapshot.hasError || !snapshot.hasData || snapshot.data!.docs.isEmpty) {
-        return const Center(
-          child: Text('Error loading profile',
-              style: TextStyle(fontSize: 18, color: Colors.red)),
-        );
-      } else {
-        final userDoc = snapshot.data!.docs.first;
-        final userData = userDoc.data() as Map<String, dynamic>;
+  Widget nameProfile() {
+    final currentUser = auth.currentUser;
 
-        final fname = userData['fname'] ?? 'Guest';
-        final lname = userData['lname'] ?? '';
-        final fullName = '$fname $lname';
-        final email = userData['email'] ?? 'N/A';
-        final dateOfBirth = userData['Dateofbirth'] ?? 'N/A';
-        final age = userData['age'] ?? 'N/A';
-        final idCard = userData['idcard'] ?? 'N/A';
-        final profileImageUrl = userData['profile_image_url'] ?? '';
-        final status = userData['status'] ?? 'Offline';
-
-        return ticketWidget(
-          fullName: fullName,
-          dateOfBirth: dateOfBirth,
-          age: age,
-          status: status,
-          email: email,
-          idCard: idCard,
-          onToggle: () => toggleStatus(userDoc.id, status),
-          profileImageUrl: profileImageUrl,
-        );
-      }
-    },
-  );
-}
-
-
-
-  Future<void> _pickImage() async {
-    try {
-      final XFile? pickedFile =
-          await _picker.pickImage(source: ImageSource.gallery);
-
-      if (pickedFile != null) {
-        if (kIsWeb) {
-          final Uint8List bytes = await pickedFile.readAsBytes();
-          setState(() {
-            _imageBytes = bytes;
-          });
-        } else {
-          setState(() {
-            _selectedImage = File(pickedFile.path);
-          });
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No image selected')),
-        );
-      }
-    } catch (e) {
-      print("Error selecting image: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error selecting image')),
+    if (currentUser == null || currentUser.email == null) {
+      return const Center(
+        child: Text('User not logged in',
+            style: TextStyle(fontSize: 18, color: Colors.red)),
       );
     }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('Owner')
+          .where('email', isEqualTo: currentUser.email)
+          .limit(1)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError ||
+            !snapshot.hasData ||
+            snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Text('Error loading profile',
+                style: TextStyle(fontSize: 18, color: Colors.red)),
+          );
+        } else {
+          final userDoc = snapshot.data!.docs.first;
+          final userData = userDoc.data() as Map<String, dynamic>;
+
+          final fname = userData['fname'] ?? 'Guest';
+          final lname = userData['lname'] ?? '';
+          final fullName = '$fname $lname';
+          final email = userData['email'] ?? 'N/A';
+          final dateOfBirth = userData['Dateofbirth'] ?? 'N/A';
+          final age = userData['age'] ?? 'N/A';
+          final idCard = userData['idcard'] ?? 'N/A';
+          final profileImageUrl = userData['profile_image_url'] ?? '';
+          final status = userData['status'] ?? 'Offline';
+
+          return ticketWidget(
+            fullName: fullName,
+            dateOfBirth: dateOfBirth,
+            age: age,
+            status: status,
+            email: email,
+            idCard: idCard,
+            onToggle: () => toggleStatus(userData['userId'], status),
+            profileImageUrl: profileImageUrl,
+          );
+        }
+      },
+    );
   }
 
   Future<String?> _uploadImageToCloudinary() async {
@@ -439,7 +460,7 @@ class _OwnerMainState extends State<ownerMain> {
           Expanded(
             child: DashboardButton(
               iconPath: 'assets/images/income.png',
-              label: 'ລາຍຮັບ',
+              label: 'income'.tr(),
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (context) => DetailMoney()),
@@ -451,11 +472,20 @@ class _OwnerMainState extends State<ownerMain> {
           Expanded(
             child: DashboardButton(
               iconPath: 'assets/images/ticket.png',
-              label: 'ປະຫວັດ',
+              label: 'history'.tr(),
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => DetailBooking()),
-                );
+                final userId = FirebaseAuth.instance.currentUser?.uid;
+                if (userId != null) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (context) => DetailBooking(userId: userId)),
+                  );
+                } else {
+                  // แสดง error หรือแจ้งเตือน
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('User not logged in')),
+                  );
+                }
               },
             ),
           ),
@@ -463,7 +493,7 @@ class _OwnerMainState extends State<ownerMain> {
           Expanded(
             child: DashboardButton(
               iconPath: 'assets/images/question.png',
-              label: 'ຊ່ວຍເຫຼືອ',
+              label: 'help'.tr(),
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (context) => Help()),
@@ -487,600 +517,232 @@ class _OwnerMainState extends State<ownerMain> {
         finalYear, finalMonth, day > lastDayOfMonth ? lastDayOfMonth : day);
   }
 
- Widget parkLocation() {
-  User? currentUser = FirebaseAuth.instance.currentUser;
-  String ownerId = currentUser?.uid ?? '';
+  Widget parkLocation() {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    String ownerId = currentUser?.uid ?? '';
 
-  return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance
-        .collection('parking')
-        .where('ownerId', isEqualTo: ownerId)
-        .snapshots(),
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
-      } else if (snapshot.hasError || !snapshot.hasData) {
-        return const Center(
-          child: Text('Error loading locations',
-              style: TextStyle(fontSize: 18, color: Colors.red)),
-        );
-      } else if (snapshot.data!.docs.isEmpty) {
-        return const Center(
-          child: Text(
-            'No parking locations available',
-            style: TextStyle(fontSize: 18, color: Colors.grey),
-          ),
-        );
-      } else {
-        final locations = snapshot.data!.docs;
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: locations.length,
-          itemBuilder: (context, index) {
-            final locationData =
-                locations[index].data() as Map<String, dynamic>;
-            final docId = locations[index].id;
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('parking')
+          .where('ownerId', isEqualTo: ownerId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError || !snapshot.hasData) {
+          return const Center(
+            child: Text('Error loading locations',
+                style: TextStyle(fontSize: 18, color: Colors.red)),
+          );
+        } else if (snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Text(
+              'No parking locations available',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+          );
+        } else {
+          final locations = snapshot.data!.docs;
+          return ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: locations.length,
+            itemBuilder: (context, index) {
+              final locationData =
+                  locations[index].data() as Map<String, dynamic>;
+              final docId = locations[index].id;
 
-            final locationName = locationData['nameparking'] ?? 'Unknown Location';
-            final carSlot = locationData['car_slot'] ?? 'Unknown';
-            final imageUrl = locationData['imageUrl'] ?? '';
-            final pricePerMonth = locationData['pricePerMonth'] ?? '';
-            final price = locationData['price'] ?? '';
-            final status = locationData['status'] ?? "Offline";
+              final locationName =
+                  locationData['nameparking'] ?? 'Unknown Location';
+              final carSlot = locationData['car_slot'] ?? 'Unknown';
+              final imageUrl = locationData['imageUrl'] ?? '';
+              final pricePerMonth = locationData['pricePerMonth'] ?? '';
+              final price = locationData['price'] ?? '';
+              final status = locationData['status'] ?? "Offline";
 
-            final startDate =
-                (locationData['packageStartDate'] as Timestamp?)?.toDate();
-            final months = locationData['packageMonths'] ?? 1;
-            final expiryDate = startDate != null
-                ? addMonths(startDate, months)
-                : DateTime.now();
-            final isExpired = DateTime.now().isAfter(expiryDate);
+              final startDate =
+                  (locationData['packageStartDate'] as Timestamp?)?.toDate();
+              final months = locationData['packageMonths'] ?? 1;
+              final expiryDate = startDate != null
+                  ? addMonths(startDate, months)
+                  : DateTime.now();
+              final isExpired = DateTime.now().isAfter(expiryDate);
 
-            return GestureDetector(
-              onTap: isExpired
-                  ? null
-                  : () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => DetailOwner(documentId: docId),
-                        ),
-                      );
-                    },
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16.0),
-                child: Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16.0),
-                  ),
-                  elevation: 6,
-                  margin: const EdgeInsets.symmetric(
-                      vertical: 10.0, horizontal: 8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (imageUrl.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(16.0)),
-                          child: Image.network(
-                            imageUrl,
-                            height: 150,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Center(child: Text("Failed to load image")),
+              return GestureDetector(
+                onTap: isExpired
+                    ? null
+                    : () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                DetailOwner(documentId: docId),
                           ),
-                        ),
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  "Parking Location ${index + 1}",
-                                  style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                const Spacer(),
-                                Switch(
-                                  value: status == "Online",
-                                  onChanged: isExpired
-                                      ? null
-                                      : (value) {
-                                          toggleStatusp(docId, status);
-                                        },
-                                  activeColor: Colors.green,
-                                  inactiveThumbColor: Colors.red,
-                                ),
-                              ],
+                        );
+                      },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16.0),
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16.0),
+                    ),
+                    elevation: 6,
+                    margin: const EdgeInsets.symmetric(
+                        vertical: 10.0, horizontal: 8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (imageUrl.isNotEmpty)
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(16.0)),
+                            child: Image.network(
+                              imageUrl,
+                              height: 150,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Center(
+                                      child: Text("Failed to load image")),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "Location: $locationName",
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w500),
-                            ),
-                            const Divider(),
-                            Text(
-                              isExpired
-                                  ? "Subscription: Expired"
-                                  : "Subscription: Active",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: isExpired ? Colors.red : Colors.green,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "Status: $status",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: status == "Online"
-                                    ? Colors.green
-                                    : Colors.orange,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            if (!isExpired && status == "Online")
-                              StreamBuilder<int>(
-                                stream: FirebaseFirestore.instance
-                                    .collection('bookings')
-                                    .where('locationId', isEqualTo: docId)
-                                    .where('Status',
-                                        whereIn: ['check-in', 'pending'])
-                                    .snapshots()
-                                    .map((snapshot) => snapshot.docs.length),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState ==
-                                      ConnectionState.waiting) {
-                                    return const CircularProgressIndicator();
-                                  }
-                                  if (snapshot.hasError) {
-                                    return const Text('Error');
-                                  }
-                                  final count = snapshot.data ?? 0;
-                                  return Text(
-                                    "CAR: $count/$carSlot",
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    "Parking Location ${index + 1}",
                                     style: const TextStyle(
-                                        fontSize: 16,
+                                        fontSize: 20,
                                         fontWeight: FontWeight.bold),
-                                  );
-                                },
-                              ),
-                            if (isExpired)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    minimumSize: const Size(double.infinity, 50),
-                                    backgroundColor: Colors.blueAccent,
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 4,
                                   ),
-                                  onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (context) => SubscriptionPackage(
-                                          parkingId: docId,
-                                          name: locationName,
-                                          price: price,
-                                        ),
-                                      ),
+                                  const Spacer(),
+                                  Switch(
+                                    value: status == "Online",
+                                    onChanged: isExpired
+                                        ? null
+                                        : (value) {
+                                            toggleStatusp(docId, status);
+                                          },
+                                    activeColor: Colors.green,
+                                    inactiveThumbColor: Colors.red,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "Location: $locationName",
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w500),
+                              ),
+                              const Divider(),
+                              Text(
+                                isExpired
+                                    ? "Subscription: Expired"
+                                    : "Subscription: Active",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: isExpired ? Colors.red : Colors.green,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "Status: $status",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: status == "Online"
+                                      ? Colors.green
+                                      : Colors.orange,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              if (!isExpired && status == "Online")
+                                StreamBuilder<int>(
+                                  stream: FirebaseFirestore.instance
+                                      .collection('bookings')
+                                      .where('locationId', isEqualTo: docId)
+                                      .where('Status',
+                                          whereIn: ['check-in', 'pending'])
+                                      .snapshots()
+                                      .map((snapshot) => snapshot.docs.length),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const CircularProgressIndicator();
+                                    }
+                                    if (snapshot.hasError) {
+                                      return const Text('Error');
+                                    }
+                                    final count = snapshot.data ?? 0;
+                                    return Text(
+                                      "CAR: $count/$carSlot",
+                                      style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold),
                                     );
                                   },
-                                  child: const Text(
-                                    "Renew",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+                                ),
+                              if (isExpired)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      minimumSize:
+                                          const Size(double.infinity, 50),
+                                      backgroundColor: Colors.blueAccent,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      elevation: 4,
+                                    ),
+                                    onPressed: () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              SubscriptionPackage(
+                                            parkingId: docId,
+                                            name: locationName,
+                                            price: price,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: const Text(
+                                      "Renew",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
-        );
-      }
-    },
-  );
-}
-
-void toggleStatusp(String parkingId, String currentStatus) async {
-  String newStatus = currentStatus == "Online" ? "Offline" : "Online";
-
-  await FirebaseFirestore.instance
-      .collection('parking') // updated to 'parking'
-      .doc(parkingId)
-      .update({'status': newStatus});
-}
-
-
-
-// Widget parkLocation() {
-//   User? currentUser = FirebaseAuth.instance.currentUser;
-//   String ownerId = currentUser?.uid ?? '';
-
-//   return StreamBuilder<QuerySnapshot>(
-//     stream: FirebaseFirestore.instance
-//         .collection('parking')
-//         .where('ownerId', isEqualTo: ownerId)
-//         .snapshots(),
-//     builder: (context, snapshot) {
-//       if (snapshot.connectionState == ConnectionState.waiting) {
-//         return const Center(child: CircularProgressIndicator());
-//       }
-//       if (snapshot.hasError) {
-//         return const Center(
-//           child: Text(
-//             'Error loading locations',
-//             style: TextStyle(fontSize: 18, color: Colors.red),
-//           ),
-//         );
-//       }
-//       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-//         return const Center(
-//           child: Text(
-//             'No parking locations available',
-//             style: TextStyle(fontSize: 18, color: Colors.grey),
-//           ),
-//         );
-//       }
-
-//       final locations = snapshot.data!.docs;
-
-//       return ListView.builder(
-//         itemCount: locations.length,
-//         itemBuilder: (context, index) {
-//           final locationData = locations[index].data() as Map<String, dynamic>?;
-//           final docId = locations[index].id;
-
-//           if (locationData == null) {
-//             return const SizedBox.shrink();
-//           }
-
-//           final locationName = locationData['nameparking'] ?? 'Unknown Location';
-//           final address = locationData['address'] ?? 'Unknown Address';
-//           final description = locationData['description'] ?? 'No Description Available';
-//           final price = locationData['price'] ?? 'Unknown';
-//           final carSlot = locationData['car_slot'] ?? 'Unknown';
-//           final imageUrl = locationData['imageUrl'] ?? '';
-
-//           return GestureDetector(
-//             onTap: () {
-//               Navigator.of(context).push(
-//                 MaterialPageRoute(
-//                   builder: (context) => btnLocation(documentId: docId),
-//                 ),
-//               );
-//             },
-//             child: Card(
-//               shape: RoundedRectangleBorder(
-//                 borderRadius: BorderRadius.circular(16.0),
-//               ),
-//               elevation: 6,
-//               margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 8.0),
-//               child: Padding(
-//                 padding: const EdgeInsets.all(16.0),
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     Row(
-//                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                       children: [
-//                         Text(
-//                           "Parking Location ${index + 1}",
-//                           style: const TextStyle(
-//                             fontSize: 20,
-//                             fontWeight: FontWeight.bold,
-//                           ),
-//                         ),
-//                         PopupMenuButton<String>(
-//                           onSelected: (value) {
-//                             if (value == 'edit') {
-//                               _showEditLocationDialog(docId: docId, data: locationData);
-//                             } else if (value == 'delete') {
-//                               _showDeleteConfirmationDialog(docId: docId);
-//                             }
-//                           },
-//                           itemBuilder: (BuildContext context) => [
-//                             const PopupMenuItem(value: 'edit', child: Text('Edit')),
-//                             const PopupMenuItem(value: 'delete', child: Text('Delete')),
-//                           ],
-//                           icon: const Icon(Icons.more_vert),
-//                         ),
-//                       ],
-//                     ),
-//                     const SizedBox(height: 10),
-//                     if (imageUrl.isNotEmpty)
-//                       ClipRRect(
-//                         borderRadius: BorderRadius.circular(12),
-//                         child: Image.network(
-//                           imageUrl,
-//                           height: 150,
-//                           width: double.infinity,
-//                           fit: BoxFit.cover,
-//                           errorBuilder: (context, error, stackTrace) =>
-//                               const Center(child: Text("Failed to load image")),
-//                         ),
-//                       ),
-//                     const SizedBox(height: 12),
-//                     Text("Location: $locationName", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-//                     const SizedBox(height: 8),
-//                     Text("Address: $address", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-//                     const SizedBox(height: 8),
-//                     Text("Car Slots: 0/$carSlot", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-//                     const SizedBox(height: 8),
-//                     Text("Price: $price", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-//                     const SizedBox(height: 12),
-//                     ElevatedButton.icon(
-//                       icon: const Icon(Icons.map, color: Colors.white),
-//                       label: const Text("Open in Maps", style: TextStyle(color: Colors.white)),
-//                       onPressed: () {
-//                         Navigator.of(context).push(MaterialPageRoute(
-//                           builder: (c) => map_api(documentId: docId),
-//                         ));
-//                       },
-//                       style: ElevatedButton.styleFrom(
-//                         backgroundColor: Colors.blueAccent,
-//                         shape: RoundedRectangleBorder(
-//                           borderRadius: BorderRadius.circular(12),
-//                         ),
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//             ),
-//           );
-//         },
-//       );
-//     },
-//   );
-// }
-
-  /// Function to show an edit popup dialog (remains unchanged)
-  void _showEditLocationDialog({
-    required String docId,
-    required Map<String, dynamic> data,
-  }) {
-    final _editFormKey = GlobalKey<FormState>();
-    final _editNameController =
-        TextEditingController(text: data['nameparking'] ?? '');
-    final _editAddressController =
-        TextEditingController(text: data['address'] ?? '');
-    final _editDescriptionController =
-        TextEditingController(text: data['description'] ?? '');
-    final _editPriceController =
-        TextEditingController(text: data['price']?.toString() ?? '');
-    final _editCarSlotController =
-        TextEditingController(text: data['car_slot']?.toString() ?? '');
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.0),
-          ),
-          title: Row(
-            children: const [
-              Icon(Icons.edit, color: Colors.blue, size: 30),
-              SizedBox(width: 8),
-              Text(
-                "Edit Location",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Form(
-              key: _editFormKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Location Name
-                  TextFormField(
-                    controller: _editNameController,
-                    decoration: InputDecoration(
-                      labelText: "Location Name",
-                      prefixIcon:
-                          const Icon(Icons.location_on, color: Colors.blue),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return "Please enter the location name";
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Address
-                  TextFormField(
-                    controller: _editAddressController,
-                    decoration: InputDecoration(
-                      labelText: "Address",
-                      prefixIcon:
-                          const Icon(Icons.location_on, color: Colors.blue),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return "Please enter the address";
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Description
-                  TextFormField(
-                    controller: _editDescriptionController,
-                    decoration: InputDecoration(
-                      labelText: "Description",
-                      prefixIcon:
-                          const Icon(Icons.description, color: Colors.blue),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return "Please enter the description";
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Price
-                  TextFormField(
-                    controller: _editPriceController,
-                    decoration: InputDecoration(
-                      labelText: "Price",
-                      prefixIcon:
-                          const Icon(Icons.attach_money, color: Colors.blue),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return "Please enter the price";
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Car Slots
-                  TextFormField(
-                    controller: _editCarSlotController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: "Car Slots (min 3)",
-                      prefixIcon:
-                          const Icon(Icons.directions_car, color: Colors.blue),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.0),
-                      ),
-                    ),
-                    validator: (value) {
-                      final carSlot = int.tryParse(value ?? '') ?? 0;
-                      if (carSlot < 3) {
-                        return "Car slots must be at least 3";
-                      }
-                      return null;
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                "Cancel",
-                style:
-                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-              ),
-              onPressed: () async {
-                if (_editFormKey.currentState?.validate() ?? false) {
-                  await FirebaseFirestore.instance
-                      .collection('parking')
-                      .doc(docId)
-                      .update({
-                    'nameparking': _editNameController.text.trim(),
-                    'address': _editAddressController.text.trim(),
-                    'description': _editDescriptionController.text.trim(),
-                    'price': int.parse(_editPriceController.text.trim()),
-                    'car_slot': int.parse(_editCarSlotController.text.trim()),
-                  });
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Location updated successfully!')),
-                  );
-                }
-              },
-              child: const Text(
-                "Save",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        );
+              );
+            },
+          );
+        }
       },
     );
   }
 
-  /// Function to show a delete confirmation dialog.
-  void _showDeleteConfirmationDialog({required String docId}) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Confirm Delete"),
-          content: const Text("Are you sure you want to delete this location?"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                "Cancel",
-                style: TextStyle(color: Colors.blueAccent),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-              ),
-              onPressed: () async {
-                await FirebaseFirestore.instance
-                    .collection('parking')
-                    .doc(docId)
-                    .delete();
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text("Location deleted successfully!")),
-                );
-              },
-              child: const Text(
-                "Delete",
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        );
-      },
-    );
+  void toggleStatusp(String parkingId, String currentStatus) async {
+    String newStatus = currentStatus == "Online" ? "Offline" : "Online";
+
+    await FirebaseFirestore.instance
+        .collection('parking') // updated to 'parking'
+        .doc(parkingId)
+        .update({'status': newStatus});
   }
 
   @override
@@ -1088,7 +750,7 @@ void toggleStatusp(String parkingId, String currentStatus) async {
     return Scaffold(
       backgroundColor: Theme.of(context).cardColor,
       appBar: AppBar(
-        title: const Text("Owner Main"),
+        title: Text('ownermain'.tr()),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -1099,8 +761,8 @@ void toggleStatusp(String parkingId, String currentStatus) async {
             const SizedBox(height: 14),
             buttonthree(context),
             const SizedBox(height: 14),
-            const Text(
-              'Parking location',
+            Text(
+              'ownermain'.tr(),
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -1128,7 +790,7 @@ void toggleStatusp(String parkingId, String currentStatus) async {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.map),
-                      title: const Text('Add Marker'),
+                      title: Text('addparking'.tr()),
                       onTap: () {
                         Navigator.pop(context); // Close the bottom sheet
                         Navigator.of(context)
@@ -1136,8 +798,8 @@ void toggleStatusp(String parkingId, String currentStatus) async {
                       },
                     ),
                     ListTile(
-                      leading: const Icon(Icons.location_on),
-                      title: const Text('Add Employee'),
+                      leading: const Icon(Icons.emoji_people),
+                      title: Text('addemp'.tr()),
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(

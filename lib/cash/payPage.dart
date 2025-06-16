@@ -57,13 +57,22 @@ class _PayPageState extends State<PayPage> {
   final String cloudinaryUrl =
       "https://api.cloudinary.com/v1_1/doiq3nkso/image/upload";
   final String uploadPreset = "parking";
-  @override
-  void initState() {
-    super.initState();
-    _initializeNotifications();
-    String bookingId = "bookings${DateTime.now().millisecondsSinceEpoch}";
-    listenForPaymentStatus(bookingId,context);
-  }
+ @override
+void initState() {
+  super.initState();
+  _initializeNotifications();
+
+  String bookingId = "bookings${DateTime.now().millisecondsSinceEpoch}";
+  listenForPaymentStatus(bookingId, context);
+
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      checkAndUpdateTimeoutBookings(user.uid);
+    }
+  });
+}
+
 
   Future<void> _pickImage() async {
     try {
@@ -427,7 +436,8 @@ void _pickTime() {
         );
       },
     );
-
+    DateTime now = DateTime.now();
+    DateTime timeout = now.add(const Duration(hours: 1));
     await FirebaseFirestore.instance.collection('payments').doc(transactionId).set({
       "userId": user.uid,
       "userName": username,
@@ -455,6 +465,7 @@ void _pickTime() {
       "vehicleId": widget.selectedVehicleId,
       "paymentStatus": "pending",
       "Status": "pending",
+      'timeout': Timestamp.fromDate(timeout),
       "timestamp": FieldValue.serverTimestamp(),
     });
 
@@ -477,6 +488,49 @@ void _pickTime() {
   }
 }
 
+ Future<void> checkAndUpdateTimeoutBookings(String userId) async {
+  final now = Timestamp.now();
+  print("Now: $now | userId: $userId");
+
+  final query = await FirebaseFirestore.instance
+      .collection('bookings')
+      .where('userId', isEqualTo: userId)
+      .where('Status', isEqualTo: 'pending')
+      .where('timeout', isLessThanOrEqualTo: now)
+      .get();
+
+  print("Found ${query.docs.length} expired bookings");
+
+  for (var doc in query.docs) {
+    await doc.reference.update({'Status': 'time-out'});
+    showLocalNotification(
+      title: 'Booking Expired',
+      body: 'การจองของคุณหมดเวลาแล้ว',
+    );
+  }
+}
+
+  void showLocalNotification({required String title, required String body}) {
+  const AndroidNotificationDetails androidPlatformChannelSpecifics =
+      AndroidNotificationDetails(
+    'booking_timeout_channel',
+    'Booking Timeout',
+    channelDescription: 'Notification when booking is expired',
+    importance: Importance.max,
+    priority: Priority.high,
+    showWhen: false,
+  );
+
+  const NotificationDetails platformChannelSpecifics =
+      NotificationDetails(android: androidPlatformChannelSpecifics);
+
+  flutterLocalNotificationsPlugin.show(
+    0,
+    title,
+    body,
+    platformChannelSpecifics,
+  );
+}
 
   Future<int> countCheckedInTickets() async {
     String userId = FirebaseAuth.instance.currentUser!.uid;

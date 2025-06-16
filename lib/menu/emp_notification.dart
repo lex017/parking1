@@ -115,13 +115,13 @@ class _EmpNotificationState extends State<EmpNotification> {
           return Scaffold(
             appBar: AppBar(title: const Text("My Tickets")),
             body:
-                const Center(child: Text("กรุณาเข้าสู่ระบบเพื่อดูตั๋วของคุณ")),
+                const Center(child: Text("pleace login for see your ticket")),
           );
         }
 
         if (locationId.isEmpty) {
           return const Scaffold(
-            body: Center(child: Text("ไม่พบรหัสสถานที่ของพนักงาน")),
+            body: Center(child: Text("dont see a locationid")),
           );
         }
 

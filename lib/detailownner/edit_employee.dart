@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:parking1/detailownner/edit_fromEpm.dart';
 import 'package:parking1/menu/emp_register.dart';
+
 
 class EditEmployee extends StatefulWidget {
   final String locationId; // Location ID to filter employees
@@ -17,7 +19,7 @@ class _EditEmployeeState extends State<EditEmployee> {
   Future<List<Map<String, dynamic>>> fetchEmployees() async {
     QuerySnapshot snapshot = await _firestore
         .collection('employees')
-        .where('location_id', isEqualTo: widget.locationId) // Filter by location
+        .where('locationId', isEqualTo: widget.locationId)
         .get();
 
     return snapshot.docs.map((doc) {
@@ -28,17 +30,32 @@ class _EditEmployeeState extends State<EditEmployee> {
     }).toList();
   }
 
-  void editEmployee(String employeeId) {
-   
+  void editEmployee(String employeeId) async {
+    DocumentSnapshot snapshot =
+        await _firestore.collection('employees').doc(employeeId).get();
+
+    if (snapshot.exists) {
+      Map<String, dynamic> employeeData = {
+        'id': snapshot.id,
+        ...snapshot.data() as Map<String, dynamic>
+      };
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EditEmployeeForm(employee: employeeData),
+        ),
+      ).then((_) => setState(() {})); // Refresh when returning
+    }
   }
 
   void addEmployee() {
-     Navigator.push(
+    Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => emp_register(),
+        builder: (context) => emp_register(), // Make sure this param is supported
       ),
-    );
+    ).then((_) => setState(() {})); // Refresh when returning
   }
 
   @override
@@ -62,7 +79,7 @@ class _EditEmployeeState extends State<EditEmployee> {
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundImage: employee['profileImage'] != null &&
-                            employee['profileImage'].isNotEmpty
+                            employee['profileImage'].toString().isNotEmpty
                         ? NetworkImage(employee['profileImage'])
                         : const AssetImage('assets/default_profile.png')
                             as ImageProvider,

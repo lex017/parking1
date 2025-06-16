@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class DetailBooking extends StatefulWidget {
-  const DetailBooking({super.key});
+   final String userId;
+  const DetailBooking({super.key, required this.userId});
 
   @override
   State<DetailBooking> createState() => _DetailBookingState();
@@ -27,7 +28,9 @@ class _DetailBookingState extends State<DetailBooking> {
 
   Future<void> fetchParkingOptions() async {
     try {
-      QuerySnapshot snapshot = await _firestore.collection('bookings').get();
+      QuerySnapshot snapshot = await _firestore.collection('bookings')
+      .where('userId',isEqualTo: widget.userId)
+      .get();
       final names = snapshot.docs.map((doc) {
         var data = doc.data() as Map<String, dynamic>;
         return data['nameparking'] ?? 'Unknown';
@@ -35,9 +38,11 @@ class _DetailBookingState extends State<DetailBooking> {
 
       setState(() {
         parkingOptions = ['All', ...names.cast<String>()];
+        print("User ID: ${widget.userId}");
       });
     } catch (e) {
       print('Error: $e');
+       
     }
   }
 

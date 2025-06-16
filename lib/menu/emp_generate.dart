@@ -437,21 +437,35 @@ class _EmpGenerateState extends State<EmpGenerate> {
               ),
             ),
             const SizedBox(height: 40),
-            ElevatedButton(
+            ElevatedButton.icon(
               onPressed: () {
                 setState(() {
                   _isCashPayment = false;
                 });
-                 Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => EmpQrpay(
-                    empId: empId,
-                    locationId: locationId,
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => EmpQrpay(
+                      empId: empId,
+                      locationId: locationId,
+                    ),
                   ),
-                ),
-              );
+                );
               },
-              child: const Text("Next"),
+              icon: const Icon(Icons.arrow_forward,color: Colors.amber, size: 20),
+              label: const Text(
+                "Continue to Payment",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                foregroundColor: Colors.white,
+                elevation: 6,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
           ],
         ),
@@ -467,7 +481,7 @@ class _EmpGenerateState extends State<EmpGenerate> {
       ),
       body: Column(
         children: [
-          // Payment toggle buttons
+          // Toggle buttons
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: ToggleButtons(
@@ -493,9 +507,12 @@ class _EmpGenerateState extends State<EmpGenerate> {
             ),
           ),
           Expanded(
-            child: _isCashPayment
-                ? _buildCashPaymentForm()
-                : _buildQRPaymentPage(),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
+              child: _isCashPayment
+                  ? _buildCashPaymentForm()
+                  : _buildQRPaymentPage(),
+            ),
           ),
         ],
       ),

@@ -462,6 +462,46 @@ void _pickTime() {
     });
   }
 
+String _formatKip(num value) {
+  return value.toStringAsFixed(0).replaceAllMapped(
+    RegExp(r'\B(?=(\d{3})+(?!\d))'),
+    (match) => ',',
+  );
+}
+
+Widget _infoTile(String label, String value, Color accentColor) {
+  return Card(
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    elevation: 2,
+    child: ListTile(
+      tileColor: accentColor.withOpacity(0.1),
+      leading: Icon(Icons.info, color: accentColor),
+      title: Text(label, style: TextStyle(fontWeight: FontWeight.w600)),
+      trailing: Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: accentColor)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ),
+  );
+}
+
+Widget _buildImagePreview() {
+  if (_selectedImage != null) {
+    return Image.file(_selectedImage!, fit: BoxFit.cover, width: double.infinity);
+  }
+  if (_imageBytes != null) {
+    return Image.memory(_imageBytes!, fit: BoxFit.cover, width: double.infinity);
+  }
+  return Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: const [
+        Icon(Icons.camera_alt_outlined, size: 36, color: Colors.grey),
+        SizedBox(height: 8),
+        Text("Tap to upload proof", style: TextStyle(color: Colors.grey)),
+      ],
+    ),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -470,116 +510,98 @@ void _pickTime() {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  padding: const EdgeInsets.all(16),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      // 🔹 Remaining & Price Info Cards
+      _infoTile("Remaining Days", "${widget.remainingDays} days", Colors.orange),
+      const SizedBox(height: 12),
+      _infoTile("Price per Day", "${_formatKip(widget.pricePerDay)} Kip", Colors.green),
+      const SizedBox(height: 12),
+      _infoTile("Total Price", "${_formatKip(widget.totalPrice)} Kip", Colors.redAccent),
+      const SizedBox(height: 20),
+
+      // 📅 Date Card
+      Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.teal.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.teal, width: 2),
+        ),
+        child: Row(
           children: [
-            Text("Remaining days: ${widget.remainingDays}"),
-            const SizedBox(height: 8),
-            Text("Price per day: ${widget.pricePerDay}"),
-            const SizedBox(height: 8),
-            Text("Total price: ${widget.totalPrice}"),
-            const SizedBox(height: 20),
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50, // Light green background
-                border: Border.all(color: Colors.green, width: 2),
-                borderRadius: BorderRadius.circular(10), // Rounded corners
-              ),
-              child: Text(
-                "Date: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}",
-                style: TextStyle(
-                  fontSize: 20,
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Time Picker
-            TextFormField(
-              controller: timeController,
-              decoration: InputDecoration(
-                labelText: "Select Time",
-                hintText: "HH:MM AM/PM",
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.access_time),
-                  onPressed: _pickTime,
-                ),
-              ),
-              readOnly: true,
-            ),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                height: 180,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey),
-                  color: Colors.grey.shade200,
-                ),
-                child: Center(
-                  child: _selectedImage != null
-                      ? Image.file(_selectedImage!, fit: BoxFit.cover)
-                      : (_imageBytes != null
-                          ? Image.memory(_imageBytes!, fit: BoxFit.cover)
-                          : Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.camera_alt, size: 40),
-                                SizedBox(height: 8),
-                                Text("Tap to upload payment proof"),
-                              ],
-                            )),
-                ),
-              ),
-            ),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isButtonDisabled ? null : _savebillAndBooking,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      _isButtonDisabled ? Colors.grey : Colors.blueAccent,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 5,
-                ),
-                child: _isButtonDisabled
-                    ? const SizedBox(
-                        height: 22,
-                        width: 22,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2.5,
-                        ),
-                      )
-                    : const Text(
-                        "Submit Bill",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 1,
-                        ),
-                      ),
-              ),
+            const Icon(Icons.calendar_today, color: Colors.teal),
+            const SizedBox(width: 8),
+            Text(
+              "Date: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}",
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.teal),
             ),
           ],
         ),
       ),
+      const SizedBox(height: 20),
+
+      // ⏰ Time picker input
+      TextFormField(
+        controller: timeController,
+        decoration: InputDecoration(
+          labelText: "Select Time",
+          filled: true,
+          fillColor: Colors.grey.shade100,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.access_time),
+            onPressed: _pickTime,
+          ),
+        ),
+        readOnly: true,
+      ),
+      const SizedBox(height: 20),
+
+      // 📸 Image upload
+      GestureDetector(
+        onTap: _pickImage,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            color: Colors.grey.shade200,
+            height: 200,
+            width: double.infinity,
+            child: _buildImagePreview(),
+          ),
+        ),
+      ),
+      const SizedBox(height: 30),
+
+      // ✅ Submit button
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _isButtonDisabled ? null : _savebillAndBooking,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _isButtonDisabled ? Colors.grey : Colors.blueAccent,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 4,
+          ),
+          child: _isButtonDisabled
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                )
+              : const Text("Submit Bill", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
+        ),
+      ),
+    ],
+  ),
+),
+
     );
   }
 }

@@ -135,7 +135,6 @@ class _MapApiState extends State<MapApi> {
     }
   }
 
-  // Zoom in and Zoom out methods
   Future<void> _zoomIn() async {
     final currentZoom = await _mapController.getZoomLevel();
     _mapController.animateCamera(CameraUpdate.zoomTo(currentZoom + 1));
@@ -148,165 +147,170 @@ class _MapApiState extends State<MapApi> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'Select Parking Location',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-      ),
-      body: Stack(
-        children: [
-          // Google Map
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: _centerMarkerPosition,
-              zoom: 14,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            GoogleMap(
+              initialCameraPosition: CameraPosition(
+                target: _centerMarkerPosition,
+                zoom: 14,
+              ),
+              onMapCreated: (GoogleMapController controller) {
+                setState(() {
+                  _mapController = controller;
+                });
+              },
+              onCameraMove: (CameraPosition position) {
+                setState(() {
+                  _centerMarkerPosition = position.target;
+                });
+              },
+              onCameraIdle: () {
+                _getAddressFromLatLng(_centerMarkerPosition);
+              },
+              markers: _markers,
+              myLocationEnabled: true,
+              myLocationButtonEnabled: false,
             ),
-            onMapCreated: (GoogleMapController controller) {
-              setState(() {
-                _mapController = controller;
-              });
-            },
-            onCameraMove: (CameraPosition position) {
-              setState(() {
-                _centerMarkerPosition = position.target;
-              });
-            },
-            onCameraIdle: () {
-              _getAddressFromLatLng(_centerMarkerPosition);
-            },
-            markers: _markers,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: false,
-          ),
-          // Central Pin with shadow
-          Center(
-            child: Container(
-             
+            Center(
               child: Image.asset(
                 'assets/images/pin.png',
-                width: 48,
-                height: 48,
+                width: screenWidth * 0.1,
+                height: screenWidth * 0.1,
               ),
             ),
-          ),
-          // Glassmorphism Bottom Card
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                child: Container(
-                  padding: const EdgeInsets.all(20.0),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.white.withOpacity(0.7),
-                        Colors.blue.withOpacity(0.2)
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.3),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _currentAddress,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                        textAlign: TextAlign.center,
+            Positioned(
+              top: 16,
+              left: 16,
+              right: 16,
+              child: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                centerTitle: true,
+                title: const Text(
+                  'Select Parking Location',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 20,
+              left: 20,
+              right: 20,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(20.0),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.white.withOpacity(0.7),
+                          Colors.blue.withOpacity(0.2)
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      const SizedBox(height: 14),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (context) => BtnaddParking(
-                              address: _currentAddress,
-                              latitude: _centerMarkerPosition.latitude,
-                              longitude: _centerMarkerPosition.longitude,
-                            ),
-                          ));
-                        },
-                        icon: const Icon(Icons.save_alt, color: Colors.white),
-                        label: const Text("Save Location",style: TextStyle(color: Colors.white),),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blueAccent,
-                          elevation: 4,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _currentAddress,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
                           ),
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 12, horizontal: 24),
-                          textStyle: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 14),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => BtnaddParking(
+                                address: _currentAddress,
+                                latitude: _centerMarkerPosition.latitude,
+                                longitude: _centerMarkerPosition.longitude,
+                              ),
+                            ));
+                          },
+                          icon: const Icon(Icons.save_alt,
+                              color: Colors.white),
+                          label: const Text("Save Location",
+                              style: TextStyle(color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blueAccent,
+                            elevation: 4,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12, horizontal: 24),
+                            textStyle: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          // My Location Button
-          Positioned(
-            bottom: 780,
-            left: 20,
-            child: FloatingActionButton(
-              backgroundColor: Colors.white,
-              elevation: 4,
-              onPressed: _determinePosition,
-              child: const Icon(Icons.my_location, color: Colors.blue),
-            ),
-          ),
-          // Zoom Controls
-          Positioned(
-            top: 700,
-            right: 20,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.85),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.add, color: Colors.blue),
-                    onPressed: _zoomIn,
-                  ),
-                  const Divider(height: 1, color: Colors.grey),
-                  IconButton(
-                    icon: const Icon(Icons.remove, color: Colors.blue),
-                    onPressed: _zoomOut,
-                  ),
-                ],
+            Positioned(
+              bottom: screenHeight * 0.2,
+              left: 16,
+              child: FloatingActionButton(
+                backgroundColor: Colors.white,
+                elevation: 4,
+                onPressed: _determinePosition,
+                child: const Icon(Icons.my_location, color: Colors.blue),
               ),
             ),
-          ),
-        ],
+            Positioned(
+              top: screenHeight * 0.35,
+              right: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.85),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.add, color: Colors.blue),
+                      onPressed: _zoomIn,
+                    ),
+                    const Divider(height: 1, color: Colors.grey),
+                    IconButton(
+                      icon: const Icon(Icons.remove, color: Colors.blue),
+                      onPressed: _zoomOut,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

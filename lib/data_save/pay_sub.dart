@@ -81,6 +81,33 @@ class _PayPageState extends State<PaySub> {
     return "location${count + 1}";
   }
 
+  Widget _buildInvoiceRow({
+    required IconData icon,
+    required String label,
+    num? value,
+    required Color accent,
+    String? customText,
+  }) {
+    final text = customText ??
+        (value != null
+            ? "${value.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',')} Kip"
+            : "");
+    return Row(
+      children: [
+        Icon(icon, color: accent, size: 28),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(label,
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+        ),
+        Text(text,
+            style: TextStyle(
+                fontSize: 18, fontWeight: FontWeight.bold, color: accent)),
+      ],
+    );
+  }
+
   Future<void> _pickImage() async {
     try {
       final XFile? pickedFile =
@@ -113,50 +140,50 @@ class _PayPageState extends State<PaySub> {
   }
 
   void _pickTime() {
-  showModalBottomSheet(
-    context: context,
-    builder: (context) {
-      DateTime selectedTime = DateTime.now();
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        DateTime selectedTime = DateTime.now();
 
-      return Container(
-        height: 300,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Expanded(
-              child: TimePickerSpinner(
-                is24HourMode: true, // Set to true for 24-hour mode
-                isShowSeconds: true, // ✅ Show seconds
-                normalTextStyle:
-                    const TextStyle(fontSize: 18, color: Colors.grey),
-                highlightedTextStyle:
-                    const TextStyle(fontSize: 24, color: Colors.black),
-                spacing: 40,
-                itemHeight: 60,
-                isForce2Digits: true,
-                time: selectedTime,
-                onTimeChange: (time) {
-                  selectedTime = time;
-                },
+        return Container(
+          height: 300,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Expanded(
+                child: TimePickerSpinner(
+                  is24HourMode: true, // Set to true for 24-hour mode
+                  isShowSeconds: true, // ✅ Show seconds
+                  normalTextStyle:
+                      const TextStyle(fontSize: 18, color: Colors.grey),
+                  highlightedTextStyle:
+                      const TextStyle(fontSize: 24, color: Colors.black),
+                  spacing: 40,
+                  itemHeight: 60,
+                  isForce2Digits: true,
+                  time: selectedTime,
+                  onTimeChange: (time) {
+                    selectedTime = time;
+                  },
+                ),
               ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // ✅ Format as HH:mm:ss (24-hour format)
-                final formatted = DateFormat('HH:mm:ss').format(selectedTime);
-                setState(() {
-                  timeController.text = formatted;
-                });
-                Navigator.pop(context);
-              },
-              child: const Text("Confirm"),
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
+              ElevatedButton(
+                onPressed: () {
+                  // ✅ Format as HH:mm:ss (24-hour format)
+                  final formatted = DateFormat('HH:mm:ss').format(selectedTime);
+                  setState(() {
+                    timeController.text = formatted;
+                  });
+                  Navigator.pop(context);
+                },
+                child: const Text("Confirm"),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Future<String?> _uploadImageToCloudinary() async {
     try {
@@ -501,28 +528,45 @@ class _PayPageState extends State<PaySub> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-                "Price per day: ${widget.pricePerDay?.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => ',')} Kip"),
-            const SizedBox(height: 8),
-            Text(
-                "Total price: ${widget.totalPrice?.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => ',')} Kip"),
-            const SizedBox(height: 20),
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50, // Light green background
-                border: Border.all(color: Colors.green, width: 2),
-                borderRadius: BorderRadius.circular(10), // Rounded corners
-              ),
-              child: Text(
-                "Date: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}",
-                style: TextStyle(
-                  fontSize: 20,
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold,
+            // Amount Card
+            Card(
+              margin: const EdgeInsets.all(16),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              elevation: 4,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildInvoiceRow(
+                      icon: Icons.date_range,
+                      label: "Date",
+                      value: null,
+                      accent: Colors.black,
+                      customText: DateFormat('yyyy-MM-dd – HH:mm')
+                          .format(DateTime.now()),
+                    ),
+                    const Divider(height: 32),
+                    _buildInvoiceRow(
+                      icon: Icons.attach_money,
+                      label: "Amount / Day",
+                      value: widget.pricePerDay,
+                      accent: Colors.green,
+                    ),
+                    const Divider(height: 32),
+                    _buildInvoiceRow(
+                      icon: Icons.attach_money,
+                      label: "Total Amount",
+                      value: widget.totalPrice,
+                      accent: Colors.blue,
+                    ),
+                  ],
                 ),
               ),
             ),
+
             const SizedBox(height: 16),
             // Time Picker
             TextFormField(
