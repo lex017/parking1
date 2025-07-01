@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parking1/detailownner/edit_fromEpm.dart';
 import 'package:parking1/menu/emp_register.dart';
@@ -15,6 +16,7 @@ class EditEmployee extends StatefulWidget {
 
 class _EditEmployeeState extends State<EditEmployee> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String ownerId = FirebaseAuth.instance.currentUser?.uid ?? '';
 
   Future<List<Map<String, dynamic>>> fetchEmployees() async {
     QuerySnapshot snapshot = await _firestore
@@ -53,7 +55,7 @@ class _EditEmployeeState extends State<EditEmployee> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => emp_register(), // Make sure this param is supported
+        builder: (context) => emp_register(ownerId: ownerId,), // Make sure this param is supported
       ),
     ).then((_) => setState(() {})); // Refresh when returning
   }

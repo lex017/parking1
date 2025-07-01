@@ -1,20 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:parking1/loginandregis/loginPage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
 
-/// Background message handler (ต้องเป็น top-level function)
+// ตัวแปร global สำหรับ local notifications
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+/// Background message handler (top-level function)
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
+
+  RemoteNotification? notification = message.notification;
+  AndroidNotification? android = message.notification?.android;
+
+  if (notification != null && android != null) {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'background_channel',
+      'Background Notifications',
+      channelDescription: 'Notifications shown when app is in background',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+    );
+
+    const NotificationDetails platformDetails =
+        NotificationDetails(android: androidDetails);
+
+    await flutterLocalNotificationsPlugin.show(
+      notification.hashCode,
+      notification.title,
+      notification.body,
+      platformDetails,
+    );
+  }
+
   print("📩 Background Message: ${message.messageId}");
 }
 
 /// Global ValueNotifier สำหรับ theme mode
-final ValueNotifier<ThemeMode> themeModeNotifier =
-    ValueNotifier(ThemeMode.system);
+final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(ThemeMode.system);
 
 /// โหลด theme mode จาก SharedPreferences
 Future<void> loadThemeMode() async {
@@ -35,20 +64,38 @@ Future<void> loadThemeMode() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await EasyLocalization.ensureInitialized(); // เพิ่มนี้
+  await EasyLocalization.ensureInitialized();
   await Firebase.initializeApp();
+
+  // ตั้งค่า flutter_local_notifications
+  const AndroidInitializationSettings initializationSettingsAndroid =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const InitializationSettings initializationSettings =
+      InitializationSettings(android: initializationSettingsAndroid);
+
+  await flutterLocalNotificationsPlugin.initialize(
+    initializationSettings,
+    onDidReceiveNotificationResponse: (details) {
+      // กรณีต้องการ handle เมื่อผู้ใช้แตะ notification
+      print("Notification clicked");
+    },
+  );
+
+  // ตั้งค่ารับข้อความ background
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
   await loadThemeMode();
 
   runApp(
     EasyLocalization(
       supportedLocales: const [
-        Locale('en'), // English
-        Locale('lo'), // Lao
-        Locale('zh'), // Chinese
-        Locale('ko'), // Korean
-        Locale('vi'), // Vietnamese
-        Locale('th'), // Thai
+        Locale('en'),
+        Locale('lo'),
+        Locale('zh'),
+        Locale('ko'),
+        Locale('vi'),
+        Locale('th'),
       ],
       path: 'assets/lang',
       fallbackLocale: const Locale('en'),
@@ -84,23 +131,46 @@ class _ParkingAppState extends State<ParkingApp> {
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       _firebaseMessaging.getToken().then((token) {
         print("📱 FCM Token: $token");
-        // TODO: Save token if needed
+        // TODO: บันทึก token ที่ต้องการ
       });
 
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        if (message.notification != null) {
-          _showNotificationDialog(message.notification!);
+      // เมื่อแอปอยู่ foreground รับข้อความและแสดง local notification
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+        RemoteNotification? notification = message.notification;
+        AndroidNotification? android = message.notification?.android;
+
+        if (notification != null && android != null) {
+          const AndroidNotificationDetails androidDetails =
+              AndroidNotificationDetails(
+            'foreground_channel',
+            'Foreground Notifications',
+            channelDescription: 'Notifications shown when app is in foreground',
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+          );
+
+          const NotificationDetails platformDetails =
+              NotificationDetails(android: androidDetails);
+
+          await flutterLocalNotificationsPlugin.show(
+            notification.hashCode,
+            notification.title,
+            notification.body,
+            platformDetails,
+          );
+
+          // หรือถ้าอยากแสดง Dialog แทนให้ใช้ _showNotificationDialog()
         }
       });
 
+      // เมื่อผู้ใช้แตะ notification ที่อยู่ background หรือ terminated
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        if (message.notification != null) {
-          print("🖱️ Notification clicked: ${message.notification!.title}");
-          // TODO: Navigate if needed
-        }
+        print("🖱️ Notification clicked: ${message.notification?.title}");
+        // TODO: นำทางไปหน้าที่ต้องการ
       });
     } else {
-      print("❌ Notification permission declined");
+      print("❌ Permission for notifications declined");
     }
   }
 
@@ -124,25 +194,7 @@ class _ParkingAppState extends State<ParkingApp> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("No Internet Connection"),
-        content:
-            const Text("Please check your internet connection and try again."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showNotificationDialog(RemoteNotification notification) {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(notification.title ?? "Notification"),
-        content: Text(notification.body ?? "No content"),
+        content: const Text("Please check your internet connection and try again."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -161,9 +213,9 @@ class _ParkingAppState extends State<ParkingApp> {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Parking App',
-          localizationsDelegates: context.localizationDelegates, // เพิ่มนี้
-          supportedLocales: context.supportedLocales, // เพิ่มนี้
-          locale: context.locale, // เพิ่มนี้
+          localizationsDelegates: context.localizationDelegates,
+          supportedLocales: context.supportedLocales,
+          locale: context.locale,
           theme: ThemeData(
             brightness: Brightness.light,
             scaffoldBackgroundColor: Colors.white,
@@ -197,7 +249,7 @@ class _ParkingAppState extends State<ParkingApp> {
             ),
           ),
           themeMode: currentTheme,
-          home: const loginPage(),
+          home: const loginPage(), // แก้เป็นหน้าหลักของคุณ
         );
       },
     );

@@ -21,20 +21,62 @@ class _EditCarState extends State<EditCar> {
   late TextEditingController brandController;
   late TextEditingController colorController;
   late TextEditingController plateController;
-  late TextEditingController cityController;
-  late TextEditingController typeController;
   late TextEditingController nameController;
+
+  // เปลี่ยน province กับ typeplate ให้เป็นตัวแปร String ที่เก็บค่าเลือกใน dropdown
+  late String selectedProvince;
+  late String selectedTypeplate;
+
+  final List<String> cities = [
+    "ນະຄອນຫຼວງວຽງຈັນ",
+    "ຄໍາມ່ວນ",
+    "ຈໍາປາສັກ",
+    "ຊຽງຂວາງ",
+    "ໄຊຍະບູລີ",
+    "ໄຊສົມບູນ",
+    "ເຊກອງ",
+    "ບໍລິຄໍາໄຊ",
+    "ບໍ່ແກ້ວ",
+    "ຜົ້ງສາລີ",
+    "ວຽງຈັນ",
+    "ສາລະວັນ",
+    "ສະຫວັນນະເຂດ",
+    "ຫຼວງນ້ຳທາ",
+    "ຫຼວງພະບາງ",
+    "ຫົວພັນ",
+    "ອັດຕະປື",
+    "ອຸດົມໄຊ",
+  ];
+
+  final List<String> plateTypeList = [
+    "ລັດບໍລິຫານ",
+    "ເອກະຊົນລາວ",
+    "ບໍລິສັດ/ທຸລະກິດ 100%",
+    "ບໍລິສັດ/ທຸລະກິດ 1%",
+    "ເອກະຊົນຕ່າງດ້າວ",
+    "ອົງການຈັດຕັ້ງສາກົນ(ນຳໃຊ້ສ່ວນຕົວ)",
+  ];
+
+  final Map<String, Map<String, Color>> plateColors = {
+    "ລັດບໍລິຫານ": {"background": Colors.blue, "text": Colors.white},
+    "ເອກະຊົນລາວ": {"background": Colors.yellow, "text": Colors.black},
+    "ບໍລິສັດ/ທຸລະກິດ 100%": {"background": Colors.white, "text": Colors.black},
+    "ບໍລິສັດ/ທຸລະກິດ 1%": {"background": Colors.white, "text": Colors.blue},
+    "ເອກະຊົນຕ່າງດ້າວ": {"background": Colors.yellow, "text": Colors.lightBlue},
+    "ອົງການຈັດຕັ້ງສາກົນ(ນຳໃຊ້ສ່ວນຕົວ)": {"background": Colors.white, "text": Colors.lightBlue},
+  };
 
   @override
   void initState() {
     super.initState();
     brandController = TextEditingController(text: widget.carData["brandName"]);
     colorController = TextEditingController(text: widget.carData["color"]);
-    plateController =
-        TextEditingController(text: widget.carData["numberplate"]);
-    cityController = TextEditingController(text: widget.carData["province"]);
-    typeController = TextEditingController(text: widget.carData["typeplate"]);
+    plateController = TextEditingController(text: widget.carData["numberplate"]);
     nameController = TextEditingController(text: widget.carData["charplate"]);
+
+    // กำหนดค่าเริ่มต้น dropdown จากข้อมูลเดิม
+    selectedProvince = widget.carData["province"] ?? cities[0];
+    selectedTypeplate = widget.carData["typeplate"] ?? plateTypeList[0];
   }
 
   @override
@@ -42,6 +84,7 @@ class _EditCarState extends State<EditCar> {
     brandController.dispose();
     colorController.dispose();
     plateController.dispose();
+    nameController.dispose();
     super.dispose();
   }
 
@@ -55,9 +98,9 @@ class _EditCarState extends State<EditCar> {
           .update({
         "brandName": brandController.text.trim(),
         "color": colorController.text.trim(),
-        "plate": plateController.text.trim(),
-        "province": cityController.text.trim(),
-        "typeplate": typeController.text.trim(),
+        "numberplate": plateController.text.trim(),
+        "province": selectedProvince,
+        "typeplate": selectedTypeplate,
         "charplate": nameController.text.trim(),
         "timestamp": FieldValue.serverTimestamp(),
       });
@@ -70,9 +113,9 @@ class _EditCarState extends State<EditCar> {
         ...widget.carData,
         "brandName": brandController.text.trim(),
         "color": colorController.text.trim(),
-        "plate": plateController.text.trim(),
-        "province": cityController.text.trim(),
-        "typeplate": typeController.text.trim(),
+        "numberplate": plateController.text.trim(),
+        "province": selectedProvince,
+        "typeplate": selectedTypeplate,
         "charplate": nameController.text.trim(),
       });
     } catch (e) {
@@ -123,14 +166,13 @@ class _EditCarState extends State<EditCar> {
                   borderRadius: BorderRadius.circular(12),
                   child: TextFormField(
                     controller: brandController,
-                    decoration:
-                        _buildDecoration("Brand Name", Icons.directions_car),
+                    decoration: _buildDecoration("Brand Name", Icons.directions_car),
                     textInputAction: TextInputAction.next,
-                    validator: (v) =>
-                        v == null || v.trim().isEmpty ? "Enter brand" : null,
+                    validator: (v) => v == null || v.trim().isEmpty ? "Enter brand" : null,
                   ),
                 ),
                 const SizedBox(height: 16),
+
                 // Color field
                 Material(
                   elevation: 4,
@@ -140,11 +182,11 @@ class _EditCarState extends State<EditCar> {
                     controller: colorController,
                     decoration: _buildDecoration("Color", Icons.color_lens),
                     textInputAction: TextInputAction.next,
-                    validator: (v) =>
-                        v == null || v.trim().isEmpty ? "Enter color" : null,
+                    validator: (v) => v == null || v.trim().isEmpty ? "Enter color" : null,
                   ),
                 ),
                 const SizedBox(height: 16),
+
                 // Plate field
                 Material(
                   elevation: 4,
@@ -152,59 +194,75 @@ class _EditCarState extends State<EditCar> {
                   borderRadius: BorderRadius.circular(12),
                   child: TextFormField(
                     controller: plateController,
-                    decoration: _buildDecoration(
-                        "License Plate", Icons.confirmation_number),
-                    textInputAction: TextInputAction.done,
-                    validator: (v) => v == null || v.trim().isEmpty
-                        ? "Enter plate number"
-                        : null,
-                    onFieldSubmitted: (_) => _updateCarDetails(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-// Province field
-                Material(
-                  elevation: 4,
-                  shadowColor: Colors.black26,
-                  borderRadius: BorderRadius.circular(12),
-                  child: TextFormField(
-                    controller: cityController,
-                    decoration:
-                        _buildDecoration("Province", Icons.location_city),
+                    decoration: _buildDecoration("License Plate", Icons.confirmation_number),
                     textInputAction: TextInputAction.next,
-                    validator: (v) =>
-                        v == null || v.trim().isEmpty ? "Enter province" : null,
+                    validator: (v) => v == null || v.trim().isEmpty ? "Enter plate number" : null,
                   ),
                 ),
                 const SizedBox(height: 16),
-// Typeplate field
+
+                // Province Dropdown
                 Material(
                   elevation: 4,
                   shadowColor: Colors.black26,
                   borderRadius: BorderRadius.circular(12),
-                  child: TextFormField(
-                    controller: typeController,
+                  child: DropdownButtonFormField<String>(
+                    value: selectedProvince,
+                    decoration: _buildDecoration("Province", Icons.location_city),
+                    items: cities
+                        .map((city) => DropdownMenuItem(
+                              value: city,
+                              child: Text(city),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          selectedProvince = val;
+                        });
+                      }
+                    },
+                    validator: (val) => val == null || val.isEmpty ? "Select province" : null,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Plate Type Dropdown
+                Material(
+                  elevation: 4,
+                  shadowColor: Colors.black26,
+                  borderRadius: BorderRadius.circular(12),
+                  child: DropdownButtonFormField<String>(
+                    value: selectedTypeplate,
                     decoration: _buildDecoration("Plate Type", Icons.style),
-                    textInputAction: TextInputAction.next,
-                    validator: (v) => v == null || v.trim().isEmpty
-                        ? "Enter plate type"
-                        : null,
+                    items: plateTypeList
+                        .map((type) => DropdownMenuItem(
+                              value: type,
+                              child: Text(type),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          selectedTypeplate = val;
+                        });
+                      }
+                    },
+                    validator: (val) => val == null || val.isEmpty ? "Select plate type" : null,
                   ),
                 ),
                 const SizedBox(height: 16),
-// Charplate field
+
+                // Charplate field
                 Material(
                   elevation: 4,
                   shadowColor: Colors.black26,
                   borderRadius: BorderRadius.circular(12),
                   child: TextFormField(
                     controller: nameController,
-                    decoration:
-                        _buildDecoration("Character Plate", Icons.text_fields),
+                    decoration: _buildDecoration("Character Plate", Icons.text_fields),
                     textInputAction: TextInputAction.done,
-                    validator: (v) => v == null || v.trim().isEmpty
-                        ? "Enter plate character"
-                        : null,
+                    validator: (v) => v == null || v.trim().isEmpty ? "Enter plate character" : null,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -217,14 +275,12 @@ class _EditCarState extends State<EditCar> {
                   style: ElevatedButton.styleFrom(
                     elevation: 6,
                     shadowColor: Colors.blueGrey,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 32, vertical: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                     backgroundColor: Colors.blueAccent,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    textStyle: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.w600),
+                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],

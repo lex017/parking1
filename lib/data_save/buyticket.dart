@@ -173,24 +173,7 @@ class _BuyTicketState extends State<BuyTicket> {
       'payment': paymentData,
     };
   }
-Future<void> sendFCM(String fcmToken, String title, String body) async {
-  final url = Uri.parse('https://my-vercel-api.vercel.app/api/sendFCM');
-  final response = await http.post(
-    url,
-    headers: {"Content-Type": "application/json"},
-    body: jsonEncode({
-      "token": fcmToken,
-      "title": title,
-      "body": body,
-    }),
-  );
 
-  if (response.statusCode == 200) {
-    print("✅ ส่งแจ้งเตือนสำเร็จ: ${response.body}");
-  } else {
-    print("❌ ส่งแจ้งเตือนไม่สำเร็จ: ${response.body}");
-  }
-}
   void startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) async {
@@ -300,17 +283,7 @@ Future<void> sendFCM(String fcmToken, String title, String body) async {
     return "$minutes:${sec.toString().padLeft(2, '0')}";
   }
 
-  Future<void> sendNotify(String message) async {
-    final url = Uri.parse('https://my-vercel-api.vercel.app/api/sendNotify');
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"message": message}),
-    );
-
-    print('📡 Status: ${response.statusCode}');
-    print('📩 Response: ${response.body}');
-  }
+ 
 
   Future<void> _launchURL(String latitude, String longitude) async {
     try {

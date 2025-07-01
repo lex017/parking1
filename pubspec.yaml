@@ -92,14 +92,22 @@ dependencies:
   android_alarm_manager_plus: ^4.0.7
   timezone: ^0.10.1
   image_cropper: ^9.1.0
+  dropdown_button2: ^2.3.9
   # mapbox_maps_flutter: ^2.6.0
   
 
 
 flutter_native_splash:
-  
-  image: "assets/images/bg_icon.png"
-  branding: "assets/images/bg_icon.png"
+  color: "#002389" # background color
+  image: assets/images/bg_icon.png
+  branding: assets/images/bg_icon.png
+  branding_mode: bottom
+  android: true
+  ios: true
+  web: false
+
+  android_gravity: center
+  ios_content_mode: scaleAspectFit
 
 flutter_launcher_icons:
   android: true
@@ -154,6 +162,7 @@ flutter:
     - assets/images/chat5.png 
     - assets/images/vehicle.png 
     - assets/images/bg.jpg 
+    - assets/images/bg_icon.png
     
  
 

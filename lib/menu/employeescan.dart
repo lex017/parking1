@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:parking1/menu/emp_check.dart';
+import 'package:parking1/menu/ticketreal_check.dart';
 
 class EmployeeScan extends StatefulWidget {
   final String empId;
@@ -122,8 +123,8 @@ class _EmployeeScanState extends State<EmployeeScan> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ScanCheck(
-              bookingId: ticketId, // Use ticketId instead of bookingId here
+            builder: (context) => TicketrealCheck(
+              ticketId: ticketId, // Use ticketId instead of bookingId here
               status: status,
             ),
           ),

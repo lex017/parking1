@@ -20,7 +20,7 @@ class _ScanCheckState extends State<ScanCheck> {
   String? nameParking;
   String? plateNumber;
   String? plateType;
-  String? namePlate;
+  String? charplate;
   String? province;
   String? plate;
   String? vehicleId;
@@ -108,16 +108,16 @@ class _ScanCheckState extends State<ScanCheck> {
       if (vehicleSnap.exists) {
         var data = vehicleSnap.data()!;
         setState(() {
-          plateType = data['plateType'] ?? 'unknown';
+          plateType = data['typeplate'] ?? 'unknown';
           province = data['province'] ?? 'unknown';
-          namePlate = data['namePlate'] ?? 'unknown';
-          plate = data['plate'] ?? 'unknown';
+          charplate = data['charplate'] ?? 'unknown';
+          plate = data['numberplate'] ?? 'unknown';
         });
       } else {
         setState(() {
           plateType = 'not_found';
           province = 'not_found';
-          namePlate = 'not_found';
+          charplate = 'not_found';
           plate = 'not_found';
         });
       }
@@ -126,7 +126,7 @@ class _ScanCheckState extends State<ScanCheck> {
       setState(() {
         plateType = 'error';
         province = 'not_found';
-        namePlate = 'not_found';
+        charplate = 'not_found';
         plate = 'not_found';
       });
     }
@@ -288,7 +288,7 @@ class _ScanCheckState extends State<ScanCheck> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                namePlate ?? '-',
+                                charplate ?? '-',
                                 style: TextStyle(
                                   fontSize: 36,
                                   fontWeight: FontWeight.bold,
@@ -312,14 +312,61 @@ class _ScanCheckState extends State<ScanCheck> {
                   ),
                   const SizedBox(height: 20),
                   if (status == "pending") ...[
-                    ElevatedButton(
+                   ElevatedButton(
                       onPressed: _handleCheckIn,
-                      child: const Text('Check-in'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green.shade600, // สีเขียวสดใส
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 40, vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(30), // ขอบโค้งมนมากขึ้น
+                        ),
+                        elevation: 8, // เงาชัดเจน
+                        shadowColor: Colors.greenAccent.shade400,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.login, size: 24, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text(
+                            'Check-in',
+                            style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white),
+                          ),
+                        ],
+                      ),
                     ),
                   ] else if (status == "check-in") ...[
                     ElevatedButton(
                       onPressed: _handleCheckOut,
-                      child: const Text('Check-out'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600, // สีแดงสดใส
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 40, vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 8,
+                        shadowColor: Colors.redAccent.shade400,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.logout, size: 24, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text(
+                            'Check-out',
+                            style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white),
+                          ),
+                        ],
+                      ),
                     ),
                   ] else if (status == "check-out") ...[
                     const Text(

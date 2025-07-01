@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class DetailBooking extends StatefulWidget {
-   final String userId;
+  final String userId;
   const DetailBooking({super.key, required this.userId});
 
   @override
@@ -19,6 +20,7 @@ class _DetailBookingState extends State<DetailBooking> {
   DateTime? startDate;
   DateTime? endDate;
   List<String> parkingOptions = ['All'];
+  String plateSearch = '';
 
   @override
   void initState() {
@@ -28,9 +30,13 @@ class _DetailBookingState extends State<DetailBooking> {
 
   Future<void> fetchParkingOptions() async {
     try {
-      QuerySnapshot snapshot = await _firestore.collection('bookings')
-      .where('userId',isEqualTo: widget.userId)
-      .get();
+      final String ownerId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+      QuerySnapshot snapshot = await _firestore
+          .collection('parking')
+          .where('ownerId', isEqualTo: ownerId)
+          .get();
+
       final names = snapshot.docs.map((doc) {
         var data = doc.data() as Map<String, dynamic>;
         return data['nameparking'] ?? 'Unknown';
@@ -38,17 +44,18 @@ class _DetailBookingState extends State<DetailBooking> {
 
       setState(() {
         parkingOptions = ['All', ...names.cast<String>()];
-        print("User ID: ${widget.userId}");
+        print("Owner ID: $ownerId");
       });
     } catch (e) {
-      print('Error: $e');
-       
+      print('Error fetching parking options: $e');
     }
   }
 
   Future<List<Map<String, dynamic>>> fetchBookings() async {
+    final String ownerId = FirebaseAuth.instance.currentUser?.uid ?? '';
     QuerySnapshot snapshot = await _firestore
         .collection('bookings')
+        .where('userId', isEqualTo: ownerId)
         .orderBy('timestamp', descending: true)
         .get();
 
@@ -56,18 +63,32 @@ class _DetailBookingState extends State<DetailBooking> {
       return {'id': doc.id, ...doc.data() as Map<String, dynamic>};
     }).toList();
 
+    // 🔽 กรองตามสถานะ
     if (selectedStatus != 'All') {
       allBookings = allBookings
           .where((booking) => booking['Status'] == selectedStatus)
           .toList();
     }
 
+    // 🔽 กรองตามชื่อที่จอดรถ
     if (selectedParking != 'All') {
       allBookings = allBookings
           .where((booking) => booking['nameparking'] == selectedParking)
           .toList();
     }
+    // 🔽 กรองตามหมายเลขทะเบียน (plate)
+    if (plateSearch.isNotEmpty) {
+      String lowerPlate = plateSearch.toLowerCase();
+      allBookings = allBookings.where((booking) {
+        final charplate = (booking['charplate'] ?? '').toString().toLowerCase();
+        final numberplate =
+            (booking['numberplate'] ?? '').toString().toLowerCase();
+        return charplate.contains(lowerPlate) ||
+            numberplate.contains(lowerPlate);
+      }).toList();
+    }
 
+    // 🔽 กรองตามช่วงเวลา
     if (selectedDateFilter == 'Today') {
       DateTime now = DateTime.now();
       allBookings = allBookings.where((booking) {
@@ -103,7 +124,10 @@ class _DetailBookingState extends State<DetailBooking> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Booking History",style: TextStyle(color: Colors.white),),
+        title: const Text(
+          "Booking History",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.blue,
         elevation: 4,
         centerTitle: true,
@@ -127,14 +151,14 @@ class _DetailBookingState extends State<DetailBooking> {
                       parkingList: parkingOptions,
                     ),
                   );
-
                   if (result != null) {
                     setState(() {
-                      selectedStatus = result['status'];
+                      selectedStatus = result['Status'];
                       selectedParking = result['nameparking'];
                       selectedDateFilter = result['dateFilter'];
                       startDate = result['startDate'];
                       endDate = result['endDate'];
+                      plateSearch = result['plate'] ?? '';
                     });
                   }
                 },
@@ -235,6 +259,11 @@ class _DetailBookingState extends State<DetailBooking> {
                             ),
                             const SizedBox(height: 4),
                             Text(
+                              "LicensePlate: ${booking['charplate'] ?? 'Unknown'} ${booking['numberplate'] ?? 'Unknown'}",
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
                               timestamp != null
                                   ? "Date: ${DateFormat('yyyy-MM-dd HH:mm').format(timestamp)}"
                                   : "Date: Unknown",
@@ -305,6 +334,8 @@ class _FilterDialogState extends State<FilterDialog> {
   DateTime? tempStartDate;
   DateTime? tempEndDate;
 
+  late TextEditingController plateController;
+
   @override
   void initState() {
     super.initState();
@@ -313,6 +344,13 @@ class _FilterDialogState extends State<FilterDialog> {
     tempSelectedParking = widget.selectedParking;
     tempStartDate = widget.startDate;
     tempEndDate = widget.endDate;
+    plateController = TextEditingController();
+  }
+
+  @override
+  void dispose()  {
+    plateController.dispose();
+    super.dispose();
   }
 
   Future<void> pickDateRange() async {
@@ -333,7 +371,7 @@ class _FilterDialogState extends State<FilterDialog> {
     }
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: Colors.white,
@@ -342,6 +380,20 @@ class _FilterDialogState extends State<FilterDialog> {
       content: SingleChildScrollView(
         child: Column(
           children: [
+            // 🔍 Plate Number Search Field
+            TextFormField(
+              controller: plateController,
+              decoration: const InputDecoration(
+                labelText: "Search by Plate",
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.search),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 📌 Status Dropdown
             DropdownButtonFormField<String>(
               value: tempSelectedStatus,
               decoration: const InputDecoration(
@@ -355,7 +407,7 @@ class _FilterDialogState extends State<FilterDialog> {
                   tempSelectedStatus = value!;
                 });
               },
-              items: ['All', 'check-in', 'check-out', 'time-out', 'pending']
+              items: ['All', 'check-in', 'check-out', 'Time-out', 'pending']
                   .map((status) => DropdownMenuItem(
                         value: status,
                         child:
@@ -364,6 +416,8 @@ class _FilterDialogState extends State<FilterDialog> {
                   .toList(),
             ),
             const SizedBox(height: 16),
+
+            // 📅 Date Filter Dropdown
             DropdownButtonFormField<String>(
               value: tempSelectedDateFilter,
               decoration: const InputDecoration(
@@ -389,6 +443,8 @@ class _FilterDialogState extends State<FilterDialog> {
                   .toList(),
             ),
             const SizedBox(height: 16),
+
+            // 📆 Custom Date Range Picker
             if (tempSelectedDateFilter == 'Custom Range') ...[
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -411,6 +467,8 @@ class _FilterDialogState extends State<FilterDialog> {
                 ),
               const SizedBox(height: 16),
             ],
+
+            // 🅿️ Parking Dropdown
             DropdownButtonFormField<String>(
               value: tempSelectedParking,
               decoration: const InputDecoration(
@@ -450,11 +508,12 @@ class _FilterDialogState extends State<FilterDialog> {
           ),
           onPressed: () {
             Navigator.of(context).pop({
-              'status': tempSelectedStatus,
+              'Status': tempSelectedStatus,
               'dateFilter': tempSelectedDateFilter,
               'nameparking': tempSelectedParking,
               'startDate': tempStartDate,
               'endDate': tempEndDate,
+              'plate': plateController.text.trim(), // 👈 Return plate text
             });
           },
           child: const Text(

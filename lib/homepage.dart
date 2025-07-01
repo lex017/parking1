@@ -30,7 +30,7 @@ class _HomepageState extends State<Homepage> {
 
   Widget BNavigateBar(int selectIdx, Function(int) onTabTapped) {
   return Container(
-    height: 100,
+    height: 110,
     decoration: BoxDecoration(
       color: Theme.of(context).brightness == Brightness.light
           ? Colors.white
@@ -39,13 +39,13 @@ class _HomepageState extends State<Homepage> {
         topLeft: Radius.circular(25),
         topRight: Radius.circular(25),
       ),
-      // boxShadow: [
-      //   BoxShadow(
-      //     color: Colors.black.withOpacity(0.2),
-      //     blurRadius: 10,
-      //     spreadRadius: 2,
-      //   ),
-      // ],
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.2),
+          blurRadius: 4,
+          spreadRadius: 1,
+        ),
+      ],
     ),
     child: ClipRRect(
       borderRadius: const BorderRadius.only(

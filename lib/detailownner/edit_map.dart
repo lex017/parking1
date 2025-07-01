@@ -6,6 +6,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:parking1/detailownner/mapedit.dart';
 import 'package:time_picker_spinner/time_picker_spinner.dart';
 
 class EditMap extends StatefulWidget {
@@ -256,24 +257,39 @@ class _EditMapState extends State<EditMap> {
           children: [
             // Name & Address Card
             Card(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              elevation: 4,
-              margin: EdgeInsets.only(bottom: screenHeight * 0.02),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  vertical: screenHeight * 0.02,
-                  horizontal: screenWidth * 0.03,
-                ),
-                child: Column(
-                  children: [
-                    _buildTextField(_nameCtrl, 'Parking Name', Icons.store),
-                    SizedBox(height: screenHeight * 0.015),
-                    _buildTextField(_addressCtrl, 'Address', Icons.location_on),
-                  ],
-                ),
-              ),
-            ),
+  shape: RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(12),
+  ),
+  elevation: 4,
+  margin: EdgeInsets.only(top: screenHeight * 0.02, bottom: screenHeight * 0.02),
+  child: Padding(
+    padding: EdgeInsets.symmetric(
+      vertical: screenHeight * 0.02,
+      horizontal: screenWidth * 0.03,
+    ),
+    child: GestureDetector(
+      onTap: () async {
+        final selectedLocation = await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => MapPickerPage()),
+        );
+        if (selectedLocation != null) {
+          setState(() {
+            _addressCtrl.text = selectedLocation['address'];
+          });
+        }
+      },
+      child: AbsorbPointer(
+        child: _buildTextField(
+          _addressCtrl,
+          'Address (Tap to select)',
+          Icons.location_on,
+        ),
+      ),
+    ),
+  ),
+),
+
 
             // Price Card
             Card(

@@ -20,9 +20,9 @@ class _RealTicketState extends State<RealTicket> {
 
     final ticketId = ticketData["ticketId"] ?? '';
     final province = ticketData["province"] ?? '';
-    final plateType = ticketData["plateType"] ?? '';
-    final namePlate = ticketData["namePlate"] ?? '';
-    final plate = ticketData["plate"] ?? '';
+    final plateType = ticketData["typeplate"] ?? '';
+    final namePlate = ticketData["charplate"] ?? '';
+    final plate = ticketData["numberplate"] ?? '';
     final empId = ticketData["empId"] ?? '';
     final locationId = ticketData["locationId"] ?? '';
     final imageUrl = ticketData["imageUrl"];

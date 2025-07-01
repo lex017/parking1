@@ -226,9 +226,9 @@ class _EmpGenerateState extends State<EmpGenerate> {
 
     Map<String, dynamic> ticketData = {
       "province": _selectedProvince,
-      "plateType": _selectedPlateType,
-      "namePlate": nameplateController.text,
-      "plate": plateController.text,
+      "typeplate": _selectedPlateType,
+      "charplate": nameplateController.text,
+      "numberplate": plateController.text,
       "empId": empId,
       "locationId": locationId,
       "imageUrl": imageUrl ?? "",
@@ -321,7 +321,10 @@ class _EmpGenerateState extends State<EmpGenerate> {
           const SizedBox(height: 10),
           TextFormField(
             controller: plateController,
-            inputFormatters: [UpperCaseTextFormatter()],
+            keyboardType: TextInputType.number, // Show number keyboard
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly, // Allow digits only
+            ],
             decoration: const InputDecoration(
               labelText: "Plate Number",
               border: OutlineInputBorder(),
@@ -451,7 +454,8 @@ class _EmpGenerateState extends State<EmpGenerate> {
                   ),
                 );
               },
-              icon: const Icon(Icons.arrow_forward,color: Colors.amber, size: 20),
+              icon: const Icon(Icons.arrow_forward,
+                  color: Colors.amber, size: 20),
               label: const Text(
                 "Continue to Payment",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),

@@ -43,6 +43,7 @@ class _QuestionPageState extends State<QuestionPage> {
         'userId': userId,
         'topic': _selectedTopic,
         'description': reason,
+        'isRead': false,
         'timestamp': FieldValue.serverTimestamp(),
       });
 

@@ -22,7 +22,7 @@ class _ChatPageState extends State<ChatPage> {
 
   String _userId = '';
   String _userName = 'User';
-  final String _adminId = 'admin'; // Replace with actual admin UID
+  final String _adminId = 'admin'; // replace with actual admin UID
 
   @override
   void initState() {
@@ -34,8 +34,7 @@ class _ChatPageState extends State<ChatPage> {
     User? user = _auth.currentUser;
     if (user != null) {
       _userId = user.uid;
-      DocumentSnapshot snapshot =
-          await _firestore.collection('users').doc(user.uid).get();
+      DocumentSnapshot snapshot = await _firestore.collection('users').doc(user.uid).get();
       if (snapshot.exists && snapshot.data() != null) {
         Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
         setState(() {
@@ -51,63 +50,72 @@ class _ChatPageState extends State<ChatPage> {
     return ids.join('_');
   }
 
-  void _sendMessage() async {
+  Future<void> _sendMessage() async {
     String text = _messageController.text.trim();
-    if (text.isNotEmpty) {
-      await _firestore
-          .collection('chats')
-          .doc(getChatId())
-          .collection('messages')
-          .add({
-        'text': text,
-        'senderId': _userId,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-      _messageController.clear();
-    }
+    if (text.isEmpty) return;
+
+    String chatId = getChatId();
+
+    await _firestore.collection('chats').doc(chatId).set({
+      'userId': _userId,
+      'adminId': _adminId,
+      'lastMessage': text,
+      'lastUpdated': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    await _firestore.collection('chats').doc(chatId).collection('messages').add({
+      'text': text,
+      'senderId': _userId,
+      'timestamp': FieldValue.serverTimestamp(),
+      'bookingId': widget.bookingId,
+    });
+
+    _messageController.clear();
   }
 
   Future<void> _sendImageMessage() async {
-    final XFile? pickedFile =
-        await _picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      File imageFile = File(pickedFile.path);
+    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile == null) return;
 
-      const String cloudName = "doiq3nkso";
-      const String uploadPreset = "parking";
+    File imageFile = File(pickedFile.path);
 
-      String url =
-          "https://api.cloudinary.com/v1_1/$cloudName/image/upload";
+    const String cloudName = "doiq3nkso";
+    const String uploadPreset = "parking";
 
-      var request = http.MultipartRequest("POST", Uri.parse(url));
-      request.fields['upload_preset'] = uploadPreset;
-      request.files
-          .add(await http.MultipartFile.fromPath('file', imageFile.path));
+    String url = "https://api.cloudinary.com/v1_1/$cloudName/image/upload";
 
-      try {
-        var response = await request.send();
-        var responseBody = await response.stream.bytesToString();
-        var jsonResponse = json.decode(responseBody);
+    var request = http.MultipartRequest("POST", Uri.parse(url));
+    request.fields['upload_preset'] = uploadPreset;
+    request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
 
-        if (jsonResponse['secure_url'] != null) {
-          String downloadUrl = jsonResponse['secure_url'];
+    try {
+      var response = await request.send();
+      var responseBody = await response.stream.bytesToString();
+      var jsonResponse = json.decode(responseBody);
 
-          await _firestore
-              .collection('chats')
-              .doc(getChatId())
-              .collection('messages')
-              .add({
-            'text': '',
-            'senderId': _userId,
-            'imageUrl': downloadUrl,
-            'timestamp': FieldValue.serverTimestamp(),
-          });
-        } else {
-          print("Cloudinary Upload Failed: ${jsonResponse['error']['message']}");
-        }
-      } catch (e) {
-        print("Error uploading image: $e");
+      if (jsonResponse['secure_url'] != null) {
+        String downloadUrl = jsonResponse['secure_url'];
+        String chatId = getChatId();
+
+        await _firestore.collection('chats').doc(chatId).set({
+          'userId': _userId,
+          'adminId': _adminId,
+          'lastMessage': '[Image]',
+          'lastUpdated': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        await _firestore.collection('chats').doc(chatId).collection('messages').add({
+          'text': '',
+          'imageUrl': downloadUrl,
+          'senderId': _userId,
+          'timestamp': FieldValue.serverTimestamp(),
+          'bookingId': widget.bookingId,
+        });
+      } else {
+        print("Cloudinary upload failed: ${jsonResponse['error']['message']}");
       }
+    } catch (e) {
+      print("Error uploading image: $e");
     }
   }
 
@@ -116,6 +124,7 @@ class _ChatPageState extends State<ChatPage> {
     bool isMe = data['senderId'] == _userId;
     Timestamp timestamp = data['timestamp'] ?? Timestamp.now();
     DateTime date = timestamp.toDate();
+
     return ChatMessage(
       text: data['text'] ?? '',
       isMe: isMe,
@@ -169,12 +178,8 @@ class _ChatPageState extends State<ChatPage> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 5.0,
-                    spreadRadius: 1.0,
-                  ),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 5.0, spreadRadius: 1.0),
                 ],
               ),
               child: Row(
@@ -184,7 +189,7 @@ class _ChatPageState extends State<ChatPage> {
                     onPressed: _sendImageMessage,
                     color: Colors.blue,
                   ),
-                  Flexible(
+                  Expanded(
                     child: TextField(
                       controller: _messageController,
                       decoration: const InputDecoration(
@@ -227,8 +232,7 @@ class ChatMessage extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10.0),
       child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isMe)
@@ -246,11 +250,7 @@ class ChatMessage extends StatelessWidget {
                 color: isMe ? Colors.blue[200] : Colors.grey[300],
                 borderRadius: BorderRadius.circular(20.0),
                 boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 5.0,
-                    spreadRadius: 1.0,
-                  ),
+                  BoxShadow(color: Colors.black26, blurRadius: 5.0, spreadRadius: 1.0),
                 ],
               ),
               child: Column(

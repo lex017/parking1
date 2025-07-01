@@ -39,13 +39,13 @@ class _OwnerMainState extends State<ownerMain> {
   File? _selectedImage;
   Uint8List? _imageBytes;
   final ImagePicker _picker = ImagePicker();
-
+ 
   @override
   void initState() {
     super.initState();
     _realTimeDateStream = _getRealTimeDate();
   }
-
+  final String ownerId = FirebaseAuth.instance.currentUser?.uid ?? '';
   Stream<String> _getRealTimeDate() async* {
     while (true) {
       await Future.delayed(const Duration(seconds: 1));
@@ -803,7 +803,7 @@ class _OwnerMainState extends State<ownerMain> {
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                              builder: (context) => emp_register()),
+                              builder: (context) => emp_register(ownerId: ownerId,)),
                         );
                       },
                     ),

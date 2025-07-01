@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,18 +14,35 @@ class DetailMoney extends StatefulWidget {
 class _DetailMoneyState extends State<DetailMoney> {
   String selectedParking = 'All';
   List<String> parkingOptions = ['All'];
-  DateTimeRange? selectedDateRange;
+
+  late Future<Map<String, double>> earningsFuture;
+  late Future<int> ticketCountFuture;
+
+  List<String> dayLabels = [];
+
+  DateTime startDate = DateTime.now().subtract(const Duration(days: 9));
+  DateTime endDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
     fetchParkingOptions();
+    loadData();
+  }
+
+  void loadData() {
+    earningsFuture = fetchEarningsByDate(startDate, endDate);
+    ticketCountFuture = fetchTicketCount(startDate, endDate);
   }
 
   Future<void> fetchParkingOptions() async {
     try {
-      QuerySnapshot snapshot =
-          await FirebaseFirestore.instance.collection('bookings').get();
+      final String ownerId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('parking')
+          .where('ownerId', isEqualTo: ownerId)
+          .get();
+
       final names = snapshot.docs.map((doc) {
         var data = doc.data() as Map<String, dynamic>;
         return data['nameparking'] ?? 'Unknown';
@@ -38,55 +56,49 @@ class _DetailMoneyState extends State<DetailMoney> {
     }
   }
 
-  Future<Map<String, double>> fetchEarningsByRange() async {
-    Map<String, double> earningsByDay = {
-      'Mon': 0,
-      'Tue': 0,
-      'Wed': 0,
-      'Thu': 0,
-      'Fri': 0,
-      'Sat': 0,
-      'Sun': 0,
-    };
+  Future<Map<String, double>> fetchEarningsByDate(DateTime start, DateTime end) async {
+    Map<String, double> earningsByDay = {};
 
-    if (selectedDateRange == null) return earningsByDay;
+    final daysCount = end.difference(start).inDays + 1;
+    final List<DateTime> daysList = List.generate(daysCount, (i) => start.add(Duration(days: i)));
+
+    dayLabels = daysList.map((date) => DateFormat('d MMM').format(date)).toList();
+
+    for (var label in dayLabels) {
+      earningsByDay[label] = 0;
+    }
 
     try {
-      QuerySnapshot paymentSnapshot = await FirebaseFirestore.instance
+      final bookingsSnapshot = await FirebaseFirestore.instance.collection('bookings').get();
+      final bookingMap = {
+        for (var doc in bookingsSnapshot.docs)
+          (doc.data() as Map<String, dynamic>)['userId']:
+              (doc.data() as Map<String, dynamic>)['nameparking'] ?? 'Unknown'
+      };
+
+      final paymentSnapshot = await FirebaseFirestore.instance
           .collection('payments')
           .where('status', isEqualTo: 'success')
           .get();
 
       for (var doc in paymentSnapshot.docs) {
-        var data = doc.data() as Map<String, dynamic>;
+        final data = doc.data() as Map<String, dynamic>;
+        final Timestamp? ts = data['timestamp'];
+        final String? userId = data['userId'];
+
         double amount = (data['amount'] is String)
             ? double.tryParse(data['amount']) ?? 0
             : (data['amount'] as num).toDouble();
 
-        Timestamp? ts = data['timestamp'];
-        String? userId = data['userId'];
-
         if (ts != null && userId != null) {
-          DateTime dt = ts.toDate();
-          String weekday = DateFormat('E').format(dt);
+          final dt = ts.toDate();
 
-          var bookingDocs = await FirebaseFirestore.instance
-              .collection('bookings')
-              .where('userId', isEqualTo: userId)
-              .limit(1)
-              .get();
+          if (!dt.isBefore(start) && !dt.isAfter(end)) {
+            final label = DateFormat('d MMM').format(dt);
+            final String parkingName = bookingMap[userId] ?? 'Unknown';
 
-          String parkingName = bookingDocs.docs.isNotEmpty
-              ? (bookingDocs.docs.first.data()
-                      as Map<String, dynamic>)['nameparking'] ??
-                  'Unknown'
-              : 'Unknown';
-
-          if ((selectedParking == 'All' || selectedParking == parkingName) &&
-              !dt.isBefore(selectedDateRange!.start) &&
-              !dt.isAfter(selectedDateRange!.end)) {
-            if (earningsByDay.containsKey(weekday)) {
-              earningsByDay[weekday] = earningsByDay[weekday]! + amount;
+            if (dayLabels.contains(label) && (selectedParking == 'All' || selectedParking == parkingName)) {
+              earningsByDay[label] = earningsByDay[label]! + amount;
             }
           }
         }
@@ -98,271 +110,285 @@ class _DetailMoneyState extends State<DetailMoney> {
     return earningsByDay;
   }
 
-  Future<void> selectDateRange(BuildContext context) async {
-    final picked = await showDateRangePicker(
-      context: context,
-      initialDateRange: selectedDateRange,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) {
-      setState(() {
-        selectedDateRange = picked;
-      });
-    }
-  }
-
-  Future<int> fetchTicketCount() async {
+  Future<int> fetchTicketCount(DateTime start, DateTime end) async {
     int ticketCount = 0;
 
-    if (selectedDateRange == null) return ticketCount;
+    final bookingsSnapshot = await FirebaseFirestore.instance.collection('bookings').get();
+    final bookingMap = {
+      for (var doc in bookingsSnapshot.docs)
+        (doc.data() as Map<String, dynamic>)['userId']:
+            (doc.data() as Map<String, dynamic>)['nameparking'] ?? 'Unknown'
+    };
 
-    try {
-      QuerySnapshot paymentSnapshot = await FirebaseFirestore.instance
-          .collection('payments')
-          .where('status', isEqualTo: 'success')
-          .get();
+    final paymentSnapshot = await FirebaseFirestore.instance
+        .collection('payments')
+        .where('status', isEqualTo: 'success')
+        .get();
 
-      for (var doc in paymentSnapshot.docs) {
-        var data = doc.data() as Map<String, dynamic>;
-        Timestamp? ts = data['timestamp'];
-        String? userId = data['userId'];
+    for (var doc in paymentSnapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final Timestamp? ts = data['timestamp'];
+      final String? userId = data['userId'];
 
-        if (ts != null && userId != null) {
-          DateTime dt = ts.toDate();
+      if (ts != null && userId != null) {
+        final dt = ts.toDate();
+        final parkingName = bookingMap[userId] ?? 'Unknown';
 
-          if (dt.isBefore(selectedDateRange!.start) ||
-              dt.isAfter(selectedDateRange!.end)) {
-            continue;
-          }
-
-          // Match to booking
-          var bookingDocs = await FirebaseFirestore.instance
-              .collection('bookings')
-              .where('userId', isEqualTo: userId)
-              .limit(1)
-              .get();
-
-          String parkingName = bookingDocs.docs.isNotEmpty
-              ? (bookingDocs.docs.first.data()
-                      as Map<String, dynamic>)['nameparking'] ??
-                  'Unknown'
-              : 'Unknown';
-
-          if (selectedParking == 'All' || selectedParking == parkingName) {
-            ticketCount++;
-          }
+        if (!dt.isBefore(start) && !dt.isAfter(end) && (selectedParking == 'All' || selectedParking == parkingName)) {
+          ticketCount++;
         }
       }
-    } catch (e) {
-      print('Error fetching ticket count: $e');
     }
-
     return ticketCount;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFE3F2FD), Color(0xFFFFFFFF)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+  Future<void> pickStartDate() async {
+  DateTime? picked = await showDatePicker(
+    context: context,
+    initialDate: startDate,
+    firstDate: DateTime(2020),
+    lastDate: endDate,
+    builder: (BuildContext context, Widget? child) {
+      return Theme(
+        data: ThemeData.light().copyWith(
+          primaryColor: Colors.blueAccent,
+          hintColor: Colors.blueAccent,
+          primaryColorDark: Colors.blueAccent,
+          buttonTheme: ButtonThemeData(textTheme: ButtonTextTheme.primary),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
+        child: child!,
+      );
+    },
+  );
+  if (picked != null && picked != startDate) {
+    setState(() {
+      startDate = picked;
+      if (startDate.isAfter(endDate)) {
+        endDate = startDate;
+      }
+      loadData();
+    });
+  }
+}
+
+Future<void> pickEndDate() async {
+  DateTime? picked = await showDatePicker(
+    context: context,
+    initialDate: endDate,
+    firstDate: startDate,
+    lastDate: DateTime.now(),
+    builder: (BuildContext context, Widget? child) {
+      return Theme(
+        data: ThemeData.light().copyWith(
+          primaryColor: Colors.blueAccent,
+          hintColor: Colors.blueAccent,
+          primaryColorDark: Colors.blueAccent,
+          buttonTheme: ButtonThemeData(textTheme: ButtonTextTheme.primary),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
+          ),
+        ),
+        child: child!,
+      );
+    },
+  );
+  if (picked != null && picked != endDate) {
+    setState(() {
+      endDate = picked;
+      loadData();
+    });
+  }
+}
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('ປະຫວັດການຈ່າຍ',style: TextStyle(color: Colors.white,  fontWeight: FontWeight.bold,),),
+        backgroundColor: Colors.blueAccent,
+        centerTitle: true,
+        elevation: 4,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const BackButton(),
-            const SizedBox(height: 8),
-            const Center(
-              child: Text(
-                "ປະຫວັດການຈ່າຍ",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            // Dropdown
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.blueAccent[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blueAccent.shade200),
+              ),
+              child: DropdownButton<String>(
+                value: selectedParking,
+                isExpanded: true,
+                underline: const SizedBox.shrink(),
+                items: parkingOptions
+                    .map((p) => DropdownMenuItem(
+                          value: p,
+                          child: Text(p, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    selectedParking = value!;
+                    loadData();
+                  });
+                },
               ),
             ),
+
             const SizedBox(height: 16),
-            Card(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: DropdownButton<String>(
-                  value: selectedParking,
-                  isExpanded: true,
-                  underline: Container(),
-                  items: parkingOptions.map((p) {
-                    return DropdownMenuItem(
-                      value: p,
-                      child: Text(p),
-                    );
-                  }).toList(),
-                  onChanged: (value) =>
-                      setState(() => selectedParking = value!),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
+
+            // Date range pickers
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Expanded(
-                  child: Text(
-                    selectedDateRange == null
-                        ? "ເລືອກຊ່ວງວັນທີ"
-                        : "ຈາກ: ${DateFormat('yyyy-MM-dd').format(selectedDateRange!.start)} ຫາ: ${DateFormat('yyyy-MM-dd').format(selectedDateRange!.end)}",
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white, backgroundColor: Colors.blue, // Icon and label color
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 5,
-                  ),
-                  onPressed: () => selectDateRange(context),
-                  icon: const Icon(Icons.date_range,color: Colors.white,),
-                  label: const Text(
-                    "ເລືອກວັນ",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-                )
+                _datePickerButton('Start Date', startDate, pickStartDate),
+                const SizedBox(width: 20),
+                _datePickerButton('End Date', endDate, pickEndDate),
               ],
             ),
-            const SizedBox(height: 16),
+
+            const SizedBox(height: 20),
+
             Expanded(
               child: FutureBuilder<Map<String, double>>(
-                future: fetchEarningsByRange(),
+                future: earningsFuture,
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+                  if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
-
-                  if (!snapshot.hasData) {
-                    return const Center(child: Text("No data found"));
-                  }
-
                   final data = snapshot.data!;
                   final total = data.values.fold(0.0, (a, b) => a + b);
-                  final chartData = weekDays.asMap().entries.map((entry) {
+
+                  final chartData = dayLabels.asMap().entries.map((entry) {
                     int i = entry.key;
-                    String day = entry.value;
+                    String label = entry.value;
                     return BarChartGroupData(
                       x: i,
                       barRods: [
                         BarChartRodData(
-                          toY: data[day] ?? 0,
-                          color: Colors.greenAccent.shade700,
-                          width: 18,
+                          toY: data[label] ?? 0,
+                          color: Colors.blueAccent.shade400,
+                          width: 22,
                           borderRadius: BorderRadius.circular(8),
+                          backDrawRodData: BackgroundBarChartRodData(
+                            show: true,
+                            toY: (total < 10) ? 10 : total + total * 0.3,
+                            color: Colors.blueAccent.shade100,
+                          ),
                         ),
                       ],
                     );
                   }).toList();
 
                   return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SizedBox(
-                        height: 250,
-                        child: BarChart(
-                          BarChartData(
-                            maxY: total < 10 ? 10 : total + total * 0.1,
-                            barGroups: chartData,
-                            borderData: FlBorderData(show: false),
-                            gridData: FlGridData(show: false),
-                            titlesData: FlTitlesData(
-                              leftTitles: AxisTitles(
-                                sideTitles: SideTitles(showTitles: false),
-                              ),
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  getTitlesWidget: (value, meta) {
-                                    int index = value.toInt();
-                                    return Text(
-                                      weekDays[index],
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                    );
-                                  },
+                      Container(
+                        height: 280,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.15),
+                              blurRadius: 10,
+                              offset: const Offset(0, 6),
+                            )
+                          ],
+                        ),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                            child: SizedBox(
+                              width: chartData.length * 70,
+                              child: BarChart(
+                                BarChartData(
+                                  maxY: (total < 10) ? 10 : total + total * 0.3,
+                                  barGroups: chartData,
+                                  borderData: FlBorderData(show: false),
+                                  gridData: FlGridData(show: true, drawVerticalLine: false),
+                                  titlesData: FlTitlesData(
+                                    leftTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        reservedSize: 38,
+                                        interval: (total / 5).ceilToDouble(),
+                                        getTitlesWidget: (value, meta) {
+                                          return Text(
+                                            NumberFormat.compact().format(value),
+                                            style: const TextStyle(
+                                              color: Colors.grey,
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 12,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    bottomTitles: AxisTitles(
+                                      sideTitles: SideTitles(
+                                        showTitles: true,
+                                        reservedSize: 30,
+                                        getTitlesWidget: (value, meta) {
+                                          int index = value.toInt();
+                                          if (index < 0 || index >= dayLabels.length) return const SizedBox.shrink();
+                                          return Padding(
+                                            padding: const EdgeInsets.only(top: 6),
+                                            child: Text(
+                                              dayLabels[index],
+                                              style: const TextStyle(
+                                                color: Colors.blueAccent,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+
+                      const SizedBox(height: 24),
+
+                      // Summary cards
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          Expanded(
-                            child: Card(
-                              color: Colors.green.shade100,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16)),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 20, horizontal: 16),
-                                child: Column(
-                                  children: [
-                                    const Icon(Icons.attach_money,
-                                        color: Colors.green, size: 32),
-                                    const SizedBox(height: 8),
-                                    const Text("Money"),
-                                    Text(
-                                      NumberFormat("#,##0").format(total),
-                                      style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                          _infoCard(
+                            icon: Icons.attach_money,
+                            title: 'ລາຍຮັບ',
+                            value: NumberFormat("#,##0").format(total),
+                            color: Colors.green.shade600,
+                            width: MediaQuery.of(context).size.width * 0.42,
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Card(
-                              color: Colors.blue.shade100,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16)),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 20, horizontal: 16),
-                                child: FutureBuilder<int>(
-                                  future: fetchTicketCount(),
-                                  builder: (context, snapshot) {
-                                    final ticketCount = snapshot.data ?? 0;
-                                    return Column(
-                                      children: [
-                                        const Icon(Icons.confirmation_num,
-                                            color: Colors.blue, size: 32),
-                                        const SizedBox(height: 8),
-                                        const Text("Tickets"),
-                                        Text(
-                                          "$ticketCount",
-                                          style: const TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
+                          FutureBuilder<int>(
+                            future: ticketCountFuture,
+                            builder: (context, snapshot) {
+                              int count = snapshot.data ?? 0;
+                              return _infoCard(
+                                icon: Icons.confirmation_num,
+                                title: 'ປີ້ລວມ',
+                                value: '$count',
+                                color: Colors.blue.shade600,
+                                width: MediaQuery.of(context).size.width * 0.42,
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -373,6 +399,67 @@ class _DetailMoneyState extends State<DetailMoney> {
             ),
           ],
         ),
+      ),
+      backgroundColor: Colors.grey[100],
+    );
+  }
+
+  Widget _datePickerButton(String label, DateTime date, VoidCallback onTap) {
+    return ElevatedButton.icon(
+      onPressed: onTap,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blueAccent.shade100,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      icon: const Icon(Icons.calendar_today,color: Colors.white, size: 18),
+      label: Text(
+        DateFormat('yyyy-MM-dd').format(date),
+        style: const TextStyle(fontSize: 14,color: Colors.white, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+
+  Widget _infoCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required Color color,
+    required double width,
+  }) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.symmetric(vertical: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: color.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 40, color: color),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: TextStyle(
+              color: color.withOpacity(0.9),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -38,7 +38,7 @@ class _MyrealTicketState extends State<EmpPending> {
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            title: const Text("ປີ້ປັດຈຸບັນ"),
+            title: const Text("Penging"),
             backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
           ),
           body: StreamBuilder<QuerySnapshot>(

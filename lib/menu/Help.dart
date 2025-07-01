@@ -19,7 +19,7 @@ class _HelpState extends State<Help> {
     height: 50,
     child: ElevatedButton(
       onPressed: () {
-        Navigator.of(context).pop(); // ปิด dialog หรือหน้าเดิมก่อน (ถ้าต้องการ)
+        Navigator.of(context).pop(); 
         MaterialPageRoute route =
             MaterialPageRoute(builder: (c) => QuestionPage());
         Navigator.of(context).push(route);

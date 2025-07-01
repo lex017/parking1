@@ -104,9 +104,9 @@ class _MyrealTicketState extends State<MyrealTicket> {
                                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 4),
                             Text("Province: ${ticket['province'] ?? 'N/A'}"),
-                            Text("Plate Type: ${ticket['plateType'] ?? 'N/A'}"),
-                            Text("Name Plate: ${ticket['namePlate'] ?? 'N/A'}"),
-                            Text("Plate Number: ${ticket['plate'] ?? 'N/A'}"),
+                            Text("Plate Type: ${ticket['typeplate'] ?? 'N/A'}"),
+                            Text("Name Plate: ${ticket['charplate'] ?? 'N/A'}"),
+                            Text("Plate Number: ${ticket['numberplate'] ?? 'N/A'}"),
                             const SizedBox(height: 8),
                             ticket['imageUrl'] != ''
                                 ? ClipRRect(

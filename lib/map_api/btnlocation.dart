@@ -18,6 +18,7 @@ class _BtnLocationState extends State<btnLocation> {
   int availableSlots = 0;
   bool isFavorite = false;
   int checkedInCount = 0;
+  bool _isDescriptionExpanded = false;
 
   void _showImagePopup(String imageUrl) {
     showDialog(
@@ -109,302 +110,324 @@ class _BtnLocationState extends State<btnLocation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
-        children: [
-          Stack(
-            children: [
-              // StreamBuilder to fetch image
-              StreamBuilder<DocumentSnapshot>(
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Stack(
+              children: [
+                // StreamBuilder to fetch image
+                StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('parking')
+                      .doc(widget.documentId)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const SizedBox(
+                        height: 300,
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+        
+                    if (snapshot.hasError) {
+                      return const SizedBox(
+                        height: 300,
+                        child: Center(
+                          child: Text(
+                            "Error loading image",
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      );
+                    }
+        
+                    if (!snapshot.hasData || !snapshot.data!.exists) {
+                      return const SizedBox(
+                        height: 300,
+                        child: Center(
+                          child: Text(
+                            "No image available",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                      );
+                    }
+        
+                    final data = snapshot.data!.data() as Map<String, dynamic>;
+                    final imageUrl = data['imageUrl'] ?? '';
+        
+                    return GestureDetector(
+                      onTap: () {
+                        if (imageUrl.isNotEmpty) {
+                          _showImagePopup(imageUrl);
+                        }
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        height: 300,
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.only(
+                            bottomLeft: Radius.circular(40),
+                            bottomRight: Radius.circular(40),
+                          ),
+                          image: imageUrl.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(imageUrl),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                          color: Colors.grey.shade200,
+                        ),
+                        child: imageUrl.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  "No image available",
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              )
+                            : null,
+                      ),
+                    );
+                  },
+                ),
+                // Back Button
+                Positioned(
+                  top: 40,
+                  left: 16,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back,
+                        color: Colors.white, size: 30),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ),
+              ],
+            ),
+        
+            // Information section
+            SizedBox(
+              child: StreamBuilder<DocumentSnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('parking')
                     .doc(widget.documentId)
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const SizedBox(
-                      height: 300,
-                      child: Center(child: CircularProgressIndicator()),
-                    );
+                    return const Center(child: CircularProgressIndicator());
                   }
-
+        
                   if (snapshot.hasError) {
-                    return const SizedBox(
-                      height: 300,
-                      child: Center(
-                        child: Text(
-                          "Error loading image",
-                          style: TextStyle(color: Colors.red),
-                        ),
+                    return const Center(
+                      child: Text(
+                        "Error loading data",
+                        style: TextStyle(color: Colors.red),
                       ),
                     );
                   }
-
+        
                   if (!snapshot.hasData || !snapshot.data!.exists) {
-                    return const SizedBox(
-                      height: 300,
-                      child: Center(
-                        child: Text(
-                          "No image available",
-                          style: TextStyle(color: Colors.grey),
-                        ),
+                    return const Center(
+                      child: Text(
+                        "No data available",
+                        style: TextStyle(color: Colors.grey),
                       ),
                     );
                   }
-
+        
                   final data = snapshot.data!.data() as Map<String, dynamic>;
-                  final imageUrl = data['imageUrl'] ?? '';
-
-                  return GestureDetector(
-                    onTap: () {
-                      if (imageUrl.isNotEmpty) {
-                        _showImagePopup(imageUrl);
-                      }
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      height: 300,
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(40),
-                          bottomRight: Radius.circular(40),
-                        ),
-                        image: imageUrl.isNotEmpty
-                            ? DecorationImage(
-                                image: NetworkImage(imageUrl),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                        color: Colors.grey.shade200,
+                  final nameLocation = data['nameparking'] ?? 'Unknown Name';
+                  final description =
+                      data['description'] ?? 'No description available';
+        
+                  final landmark = data['landmark'] ?? 'None';
+                  final opentime = data['openTime'] ?? 'none';
+                  final closetime = data['closeTime'] ?? 'none';
+                  final carSlot = data['car_slot'] ?? 0;
+                  availableSlots = carSlot;
+        
+                  return Container(
+                    padding: const EdgeInsets.all(20),
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(40),
+                        topRight: Radius.circular(40),
                       ),
-                      child: imageUrl.isEmpty
-                          ? const Center(
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 10,
+                          offset: Offset(0, -4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            SizedBox(
                               child: Text(
-                                "No image available",
-                                style: TextStyle(color: Colors.grey),
+                                nameLocation,
+                                style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black),
                               ),
-                            )
-                          : null,
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.comment,
+                                  color: Colors.black, size: 30),
+                              onPressed: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          Comment(documentId: widget.documentId),
+                                    ));
+                              },
+                            ),
+                          ],
+                        ),
+        
+                        const SizedBox(height: 10),
+                        
+                        // Real-time Check-in Counter
+                        StreamBuilder<int>(
+                          stream: getCheckedInCount(),
+                          builder: (context, snapshot) {
+                            checkedInCount = snapshot.data ?? 0;
+        
+                            return Text(
+                              "Car Slot: $checkedInCount/$availableSlots",
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            );
+                          },
+                        ),
+        
+                        SizedBox(height: 10,),
+                        Row(
+                          children: [
+                            Icon(Icons.access_time_sharp,
+                                color: Colors.black, size: 20),
+                            const SizedBox(width: 10),
+                            Text(
+                              opentime,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                height: 1.6,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(width: 15),
+                            Text(
+                              closetime,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                height: 1.6,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                         // Description with Read more / Read less
+                          Text(
+                            description,
+                            maxLines: _isDescriptionExpanded ? null : 3,
+                            overflow: _isDescriptionExpanded
+                                ? TextOverflow.visible
+                                : TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              height: 1.6,
+                              color: Colors.grey,
+                            ),
+                          ),
+        
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isDescriptionExpanded = !_isDescriptionExpanded;
+                              });
+                            },
+                            child: Text(
+                              _isDescriptionExpanded ? "Read less" : "Read more",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                     
+                        const SizedBox(height: 20),
+                        Text(
+                          'Nearby places',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, color: Colors.black),
+                        ),
+                        const SizedBox(height: 15),
+                        Text(
+                          landmark,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            height: 1.6,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        
+                        const SizedBox(height:55),
+        
+           
+        
+                        SizedBox(
+                          width: 500,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: (checkedInCount >= availableSlots)
+                                ? null
+                                : () {
+                                    if (checkedInCount >= availableSlots) {
+                                      _showFullDialog(context);
+                                    } else {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (context) => detailPay(
+                                              documentId: widget.documentId),
+                                        ),
+                                      );
+                                    }
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: (checkedInCount == availableSlots)
+                                  ? Colors.red
+                                  : Colors.blue,
+                            ),
+                            child: Text(
+                              (checkedInCount >= availableSlots)
+                                  ? "Sold Out"
+                                  : "Booking",
+                              style: const TextStyle(
+                                  fontSize: 18, color: Colors.white),
+                            ),
+                          ),
+                        )
+                      ],
                     ),
                   );
                 },
               ),
-              // Back Button
-              Positioned(
-                top: 40,
-                left: 16,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back,
-                      color: Colors.white, size: 30),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ),
-            ],
-          ),
-
-          // Information section
-          Expanded(
-            child: StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('parking')
-                  .doc(widget.documentId)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (snapshot.hasError) {
-                  return const Center(
-                    child: Text(
-                      "Error loading data",
-                      style: TextStyle(color: Colors.red),
-                    ),
-                  );
-                }
-
-                if (!snapshot.hasData || !snapshot.data!.exists) {
-                  return const Center(
-                    child: Text(
-                      "No data available",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  );
-                }
-
-                final data = snapshot.data!.data() as Map<String, dynamic>;
-                final nameLocation = data['nameparking'] ?? 'Unknown Name';
-                final description =
-                    data['description'] ?? 'No description available';
-
-                final landmark = data['landmark'] ?? 'None';
-                final opentime = data['openTime'] ?? 'none';
-                final closetime = data['closeTime'] ?? 'none';
-                final carSlot = data['car_slot'] ?? 0;
-                availableSlots = carSlot;
-
-                return Container(
-                  padding: const EdgeInsets.all(20),
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(40),
-                      topRight: Radius.circular(40),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 10,
-                        offset: Offset(0, -4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              nameLocation,
-                              style: const TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.comment,
-                                color: Colors.black, size: 30),
-                            onPressed: () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        Comment(documentId: widget.documentId),
-                                  ));
-                            },
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 10),
-                      
-                      // Real-time Check-in Counter
-                      StreamBuilder<int>(
-                        stream: getCheckedInCount(),
-                        builder: (context, snapshot) {
-                          checkedInCount = snapshot.data ?? 0;
-
-                          return Text(
-                            "Car Slot: $checkedInCount/$availableSlots",
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          );
-                        },
-                      ),
-
-                      SizedBox(height: 10,),
-                      Row(
-                        children: [
-                          Icon(Icons.access_time_sharp,
-                              color: Colors.black, size: 20),
-                          const SizedBox(width: 10),
-                          Text(
-                            opentime,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              height: 1.6,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(width: 15),
-                          Text(
-                            closetime,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              height: 1.6,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        description,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          height: 1.6,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      const SizedBox(height: 20),
-                      Text(
-                        'Nearby places',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.black),
-                      ),
-                      const SizedBox(height: 15),
-                      Text(
-                        landmark,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          height: 1.6,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 15),
-
-                      const Spacer(),
-
-                      SizedBox(
-                        width: 500,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: (checkedInCount >= availableSlots)
-                              ? null
-                              : () {
-                                  if (checkedInCount >= availableSlots) {
-                                    _showFullDialog(context);
-                                  } else {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (context) => detailPay(
-                                            documentId: widget.documentId),
-                                      ),
-                                    );
-                                  }
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: (checkedInCount == availableSlots)
-                                ? Colors.red
-                                : Colors.blue,
-                          ),
-                          child: Text(
-                            (checkedInCount >= availableSlots)
-                                ? "Sold Out"
-                                : "Booking",
-                            style: const TextStyle(
-                                fontSize: 18, color: Colors.white),
-                          ),
-                        ),
-                      )
-                    ],
-                  ),
-                );
-              },
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

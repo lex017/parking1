@@ -24,6 +24,11 @@ class PayPage extends StatefulWidget {
   final String documentId;
   final String selectedCar;
   final String selectedVehicleId;
+  final String selectedCharplate;
+  final String selectedNumberplate;
+  final String selectedColor;
+  final String selectedProvince;
+  final String selectedTypeplate;
   final int pricePerHour;
 
   const PayPage(
@@ -31,7 +36,7 @@ class PayPage extends StatefulWidget {
       required this.documentId,
       required this.selectedCar,
       required this.selectedVehicleId,
-      required this.pricePerHour});
+      required this.pricePerHour, required this.selectedCharplate, required this.selectedNumberplate, required this.selectedColor, required this.selectedProvince, required this.selectedTypeplate});
 
   @override
   State<PayPage> createState() => _PayPageState();
@@ -315,7 +320,7 @@ void _pickTime() {
       );
       return;
     }
-
+    
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -446,6 +451,12 @@ void _pickTime() {
       "time": timeController.text,
       "bookingId": bookingId,
       "vechicle": widget.selectedCar,
+      "vehicleId": widget.selectedVehicleId,
+      "charplate": widget.selectedCharplate,
+      "numberplate": widget.selectedNumberplate,
+      "color": widget.selectedColor,
+      "province": widget.selectedProvince,
+      "typeplate": widget.selectedTypeplate,
       "imageBill": imageUrl,
       "locationId": locationId,
       "status": "pending",
@@ -463,6 +474,11 @@ void _pickTime() {
       "location": location,
       "vehicle": widget.selectedCar,
       "vehicleId": widget.selectedVehicleId,
+      "charplate": widget.selectedCharplate,
+      "numberplate": widget.selectedNumberplate,
+      "color": widget.selectedColor,
+      "province": widget.selectedProvince,
+      "typeplate": widget.selectedTypeplate,
       "paymentStatus": "pending",
       "Status": "pending",
       'timeout': Timestamp.fromDate(timeout),

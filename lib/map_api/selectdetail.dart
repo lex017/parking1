@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parking1/cash/QrPay.dart';
+import 'package:parking1/data_save/licenseplate.dart';
 
 class detailPay extends StatefulWidget {
   final String documentId;
@@ -18,7 +20,11 @@ class _BtnLocationState extends State<detailPay> {
   String? selectedVehicleId;
 
   List<Map<String, String>> carList = []; // Ensure carList is initialized
-
+  String selectedCharplate = '';
+  String selectedNumberplate = '';
+  String selectedColor = '';
+  String selectedProvince = '';
+  String selectedTypeplate = '';
   @override
   void initState() {
     super.initState();
@@ -65,6 +71,11 @@ class _BtnLocationState extends State<detailPay> {
         return {
           'vehicleId': doc.id, // Store vehicleId
           'brandName': doc['brandName'] as String,
+          'charplate': doc['charplate'] as String,
+          'numberplate': doc['numberplate'] as String,
+          'color': doc['color'] as String,
+          'province': doc['province'] as String,
+          'typeplate': doc['typeplate'] as String,
         };
       }).toList();
     });
@@ -102,6 +113,11 @@ class _BtnLocationState extends State<detailPay> {
       setState(() {
         selectedCar = selected['brandName']!;
         selectedVehicleId = selected['vehicleId']!;
+        selectedCharplate = selected['charplate']!;
+        selectedNumberplate = selected['numberplate']!;
+        selectedColor = selected['color']!;
+        selectedProvince = selected['province']!;
+        selectedTypeplate = selected['typeplate']!;
       });
     }
   }
@@ -286,74 +302,113 @@ class _BtnLocationState extends State<detailPay> {
                       const SizedBox(height: 20),
 
                       // Button to pick time
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              children: [
-                                const Text(
-                                  "Select Car: ",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black,
-                                  ),
+                          Row(
+                            children: [
+                              const Text(
+                                "Select Car: ",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
                                 ),
-                                const SizedBox(width: 10),
-                                Container(
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12.0),
                                   decoration: BoxDecoration(
-                                    color:
-                                        Colors.blue.shade50, // Background color
+                                    color: Colors.blue.shade50,
                                     borderRadius: BorderRadius.circular(10.0),
                                     border: Border.all(
                                         color: Colors.blueAccent, width: 1.0),
                                   ),
                                   child: DropdownButtonHideUnderline(
-                                    child: DropdownButton<String>(
-                                      dropdownColor: Colors
-                                          .white, // Dropdown background color
-                                      value: selectedCar,
+                                    child: DropdownButton2<String>(
+                                      isExpanded: true,
                                       hint: const Text(
-                                        "Choose a Car",
+                                        'Choose a Car',
                                         style: TextStyle(color: Colors.black54),
                                       ),
-                                      icon: const Icon(Icons.arrow_drop_down,
-                                          color: Colors.blueAccent),
-                                      onChanged: (String? newValue) {
-                                        setState(() {
-                                          selectedCar = newValue;
-                                          selectedVehicleId =
-                                              carList.firstWhere(
-                                            (car) =>
-                                                car['brandName'] == newValue,
-                                            orElse: () => {'vehicleId': ''},
-                                          )['vehicleId'];
-                                        });
-                                      },
-                                      items: carList
-                                          .map<DropdownMenuItem<String>>(
-                                              (Map<String, String> car) {
-                                        return DropdownMenuItem<String>(
-                                          value: car['brandName'],
-                                          child: Text(
-                                            car['brandName'] ?? "Unknown",
-                                            style: const TextStyle(
-                                                color: Colors.black),
+                                      items: [
+                                        ...carList.map((car) {
+                                          return DropdownMenuItem<String>(
+                                            value: car['brandName'],
+                                            child: Text(
+                                                car['brandName'] ?? 'Unknown'),
+                                          );
+                                        }).toList(),
+                                        DropdownMenuItem<String>(
+                                          value: 'add_new',
+                                          child: Row(
+                                            children: const [
+                                              Icon(Icons.add,
+                                                  color: Colors.blueAccent),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Add New Car',
+                                                style: TextStyle(
+                                                  color: Colors.blueAccent,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        );
-                                      }).toList(),
+                                        ),
+                                      ],
+                                      value: selectedCar,
+                                      onChanged: (value) {
+                                        if (value == 'add_new') {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    LicensePlate()),
+                                          );
+                                        } else {
+                                          setState(() {
+                                            selectedCar = value;
+
+                                            final selected = carList.firstWhere(
+                                              (car) =>
+                                                  car['brandName'] == value,
+                                              orElse: () => {},
+                                            );
+
+                                            selectedVehicleId =
+                                                selected['vehicleId'] ?? '';
+                                            selectedCharplate =
+                                                selected['charplate'] ?? '';
+                                            selectedNumberplate =
+                                                selected['numberplate'] ?? '';
+                                            selectedColor =
+                                                selected['color'] ?? '';
+                                            selectedProvince =
+                                                selected['province'] ?? '';
+                                            selectedTypeplate =
+                                                selected['typeplate'] ?? '';
+                                          });
+                                        }
+                                      },
+                                      dropdownStyleData: DropdownStyleData(
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                          color: Colors.white,
+                                          border: Border.all(
+                                              color: Colors.blueAccent),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-
                       const Spacer(),
 
                       // Total Price and Navigate Button
@@ -388,8 +443,13 @@ class _BtnLocationState extends State<detailPay> {
                                           documentId: widget.documentId,
                                           selectedCar:
                                               selectedCar!, // Pass selected car
-
                                           selectedVehicleId: selectedVehicleId!,
+                                          selectedCharplate: selectedCharplate,
+                                          selectedNumberplate:
+                                              selectedNumberplate,
+                                          selectedColor: selectedColor,
+                                          selectedProvince: selectedProvince,
+                                          selectedTypeplate: selectedTypeplate,
                                           pricePerHour: pricePerHour,
                                         ),
                                       ),

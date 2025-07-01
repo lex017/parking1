@@ -13,7 +13,8 @@ import 'package:parking1/menu/employee_login.dart';
 import 'package:parking1/model/employeedata.dart';
 
 class emp_register extends StatefulWidget {
-  const emp_register({super.key});
+  final String ownerId;
+  const emp_register({super.key, required this.ownerId});
 
   @override
   State<emp_register> createState() => _RegisterPageState();
@@ -41,6 +42,7 @@ class _RegisterPageState extends State<emp_register> {
   String? age;
   String? dateOfBirth;
   String? emp_id;
+  String? password;
   String? selectedLocation;
   String? selectedGender;
   String? empProfile;
@@ -207,6 +209,7 @@ class _RegisterPageState extends State<emp_register> {
                     .doc(emp_id)
                     .set({
                   'emp_id': emp_id,
+                  'password': password,
                   'firstname': firstname,
                   'lastname': lastname,
                   'gender': selectedGender,
@@ -246,7 +249,9 @@ class _RegisterPageState extends State<emp_register> {
 
   Widget locationDropdown() {
     return FutureBuilder<QuerySnapshot>(
-      future: FirebaseFirestore.instance.collection('parking').get(),
+      future: FirebaseFirestore.instance.collection('parking')
+      .where('ownerId',isEqualTo:widget.ownerId)
+      .get(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const CircularProgressIndicator();
@@ -348,6 +353,33 @@ class _RegisterPageState extends State<emp_register> {
       ),
     );
   }
+Widget passwordInput() {
+  return SizedBox(
+    width: 350,
+    child: TextFormField(
+      obscureText: obs,
+      onSaved: (value) => password = value,
+      validator: MultiValidator([
+        RequiredValidator(errorText: "Please enter a password"),
+        MinLengthValidator(6, errorText: "Password must be at least 6 characters"),
+      ]),
+      decoration: InputDecoration(
+        border: const UnderlineInputBorder(),
+        labelText: 'Password',
+        filled: true,
+        fillColor: Colors.white,
+        prefixIcon: const Icon(Icons.lock, color: Colors.black, size: 35.0),
+        suffixIcon: IconButton(
+          icon: Icon(
+            obs ? Icons.visibility_off : Icons.visibility,
+            color: Colors.black,
+          ),
+          onPressed: showMessage,
+        ),
+      ),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -381,7 +413,9 @@ class _RegisterPageState extends State<emp_register> {
                             ageInput(),
                             const SizedBox(height: 20.0),
 
-                            empIdInput(), // Employee ID input by user
+                            empIdInput(),
+                            const SizedBox(height: 20.0),
+                            passwordInput(),
                             const SizedBox(height: 20.0),
                             locationDropdown(),
                             const SizedBox(height: 20.0),

@@ -13,7 +13,9 @@ class emp_login extends StatefulWidget {
 
 class _EmpLoginState extends State<emp_login> {
   final formkey = GlobalKey<FormState>();
-  final TextEditingController emailController = TextEditingController(); // emp_id
+  final TextEditingController emailController =
+      TextEditingController(); // emp_id
+  final TextEditingController passwordController = TextEditingController();
 
   bool rememberMe = false;
   bool isLoading = false;
@@ -28,6 +30,7 @@ class _EmpLoginState extends State<emp_login> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       emailController.text = prefs.getString('emp_id') ?? '';
+      passwordController.text = prefs.getString('emp_password') ?? '';
       rememberMe = prefs.getBool('rememberMe') ?? false;
     });
 
@@ -40,9 +43,11 @@ class _EmpLoginState extends State<emp_login> {
     final prefs = await SharedPreferences.getInstance();
     if (rememberMe) {
       await prefs.setString('emp_id', emailController.text);
+      await prefs.setString('emp_password', passwordController.text);
       await prefs.setBool('rememberMe', true);
     } else {
       await prefs.remove('emp_id');
+      await prefs.remove('emp_password');
       await prefs.remove('rememberMe');
     }
   }
@@ -50,6 +55,7 @@ class _EmpLoginState extends State<emp_login> {
   Future<void> loginWithFirestore() async {
     try {
       final empId = emailController.text.trim();
+      final password = passwordController.text.trim();
 
       final doc = await FirebaseFirestore.instance
           .collection('employees')
@@ -58,7 +64,9 @@ class _EmpLoginState extends State<emp_login> {
 
       if (doc.exists) {
         final data = doc.data();
-        if (data != null && data['emp_id'] == empId) {
+        if (data != null &&
+            data['emp_id'] == empId &&
+            data['password'] == password) {
           await saveCredentials();
           Navigator.pushAndRemoveUntil(
             context,
@@ -67,7 +75,7 @@ class _EmpLoginState extends State<emp_login> {
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Invalid employee ID.')),
+            const SnackBar(content: Text('Invalid employee ID or password.')),
           );
         }
       } else {
@@ -95,6 +103,27 @@ class _EmpLoginState extends State<emp_login> {
           labelStyle: TextStyle(color: Colors.black),
           prefixIcon: Icon(
             Icons.person,
+            color: Colors.black,
+            size: 35.0,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget passwordInput() {
+    return SizedBox(
+      width: 350,
+      child: TextFormField(
+        controller: passwordController,
+        obscureText: true,
+        validator: RequiredValidator(errorText: "Please enter password"),
+        decoration: const InputDecoration(
+          border: UnderlineInputBorder(),
+          labelText: 'Password',
+          labelStyle: TextStyle(color: Colors.black),
+          prefixIcon: Icon(
+            Icons.lock,
             color: Colors.black,
             size: 35.0,
           ),
@@ -185,6 +214,8 @@ class _EmpLoginState extends State<emp_login> {
                         children: [
                           const SizedBox(height: 100.0),
                           emailInput(),
+                          const SizedBox(height: 20.0),
+                          passwordInput(),
                           const SizedBox(height: 50.0),
                           rememberMeCheckbox(),
                           const SizedBox(height: 50.0),

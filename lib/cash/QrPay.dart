@@ -7,8 +7,14 @@ import 'package:parking1/cash/payPage.dart';
 class QrPay extends StatefulWidget {
   final String documentId;
   final String selectedCar;
-
   final String selectedVehicleId;
+  final String selectedCharplate;
+  final String selectedNumberplate;
+  final String selectedColor;
+  final String selectedProvince;
+  final String selectedTypeplate;
+
+
   final int pricePerHour;
 
   const QrPay({
@@ -17,7 +23,7 @@ class QrPay extends StatefulWidget {
     required this.selectedCar,
 
     required this.selectedVehicleId,
-    required this.pricePerHour, // Ensuring TimeOfDay is passed correctly
+    required this.pricePerHour, required this.selectedCharplate, required this.selectedNumberplate, required this.selectedColor, required this.selectedProvince, required this.selectedTypeplate, // Ensuring TimeOfDay is passed correctly
   });
 
   @override
@@ -160,7 +166,13 @@ class _QrPayState extends State<QrPay> {
                           documentId: widget.documentId,
                           selectedCar: widget.selectedCar,
                           selectedVehicleId: widget.selectedVehicleId,
-                          pricePerHour: widget.pricePerHour,),
+                          selectedCharplate: widget.selectedCharplate,
+                          selectedNumberplate: widget.selectedNumberplate,
+                          selectedColor: widget.selectedColor,
+                          selectedProvince: widget.selectedProvince,
+                          selectedTypeplate: widget.selectedTypeplate,
+                          pricePerHour: widget.pricePerHour,
+                          ),
                     ),
                   );
                 },

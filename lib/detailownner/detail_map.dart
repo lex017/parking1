@@ -15,6 +15,9 @@ class DetailMap extends StatefulWidget {
 class _DetailMapState extends State<DetailMap> {
   List<String> categories = [];
   String description = '';
+  String price = '';
+  String opentime = '';
+  String closetime = '';
 
   @override
   void initState() {
@@ -30,20 +33,35 @@ class _DetailMapState extends State<DetailMap> {
 
     if (snapshot.exists) {
       final data = snapshot.data() as Map<String, dynamic>;
+
+      // รับค่า tag เป็น String หรือ List<String> ก็ได้ (ปรับได้ตามข้อมูลจริง)
       final tag = data['tag'];
+      final priceData = data['price'];
       final descriptionData = data['description'];
+      final opentimeData = data['openTime'];
+      final closetimeData = data['closeTime'];
 
-      if (tag != null && tag is String && tag.isNotEmpty) {
-        setState(() {
-          categories = [tag];
-        });
-      }
-
-      if (descriptionData != null && descriptionData is String) {
-        setState(() {
+      setState(() {
+        if (tag != null) {
+          if (tag is String && tag.isNotEmpty) {
+            categories = [tag];
+          } else if (tag is List) {
+            categories = List<String>.from(tag);
+          }
+        }
+        if (descriptionData != null && descriptionData is String) {
           description = descriptionData;
-        });
-      }
+        }
+        if (priceData != null) {
+          price = priceData.toString();
+        }
+        if (opentimeData != null) {
+          opentime = opentimeData.toString();
+        }
+        if (closetimeData != null) {
+          closetime = closetimeData.toString();
+        }
+      });
     }
   }
 
@@ -51,7 +69,7 @@ class _DetailMapState extends State<DetailMap> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => Selectslot(documentId: widget.documentId,),
+        builder: (context) => Selectslot(documentId: widget.documentId),
       ),
     );
   }
@@ -60,16 +78,20 @@ class _DetailMapState extends State<DetailMap> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Confirm Deletion"),
-        content: Text("Are you sure you want to delete this parking spot?"),
+        title: const Text("Confirm Deletion"),
+        content:
+            const Text("Are you sure you want to delete this parking spot?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context), // Close the dialog
-            child: Text("Cancel", style: TextStyle(color: Colors.grey)),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
-            onPressed: deleteParkingSpot,
-            child: Text("Delete", style: TextStyle(color: Colors.red)),
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog first
+              await deleteParkingSpot();
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -83,11 +105,10 @@ class _DetailMapState extends State<DetailMap> {
           .doc(widget.documentId)
           .delete();
 
-      Navigator.pop(context); // Close the dialog
       Navigator.pop(context); // Go back after deletion
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Parking spot deleted successfully!")),
+        const SnackBar(content: Text("Parking spot deleted successfully!")),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -99,58 +120,139 @@ class _DetailMapState extends State<DetailMap> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       body: Column(
         children: [
+          
           Expanded(
             child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (categories.isNotEmpty)
-                      Wrap(
-                        spacing: 8.0,
-                        children: categories.map((category) {
-                          return Container(
-                            height: 40,
-                            width: 80,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(15),
-                              border: Border.all(color: Colors.grey),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (categories.isNotEmpty)
+                    Wrap(
+                      spacing: 8.0,
+                      children: categories.map((category) {
+                        return Container(
+                          height: 40,
+                          width: 80,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(color: Colors.grey),
+                          ),
+                          child: Center(
+                            child: Text(
+                              category,
+                              style: const TextStyle(
+                                  color: Colors.black, fontSize: 16),
                             ),
-                            child: Center(
-                              child: Text(
-                                category,
-                                style: const TextStyle(
-                                    color: Colors.black, fontSize: 16),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    SizedBox(height: 15),
-                    Text(
-                      "Description",
-                      style: TextStyle(
-                        fontSize: 21,
-                        fontWeight: FontWeight.bold,
-                      ),
+                          ),
+                        );
+                      }).toList(),
                     ),
-                    SizedBox(height: 8),
-                    Text(
-                      description.isEmpty
-                          ? "No description available"
-                          : description,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        height: 1.6,
-                        color: Colors.grey,
-                      ),
+                  const SizedBox(height: 15),
+                  const Text(
+                    "Description",
+                    style: TextStyle(
+                      fontSize: 21,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    description.isEmpty
+                        ? "No description available"
+                        : description,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      height: 1.6,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Divider(
+                    thickness: 1,
+                    color: Colors.grey[300],
+                  ),
+                  const SizedBox(height: 12),
+
+// Price row with icon and bold price value
+                  Row(
+                    children: [
+                      const Icon(Icons.attach_money,
+                          color: Colors.green, size: 22),
+                      const SizedBox(width: 6),
+                      Text(
+                        "Price: ",
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                      Text(
+                        price,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+// Open time row with icon and nicer text style
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time,
+                          color: Colors.green, size: 20),
+                      const SizedBox(width: 6),
+                      Text(
+                        "Open time: ",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      Text(
+                        opentime,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+
+// Close time row, matching the open time style
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time_filled,
+                          color: Colors.redAccent, size: 20),
+                      const SizedBox(width: 6),
+                      Text(
+                        "Close time: ",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      Text(
+                        closetime,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
               ),
             ),
           ),
@@ -159,7 +261,7 @@ class _DetailMapState extends State<DetailMap> {
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          mainAxisSize: MainAxisSize.min, // To prevent overflow
+          mainAxisSize: MainAxisSize.min, // ป้องกัน overflow
           children: [
             SizedBox(
               width: double.infinity,
@@ -169,30 +271,28 @@ class _DetailMapState extends State<DetailMap> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: Text('Edit',
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Edit',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
-
             TextButton(
               onPressed: showDeleteConfirmationDialog,
-              child: Text(
+              child: const Text(
                 "Delete",
                 style: TextStyle(
                   color: Colors.red,
                   fontSize: 16,
                   decoration: TextDecoration.underline,
-                  decorationColor:
-                      Colors.red, // Match underline color with text
-                  decorationThickness:
-                      2, // Increase thickness for better visibility
-           // Creates a gap between text and underline
+                  decorationColor: Colors.red,
+                  decorationThickness: 2,
                 ),
               ),
             ),

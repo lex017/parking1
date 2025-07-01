@@ -108,49 +108,97 @@ class _BtnaddParkingState extends State<BtnaddParking> {
       );
 
  void _pickCustomTime(TextEditingController controller) {
-  DateTime selected = DateTime.now(); // Define it here so it retains value
+  DateTime selected = DateTime.now();
 
   showModalBottomSheet(
     context: context,
-    builder: (_) {
-      return SizedBox(
-        height: 320,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 20),
-          child: Column(
-            children: [
-              Expanded(
-                child: TimePickerSpinner(
-                  is24HourMode: true,
-                  isShowSeconds: false,
-                  normalTextStyle:
-                      const TextStyle(fontSize: 18, color: Colors.grey),
-                  highlightedTextStyle:
-                      const TextStyle(fontSize: 24, color: Colors.black),
-                  spacing: 40,
-                  itemHeight: 60,
-                  isForce2Digits: true,
-                  time: selected,
-                  onTimeChange: (time) {
-                    selected = time; // ✅ Save the new time
-                  },
-                ),
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+    ),
+    backgroundColor: Colors.white,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setModalState) {
+          return SizedBox(
+            height: 360,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Center(
+                    child: Icon(Icons.access_time_rounded,
+                        color: Colors.blueAccent, size: 40),
+                  ),
+                  const SizedBox(height: 10),
+                  const Center(
+                    child: Text(
+                      'Select Time',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: TimePickerSpinner(
+                      is24HourMode: true,
+                      isShowSeconds: false,
+                      normalTextStyle: const TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey,
+                      ),
+                      highlightedTextStyle: const TextStyle(
+                        fontSize: 24,
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      spacing: 40,
+                      itemHeight: 60,
+                      isForce2Digits: true,
+                      time: selected,
+                      onTimeChange: (time) {
+                        setModalState(() {
+                          selected = time;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.check_circle_outline),
+                      label: const Text(
+                        'Confirm Time',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        controller.text = DateFormat('HH:mm').format(selected);
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ),
+                ],
               ),
-              ElevatedButton(
-                onPressed: () {
-                  controller.text = DateFormat('HH:mm').format(selected); // ✅ Will now reflect selected time
-                  Navigator.pop(context);
-                },
-                child: const Text('Confirm'),
-              ),
-              const SizedBox(height: 10),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       );
     },
   );
 }
+
 
   Widget _buildImagePicker({
     required bool isQR,

@@ -21,40 +21,68 @@ class _HistoryState extends State<history> {
   }
 
   Stream<List<Map<String, dynamic>>> fetchHistoryData() {
-  String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
-  
-  if (currentUserId == null) {
-    return Stream.value([]); // Return an empty list if the user is not logged in
+    String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (currentUserId == null) {
+      return Stream.value([]);
+    }
+
+    return FirebaseFirestore.instance
+        .collection('bookings')
+        .where('userId', isEqualTo: currentUserId)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<Map<String, dynamic>> historyList = [];
+      List<String> paymentIds = [];
+
+      for (var doc in snapshot.docs) {
+        var bookingData = doc.data();
+        String transactionId = bookingData['paymentId'] ?? '';
+        if (transactionId.isNotEmpty) {
+          paymentIds.add(transactionId);
+        }
+      }
+
+      paymentIds = paymentIds.toSet().toList();
+
+      Map<String, Map<String, dynamic>> paymentsMap = {};
+      List<QueryDocumentSnapshot> paymentsDocs = await fetchPaymentsInBatches(paymentIds);
+
+      for (var paymentDoc in paymentsDocs) {
+        paymentsMap[paymentDoc.id] = paymentDoc.data() as Map<String, dynamic>;
+      }
+
+      for (var doc in snapshot.docs) {
+        var bookingData = doc.data();
+        String transactionId = bookingData['paymentId'] ?? '';
+        Map<String, dynamic> paymentData = paymentsMap[transactionId] ?? {};
+
+        historyList.add({
+          'booking': bookingData,
+          'payment': paymentData,
+          'bookingDocId': doc.id,
+        });
+      }
+
+      return historyList;
+    });
   }
 
-  return FirebaseFirestore.instance
-      .collection('bookings')
-      .where('userId', isEqualTo: currentUserId) // ✅ Filter by current user's ID
-      .snapshots()
-      .asyncMap((snapshot) async {
-    List<Map<String, dynamic>> historyList = [];
-    for (var doc in snapshot.docs) {
-      var bookingData = doc.data();
-      String transactionId = bookingData['paymentId'] ?? '';
+  Future<List<QueryDocumentSnapshot>> fetchPaymentsInBatches(List<String> ids) async {
+    List<QueryDocumentSnapshot> results = [];
+    const int batchSize = 10;
 
-      DocumentSnapshot paymentSnapshot = await FirebaseFirestore.instance
+    for (int i = 0; i < ids.length; i += batchSize) {
+      var batchIds = ids.sublist(i, i + batchSize > ids.length ? ids.length : i + batchSize);
+      var snapshot = await FirebaseFirestore.instance
           .collection('payments')
-          .doc(transactionId)
+          .where(FieldPath.documentId, whereIn: batchIds)
           .get();
-
-      Map<String, dynamic> paymentData = paymentSnapshot.exists
-          ? paymentSnapshot.data() as Map<String, dynamic>
-          : {};
-
-      historyList.add({
-        'booking': bookingData,
-        'payment': paymentData,
-        'bookingDocId': doc.id, // Booking document ID
-      });
+      results.addAll(snapshot.docs);
     }
-    return historyList;
-  });
-}
+
+    return results;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +111,7 @@ class _HistoryState extends State<history> {
             itemBuilder: (context, index) {
               var bookingData = historyList[index]['booking'];
               var paymentData = historyList[index]['payment'];
-              var bookingDocId = historyList[index]['bookingDocId']; // get Doc Id
+              var bookingDocId = historyList[index]['bookingDocId'];
 
               return GestureDetector(
                 onTap: () {
@@ -93,7 +121,7 @@ class _HistoryState extends State<history> {
                       builder: (context) => DetailHistory(
                         bookingData: bookingData,
                         paymentData: paymentData,
-                        bookingDocId: bookingDocId, // Pass the document ID
+                        bookingDocId: bookingDocId,
                       ),
                     ),
                   );
