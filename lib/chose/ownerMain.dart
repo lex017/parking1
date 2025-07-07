@@ -518,223 +518,239 @@ class _OwnerMainState extends State<ownerMain> {
   }
 
   Widget parkLocation() {
-    User? currentUser = FirebaseAuth.instance.currentUser;
-    String ownerId = currentUser?.uid ?? '';
+  User? currentUser = FirebaseAuth.instance.currentUser;
+  String ownerId = currentUser?.uid ?? '';
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('parking')
-          .where('ownerId', isEqualTo: ownerId)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError || !snapshot.hasData) {
-          return const Center(
-            child: Text('Error loading locations',
-                style: TextStyle(fontSize: 18, color: Colors.red)),
-          );
-        } else if (snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text(
-              'No parking locations available',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
-            ),
-          );
-        } else {
-          final locations = snapshot.data!.docs;
-          return ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: locations.length,
-            itemBuilder: (context, index) {
-              final locationData =
-                  locations[index].data() as Map<String, dynamic>;
-              final docId = locations[index].id;
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance
+        .collection('parking')
+        .where('ownerId', isEqualTo: ownerId)
+        .snapshots(),
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      } else if (snapshot.hasError || !snapshot.hasData) {
+        return const Center(
+          child: Text('Error loading locations',
+              style: TextStyle(fontSize: 18, color: Colors.red)),
+        );
+      } else if (snapshot.data!.docs.isEmpty) {
+        return const Center(
+          child: Text(
+            'No parking locations available',
+            style: TextStyle(fontSize: 18, color: Colors.grey),
+          ),
+        );
+      } else {
+        final locations = snapshot.data!.docs;
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: locations.length,
+          itemBuilder: (context, index) {
+            final locationData =
+                locations[index].data() as Map<String, dynamic>;
+            final docId = locations[index].id;
 
-              final locationName =
-                  locationData['nameparking'] ?? 'Unknown Location';
-              final carSlot = locationData['car_slot'] ?? 'Unknown';
-              final imageUrl = locationData['imageUrl'] ?? '';
-              final pricePerMonth = locationData['pricePerMonth'] ?? '';
-              final price = locationData['price'] ?? '';
-              final status = locationData['status'] ?? "Offline";
+            final locationName = locationData['nameparking'] ?? 'Unknown Location';
+            final carSlot = locationData['car_slot'] ?? 'Unknown';
+            final imageUrl = locationData['imageUrl'] ?? '';
+            final price = locationData['price'] ?? '';
+            final status = locationData['status'] ?? 'Offline';
 
-              final startDate =
-                  (locationData['packageStartDate'] as Timestamp?)?.toDate();
-              final months = locationData['packageMonths'] ?? 1;
-              final expiryDate = startDate != null
-                  ? addMonths(startDate, months)
-                  : DateTime.now();
-              final isExpired = DateTime.now().isAfter(expiryDate);
+            final startDate =
+                (locationData['packageStartDate'] as Timestamp?)?.toDate();
+            final months = locationData['packageMonths'] ?? 1;
+            final expiryDate = startDate != null
+                ? addMonths(startDate, months)
+                : DateTime.now();
+            final isExpired = DateTime.now().isAfter(expiryDate);
 
-              return GestureDetector(
-                onTap: isExpired
-                    ? null
-                    : () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                DetailOwner(documentId: docId),
-                          ),
-                        );
-                      },
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16.0),
-                  child: Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16.0),
-                    ),
-                    elevation: 6,
-                    margin: const EdgeInsets.symmetric(
-                        vertical: 10.0, horizontal: 8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (imageUrl.isNotEmpty)
-                          ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(16.0)),
-                            child: Image.network(
-                              imageUrl,
-                              height: 150,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Center(
-                                      child: Text("Failed to load image")),
+            // ✅ Check parking_bill where locationId == docId AND status == success
+            return StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('parking_bill')
+                  .where('locationId', isEqualTo: docId)
+                  .where('status', isEqualTo: 'success')
+                  .limit(1)
+                  .snapshots(),
+              builder: (context, billSnapshot) {
+                if (!billSnapshot.hasData || billSnapshot.data!.docs.isEmpty) {
+                  // ❌ Skip this parking if no successful bill
+                  return const SizedBox();
+                }
+
+                // ✅ Show only if at least one success bill found
+                return GestureDetector(
+                  onTap: isExpired
+                      ? null
+                      : () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  DetailOwner(documentId: docId),
                             ),
-                          ),
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    "Parking Location ${index + 1}",
-                                    style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  const Spacer(),
-                                  Switch(
-                                    value: status == "Online",
-                                    onChanged: isExpired
-                                        ? null
-                                        : (value) {
-                                            toggleStatusp(docId, status);
-                                          },
-                                    activeColor: Colors.green,
-                                    inactiveThumbColor: Colors.red,
-                                  ),
-                                ],
+                          );
+                        },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16.0),
+                    child: Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16.0),
+                      ),
+                      elevation: 6,
+                      margin: const EdgeInsets.symmetric(
+                          vertical: 10.0, horizontal: 8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (imageUrl.isNotEmpty)
+                            ClipRRect(
+                              borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(16.0)),
+                              child: Image.network(
+                                imageUrl,
+                                height: 150,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Center(child: Text("Failed to load image")),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                "Location: $locationName",
-                                style: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.w500),
-                              ),
-                              const Divider(),
-                              Text(
-                                isExpired
-                                    ? "Subscription: Expired"
-                                    : "Subscription: Active",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: isExpired ? Colors.red : Colors.green,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                "Status: $status",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: status == "Online"
-                                      ? Colors.green
-                                      : Colors.orange,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              if (!isExpired && status == "Online")
-                                StreamBuilder<int>(
-                                  stream: FirebaseFirestore.instance
-                                      .collection('bookings')
-                                      .where('locationId', isEqualTo: docId)
-                                      .where('Status',
-                                          whereIn: ['check-in', 'pending'])
-                                      .snapshots()
-                                      .map((snapshot) => snapshot.docs.length),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return const CircularProgressIndicator();
-                                    }
-                                    if (snapshot.hasError) {
-                                      return const Text('Error');
-                                    }
-                                    final count = snapshot.data ?? 0;
-                                    return Text(
-                                      "CAR: $count/$carSlot",
+                            ),
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      "Parking Location ${index + 1}",
                                       style: const TextStyle(
-                                          fontSize: 16,
+                                          fontSize: 20,
                                           fontWeight: FontWeight.bold),
-                                    );
-                                  },
-                                ),
-                              if (isExpired)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 8.0),
-                                  child: ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      minimumSize:
-                                          const Size(double.infinity, 50),
-                                      backgroundColor: Colors.blueAccent,
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      elevation: 4,
                                     ),
-                                    onPressed: () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              SubscriptionPackage(
-                                            parkingId: docId,
-                                            name: locationName,
-                                            price: price,
-                                          ),
-                                        ),
+                                    const Spacer(),
+                                    Switch(
+                                      value: status == "Online",
+                                      onChanged: isExpired
+                                          ? null
+                                          : (value) {
+                                              toggleStatusp(docId, status);
+                                            },
+                                      activeColor: Colors.green,
+                                      inactiveThumbColor: Colors.red,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "Location: $locationName",
+                                  style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500),
+                                ),
+                                const Divider(),
+                                Text(
+                                  isExpired
+                                      ? "Subscription: Expired"
+                                      : "Subscription: Active",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: isExpired ? Colors.red : Colors.green,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "Status: $status",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: status == "Online"
+                                        ? Colors.green
+                                        : Colors.orange,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                if (!isExpired && status == "Online")
+                                  StreamBuilder<int>(
+                                    stream: FirebaseFirestore.instance
+                                        .collection('bookings')
+                                        .where('locationId', isEqualTo: docId)
+                                        .where('Status',
+                                            whereIn: ['check-in', 'pending'])
+                                        .snapshots()
+                                        .map((snapshot) => snapshot.docs.length),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return const CircularProgressIndicator();
+                                      }
+                                      if (snapshot.hasError) {
+                                        return const Text('Error');
+                                      }
+                                      final count = snapshot.data ?? 0;
+                                      return Text(
+                                        "CAR: $count/$carSlot",
+                                        style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold),
                                       );
                                     },
-                                    child: const Text(
-                                      "Renew",
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
+                                  ),
+                                if (isExpired)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        minimumSize:
+                                            const Size(double.infinity, 50),
+                                        backgroundColor: Colors.blueAccent,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        elevation: 4,
+                                      ),
+                                      onPressed: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                SubscriptionPackage(
+                                              parkingId: docId,
+                                              name: locationName,
+                                              price: price,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: const Text(
+                                        "Renew",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          );
-        }
-      },
-    );
-  }
+                );
+              },
+            );
+          },
+        );
+      }
+    },
+  );
+}
+
 
   void toggleStatusp(String parkingId, String currentStatus) async {
     String newStatus = currentStatus == "Online" ? "Offline" : "Online";
