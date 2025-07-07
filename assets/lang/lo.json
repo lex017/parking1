@@ -27,6 +27,22 @@
   "addparking": "ເພີ່ມບ່ອນຈອດ",
   "addemp": "ເພີ່ມພະນັກງານ",
   "ownermain": "ຫນ້າຜູ້ໃຫ້ບໍລິການ",
-  "status": "ສະຖານະ"
+  "status": "ສະຖານະ",
+  "Detail": "ລາຍລະອຽດ",
+  "Employee": "ພະນັກງານ",
+  "Review": "ລີວິວ",
+  "Function": "ຟັງຊັນ",
+  "Scan Ticket": "ສະແກນປີ້",
+  "Brand Name": "ຊື່ຍີ່ຫໍ້",
+  "Color": "ສີ",
+  "NamePlate": "ໂຕອັກສອນ",
+  "Plate": "ເລກທະບຽນ",
+  "Save Vehicle Info": "ບັນທຶກຂໍ້ມູນພາຫະນະ",
+  "Vehicle Details": "ລາຍລະອຽດພາຫະນະ",
+  "History": "ປະຫວັດ",
+  "Generate Ticket": "ສ້າງປີ້",
+  "Ticket Generate": "ປີ້ທີ່ສ້າງ",
+  "Verify": "ກວດສອບ",
+  "Pending": "ລໍຖ້າ"
 
 }

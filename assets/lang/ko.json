@@ -29,5 +29,22 @@
   "myticket": "내 티켓",
   "thememode": "테마 모드",
   "addparking": "주차장 추가",
-  "addemp": "직원 추가"
+  "addemp": "직원 추가",
+  "ownermain": "소유자 메인",
+  "Detail": "상세 정보",
+  "Employee": "직원",
+  "Review": "리뷰",
+  "Function": "기능",
+  "Scan Ticket": "티켓 스캔",
+  "Brand Name": "브랜드 이름",
+  "Color": "색상",
+  "NamePlate": "명판",
+  "Plate": "번호판",
+  "Save Vehicle Info": "차량 정보 저장",
+  "Vehicle Details": "차량 세부 정보",
+  "History": "기록",
+  "Generate Ticket": "티켓 생성",
+  "Ticket Generate": "생성 티켓 ",
+  "Verify": "검증",
+  "Pending": "대기 중"
 }

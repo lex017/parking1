@@ -31,7 +31,24 @@
   "thememode": "Theme Mode",
   "addparking": "Add Parking",
   "addemp": "Add Employee",
-  "ownermain": "Ownmain"
+  "ownermain": "Ownmain",
+  "Detail": "Detail",
+  "Employee": "Employee",
+  "Review": "Review",
+  "Function": "Function",
+  "Scan Ticket": "Scan Ticket",
+  "Brand Name": "Brand Name",
+  "Color": "Color",
+  "NamePlate": "NamePlate",
+  "Plate": "Plate",
+  "Save Vehicle Info": "Save Vehicle Info",
+  "Vehicle Details": "Vehicle Details",
+  "History": "History",
+  "Generate Ticket": "Generate Ticket",
+  "Ticket Generate": "Ticket Generate",
+  "Verify": "Verify",
+  "Pending": "Pending"
+  
 
 
 }

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 import 'package:parking1/detailownner/detail_map.dart';
@@ -129,14 +130,14 @@ class _DetailOwnerState extends State<DetailOwner> {
             ),
 
             // แท็บเลือก
-            const TabBar(
+            TabBar(
               labelColor: Colors.blue,
               unselectedLabelColor: Colors.grey,
               labelStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               tabs: [
-                Tab(text: "Detail"),
-                Tab(text: "Employee"),
-                Tab(text: "Review"),
+                Tab(text: "Detail".tr()),
+                Tab(text: "Employee".tr()),
+                Tab(text: "Review".tr()),
               ],
             ),
 

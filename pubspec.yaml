@@ -93,6 +93,8 @@ dependencies:
   timezone: ^0.10.1
   image_cropper: ^9.1.0
   dropdown_button2: ^2.3.9
+  
+
   # mapbox_maps_flutter: ^2.6.0
   
 
@@ -163,6 +165,7 @@ flutter:
     - assets/images/vehicle.png 
     - assets/images/bg.jpg 
     - assets/images/bg_icon.png
+    - assets/images/kip.png
     
  
 

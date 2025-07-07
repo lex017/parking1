@@ -2,6 +2,7 @@
 import 'dart:typed_data';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -114,43 +115,48 @@ void initState() {
 
 
 void _pickTime() {
+  int selectedHour = DateTime.now().hour;
+  int selectedMinute = DateTime.now().minute;
+
   showModalBottomSheet(
     context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    clipBehavior: Clip.antiAliasWithSaveLayer,
     builder: (context) {
-      DateTime selectedTime = DateTime.now();
-
       return Container(
-        height: 300,
+        height: 320,
         padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: TimePickerSpinner(
-                is24HourMode: true, // Set to true for 24-hour mode
-                isShowSeconds: true, // ✅ Show seconds
-                normalTextStyle:
-                    const TextStyle(fontSize: 18, color: Colors.grey),
-                highlightedTextStyle:
-                    const TextStyle(fontSize: 24, color: Colors.black),
-                spacing: 40,
-                itemHeight: 60,
-                isForce2Digits: true,
-                time: selectedTime,
-                onTimeChange: (time) {
-                  selectedTime = time;
-                },
+              child: Row(
+                children: [
+                  Expanded(child: _buildPicker(24, selectedHour, (v) => selectedHour = v)),
+                  Expanded(child: _buildPicker(60, selectedMinute, (v) => selectedMinute = v)),
+                ],
               ),
             ),
-            ElevatedButton(
-              onPressed: () {
-                // ✅ Format as HH:mm:ss (24-hour format)
-                final formatted = DateFormat('HH:mm:ss').format(selectedTime);
-                setState(() {
-                  timeController.text = formatted;
-                });
-                Navigator.pop(context);
-              },
-              child: const Text("Confirm"),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  textStyle: const TextStyle(fontSize: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  backgroundColor: Colors.blueAccent
+                ),
+                onPressed: () {
+                  final formatted = '${selectedHour.toString().padLeft(2,'0')}:'
+                      '${selectedMinute.toString().padLeft(2,'0')}';
+                  setState(() => timeController.text = formatted);
+                  Navigator.pop(context);
+                },
+                child: Text("Confirm",style: TextStyle(color: Colors.white),),
+              ),
             ),
           ],
         ),
@@ -158,6 +164,26 @@ void _pickTime() {
     },
   );
 }
+
+Widget _buildPicker(int count, int initial, ValueChanged<int> onChanged) {
+  return CupertinoPicker(
+    scrollController: FixedExtentScrollController(initialItem: initial),
+    itemExtent: 32,
+    backgroundColor: Colors.grey.shade200,
+    diameterRatio: 1.5,
+    useMagnifier: true,
+    magnification: 1.2,
+    selectionOverlay: CupertinoPickerDefaultSelectionOverlay(
+      background: Colors.blue.withOpacity(0.2),
+    ),
+    onSelectedItemChanged: onChanged,
+    children: List.generate(
+      count,
+      (i) => Center(child: Text(i.toString().padLeft(2, '0'))),
+    ),
+  );
+}
+
 
    void _initializeNotifications() async {
   const AndroidInitializationSettings androidSettings =

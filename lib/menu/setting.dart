@@ -66,6 +66,7 @@ class _SettingPageState extends State<SettingPage> {
   context.setLocale(const Locale('th'));
 }
 
+
   }
 
   Future<void> _loadThemeMode() async {

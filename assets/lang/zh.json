@@ -29,5 +29,22 @@
   "myticket": "我的票券",
   "thememode": "主题模式",
   "addparking": "添加停车位",
-  "addemp": "添加员工"
+  "addemp": "添加员工",
+  "ownermain": "主页面",
+  "Detail": "详情",
+  "Employee": "员工",
+  "Review": "评论",
+  "Function": "功能",
+  "Scan Ticket": "扫描票券",
+  "Brand Name": "品牌名称",
+  "Color": "颜色",
+  "NamePlate": "名牌",
+  "Plate": "车牌",
+  "Save Vehicle Info": "保存车辆信息",
+  "Vehicle Details": "车辆详情",
+  "History": "历史记录",
+  "Generate Ticket": "生成票券",
+  "Ticket Generate": "票券生成",
+  "Verify": "验证",
+  "Pending": "待处理"
 }

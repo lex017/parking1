@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
@@ -245,7 +246,7 @@ class _EmpMainState extends State<emp_main> {
                         lastName, parkingName),
                     const SizedBox(height: 30),
                     Text(
-                      'Function',
+                      'Function'.tr(),
                       style:
                           TextStyle(fontSize: 20, fontWeight: FontWeight.w700,color: Colors.blueAccent),
                     ),
@@ -470,16 +471,16 @@ class _EmpMainState extends State<emp_main> {
               Expanded(
                   child: _buildDashboardButton(context,
                       iconPath: 'assets/images/history1.png',
-                      label: 'ປະຫວັດ', onPressed: () {
+                      label: 'History'.tr(), onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (context) => DetailEmployee(empId: empId,)),
                 );
               })),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               Expanded(
                   child: _buildDashboardButton(context,
                       iconPath: 'assets/images/ticket1.png',
-                      label: 'ສ້າງປີ້', onPressed: () async {
+                      label: 'Generate Ticket'.tr(), onPressed: () async {
                 String locationId = await _getLocationId();
 
                 // Pass locationId to EmpGenerate screen after fetching it
@@ -492,11 +493,11 @@ class _EmpMainState extends State<emp_main> {
                   ),
                 );
               })),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               Expanded(
                   child: _buildDashboardButton(context,
                       iconPath: 'assets/images/ticket.png',
-                      label: 'ປີ້ປັດຈຸບັນ', onPressed: () {
+                      label: 'Ticket Generate'.tr(), onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                       builder: (context) => MyrealTicket(
@@ -506,14 +507,14 @@ class _EmpMainState extends State<emp_main> {
               })),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                   child: _buildDashboardButton(context,
                       iconPath: 'assets/images/online-booking.png',
-                      label: 'Verify', onPressed: () async {
+                      label: 'Verify'.tr(), onPressed: () async {
                 String locationId = await _getLocationId();
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -522,11 +523,11 @@ class _EmpMainState extends State<emp_main> {
                   ),
                 );
               })),
-              const SizedBox(width: 16),
+              SizedBox(width: 16),
               Expanded(
                   child: _buildDashboardButton(context,
                       iconPath: 'assets/images/document.png',
-                      label: 'pending', onPressed: () async {
+                      label: 'Pending'.tr(), onPressed: () async {
                 String locationId = await _getLocationId();
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -594,8 +595,8 @@ class _EmpMainState extends State<emp_main> {
             onPressed: _performScan,
             icon: const Icon(Icons.qr_code_scanner,
                 size: 30, color: Colors.white), // Added icon
-            label: const Text(
-              "Scan Ticket",
+            label: Text(
+              "Scan Ticket".tr(),
               style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,

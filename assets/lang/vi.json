@@ -29,5 +29,22 @@
   "myticket": "Vé của tôi",
   "thememode": "Chế độ giao diện",
   "addparking": "Thêm chỗ đậu xe",
-  "addemp": "Thêm nhân viên"
+  "addemp": "Thêm nhân viên",
+  "ownermain": "Chủ sở hữu chính",
+  "Detail": "Chi tiết",
+  "Employee": "Nhân viên",
+  "Review": "Đánh giá",
+  "Function": "Chức năng",
+  "Scan Ticket": "Quét vé",
+  "Brand Name": "Tên thương hiệu",
+  "Color": "Màu sắc",
+  "NamePlate": "Tên biển số",
+  "Plate": "Biển số",
+  "Save Vehicle Info": "Lưu thông tin phương tiện",
+  "Vehicle Details": "Chi tiết phương tiện",
+  "History": "Lịch sử",
+  "Generate Ticket": "Tạo vé",
+  "Ticket Generate": "Vé đã tạo",
+  "Verify": "Xác minh",
+  "Pending": "Đang chờ"
 }

@@ -29,5 +29,22 @@
   "myticket": "บัตรของฉัน",
   "thememode": "โหมดธีม",
   "addparking": "เพิ่มที่จอดรถ",
-  "addemp": "เพิ่มพนักงาน"
+  "addemp": "เพิ่มพนักงาน",
+  "ownermain": "เจ้าของหลัก",
+  "Detail": "รายระเอียด",
+  "Employee": "พนักงาน",
+  "Review": "รีวิว",
+  "Function": "ฟังก์ชัน",
+  "Scan Ticket": "สแกนตั๋ว",
+  "Brand Name": "ชื่อแบรนด์",
+  "Color": "สี",
+  "NamePlate": "ชื่อป้าย",
+  "Plate": "ป้ายทะเบียน",
+  "Save Vehicle Info": "บันทึกข้อมูลยานพาหนะ",
+  "Vehicle Details": "รายละเอียดยานพาหนะ",
+  "History": "ประวัติ",
+  "Generate Ticket": "สร้างตั๋ว",
+  "Ticket Generate": "ตั๋วที่สร้าง",
+  "Verify": "ตรวจสอบ",
+  "Pending": "รอดำเนินการ"
 }

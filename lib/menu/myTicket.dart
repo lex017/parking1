@@ -78,15 +78,19 @@ class _MyTicketState extends State<MyTicket> {
 
               var tickets = snapshot.data!.docs.toList();
 
-// 🔴 Filter out tickets with status 'Time-out'
+              // 🔴 Filter out tickets with status 'Time-out'
               tickets = tickets.where((doc) {
                 final status = doc['Status'] ?? '';
                 return status != 'Time-out';
               }).toList();
-              // 🔴 Filter out tickets with status 'Time-out'
+              // 🔴 Filter out tickets with status 'reject'
               tickets = tickets.where((doc) {
                 final status = doc['paymentStatus'] ?? '';
                 return status != 'reject';
+              }).toList();
+              tickets = tickets.where((doc) {
+                final status = doc['Status'] ?? '';
+                return status != 'check-out';
               }).toList();
 
 // Sort by timestamp descending

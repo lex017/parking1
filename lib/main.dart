@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:parking1/loginandregis/loginPage.dart';
+import 'package:parking1/menu/GlobalTimerBanner%20.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:easy_localization/easy_localization.dart';
@@ -99,7 +100,7 @@ void main() async {
       ],
       path: 'assets/lang',
       fallbackLocale: const Locale('en'),
-      child: const ParkingApp(),
+       child: ParkingApp(),
     ),
   );
 }
@@ -249,7 +250,7 @@ class _ParkingAppState extends State<ParkingApp> {
             ),
           ),
           themeMode: currentTheme,
-          home: const loginPage(), // แก้เป็นหน้าหลักของคุณ
+          home: GlobalTimerBanner(child: const loginPage()), // แก้เป็นหน้าหลักของคุณ
         );
       },
     );

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
@@ -104,7 +105,7 @@ class _VechicleState extends State<AddVechicle> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vehicle Details'),
+        title: Text('Vehicle Details'.tr()),
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         centerTitle: true,
       ),
@@ -115,13 +116,7 @@ class _VechicleState extends State<AddVechicle> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Vehicle Details",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Display the selected city
+                  
                   Text(
                     "Selected City: ${widget.selectedCity}",
                     style: const TextStyle(
@@ -138,12 +133,12 @@ class _VechicleState extends State<AddVechicle> {
                         fontWeight: FontWeight.bold,
                         color: Colors.black),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
 
                   TextField(
                     controller: brandNameController,
                     decoration: InputDecoration(
-                      labelText: "Brand Name",
+                      labelText: "Brand Name".tr(),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),
@@ -153,7 +148,7 @@ class _VechicleState extends State<AddVechicle> {
                   TextField(
                     controller: colorController,
                     decoration: InputDecoration(
-                      labelText: "Color",
+                      labelText: "Color".tr(),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),
@@ -163,7 +158,7 @@ class _VechicleState extends State<AddVechicle> {
                   TextField(
                     controller: nameplateController,
                     decoration: InputDecoration(
-                      labelText: "NamePlate",
+                      labelText: "NamePlate".tr(),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),
@@ -173,7 +168,7 @@ class _VechicleState extends State<AddVechicle> {
                   TextField(
                     controller: plateController,
                     decoration: InputDecoration(
-                      labelText: "Plate",
+                      labelText: "Plate".tr(),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),
@@ -193,7 +188,7 @@ class _VechicleState extends State<AddVechicle> {
                               BorderRadius.circular(30), // Rounded corners
                         ),
                       ),
-                      child: const Text("Save Vehicle Info",
+                      child: Text("Save Vehicle Info".tr(),
                           style: TextStyle(fontSize: 18)),
                     ),
                   ),
