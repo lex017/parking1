@@ -177,8 +177,6 @@ class _DetailMapState extends State<DetailMap> {
                     color: Colors.grey[300],
                   ),
                   const SizedBox(height: 12),
-
-// Price row with icon and bold price value
                   Row(
                     children: [
                       const Icon(Icons.attach_money,
@@ -202,8 +200,6 @@ class _DetailMapState extends State<DetailMap> {
                     ],
                   ),
                   const SizedBox(height: 8),
-
-// Open time row with icon and nicer text style
                   Row(
                     children: [
                       const Icon(Icons.access_time,
@@ -227,8 +223,6 @@ class _DetailMapState extends State<DetailMap> {
                     ],
                   ),
                   const SizedBox(height: 6),
-
-// Close time row, matching the open time style
                   Row(
                     children: [
                       const Icon(Icons.access_time_filled,

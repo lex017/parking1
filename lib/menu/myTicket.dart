@@ -138,7 +138,7 @@ class _MyTicketState extends State<MyTicket> {
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) =>
-                                            BuyTicket(bookingId: bookingId),
+                                            BuyTicket(bookingId: bookingId,),
                                       ),
                                     );
                                   }

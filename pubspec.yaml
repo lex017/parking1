@@ -93,6 +93,8 @@ dependencies:
   timezone: ^0.10.1
   image_cropper: ^9.1.0
   dropdown_button2: ^2.3.9
+  dotted_border: ^2.1.0
+
   
 
   # mapbox_maps_flutter: ^2.6.0

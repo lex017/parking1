@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:parking1/main.dart';
 import 'package:parking1/menu/Help.dart';
 import 'package:parking1/menu/detail_employee.dart';
 import 'package:parking1/menu/emp_generate.dart';
@@ -48,17 +50,42 @@ class _EmpMainState extends State<emp_main> {
   void initState() {
     super.initState();
     _initializeNotifications();
-    // Assume you fetched this from Firebase Auth or Firestore
-    String employeeLocationId = widget.empId;
 
-    // Start listening for relevant bookings
+    String employeeLocationId = widget.empId;
     listenForBookings(employeeLocationId);
+
     empId = widget.empId;
-    if (kDebugMode) {
-      print('Logged-in empId: $empId');
-    }
     _getRealTimeDate();
+
+    // 👉 Add this block for Foreground FCM Message
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      RemoteNotification? notification = message.notification;
+      AndroidNotification? android = message.notification?.android;
+
+      if (notification != null && android != null) {
+        const AndroidNotificationDetails androidDetails =
+            AndroidNotificationDetails(
+          'foreground_channel',
+          'Foreground Notifications',
+          channelDescription: 'Notifications when app is active',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+        );
+
+        const NotificationDetails platformDetails =
+            NotificationDetails(android: androidDetails);
+
+        await flutterLocalNotificationsPlugin.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          platformDetails,
+        );
+      }
+    });
   }
+  
 
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
@@ -232,36 +259,131 @@ class _EmpMainState extends State<emp_main> {
           final lastName = userData['lastname'] ?? 'N/A';
           final locationId = userData['locationId'] ?? 'N/A';
 
-          return FutureBuilder<String>(
-            future: getParkingName(locationId),
-            builder: (context, parkingSnapshot) {
-              String parkingName = parkingSnapshot.data ?? 'Loading...';
+          return Stack(
+            children: [
+              FutureBuilder<String>(
+                future: getParkingName(locationId),
+                builder: (context, parkingSnapshot) {
+                  String parkingName = parkingSnapshot.data ?? 'Loading...';
 
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildProfileSection(userData['profileImage'], firstName,
-                        lastName, parkingName),
-                    const SizedBox(height: 30),
-                    Text(
-                      'Function'.tr(),
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.w700,color: Colors.blueAccent),
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildProfileSection(
+                          userData['profileImage'],
+                          firstName,
+                          lastName,
+                          parkingName,
+                        ),
+                        const SizedBox(height: 30),
+                        Text(
+                          'Function'.tr(),
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.blueAccent,
+                          ),
+                        ),
+                        buttonFour(context),
+                        const SizedBox(height: 20),
+                        _buildScanSummary(),
+                      ],
                     ),
-                
-                    buttonFour(context),
-                    const SizedBox(height: 20),
-                    _buildScanSummary(),
-                  ],
-                ),
-              );
-            },
+                  );
+                },
+              ),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('notifications')
+                    .where('locationId', isEqualTo: locationId)
+                    .orderBy('timestamp', descending: true)
+                    .limit(1)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+                    final doc = snapshot.data!.docs.first;
+                    final title = doc['title'] ?? 'Notification';
+                    final body = doc['body'] ?? 'You have a new update';
+
+                    // ✅ Show snackbar once after build
+                    WidgetsBinding.instance.addPostFrameCallback((_) async {
+                      await flutterLocalNotificationsPlugin.show(
+                        0,
+                        title,
+                        body,
+                        const NotificationDetails(
+                          android: AndroidNotificationDetails(
+                            'notif_channel',
+                            'Realtime Notif',
+                            channelDescription:
+                                'Shows notifications from Firestore',
+                            importance: Importance.max,
+                            priority: Priority.high,
+                          ),
+                        ),
+                      );
+
+                      FirebaseFirestore.instance
+                          .collection('notifications')
+                          .doc(doc.id)
+                          .delete();
+                    });
+                  }
+                  return const SizedBox();
+                },
+              ),
+            ],
           );
         },
       ),
     );
+  }
+
+  void _showTopNotificationBar(String title, String body) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 10,
+        left: 20,
+        right: 20,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blueAccent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.notifications, color: Colors.white),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
+                      Text(body, style: const TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+
+    Future.delayed(const Duration(seconds: 4))
+        .then((_) => overlayEntry.remove());
   }
 
   void listenForBookings(String employeeLocationId) {
@@ -471,9 +593,13 @@ class _EmpMainState extends State<emp_main> {
               Expanded(
                   child: _buildDashboardButton(context,
                       iconPath: 'assets/images/history1.png',
-                      label: 'History'.tr(), onPressed: () {
+                      label: 'History'.tr(), onPressed: () async {
+                        String locationId = await _getLocationId();
                 Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => DetailEmployee(empId: empId,)),
+                  MaterialPageRoute(
+                      builder: (context) => DetailEmployee(
+                            empId: empId, locationId: locationId,
+                          )),
                 );
               })),
               SizedBox(width: 16),
@@ -547,43 +673,42 @@ class _EmpMainState extends State<emp_main> {
   }
 
 // Helper method to build styled button
- Widget _buildDashboardButton(
-  BuildContext context, {
-  required String iconPath,
-  required String label,
-  required VoidCallback onPressed,
-}) {
-  return InkWell(
-    onTap: onPressed,
-    borderRadius: BorderRadius.circular(16),
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Image.asset(
-            iconPath,
-            width: 48,
-            height: 48,
-            color: Colors.blueAccent,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
+  Widget _buildDashboardButton(
+    BuildContext context, {
+    required String iconPath,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              iconPath,
+              width: 48,
+              height: 48,
               color: Colors.blueAccent,
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.blueAccent,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   Widget _buildScanSummary() {
     return Column(
@@ -613,4 +738,47 @@ class _EmpMainState extends State<emp_main> {
       ],
     );
   }
+}
+ final Set<String> shownBookingNotifications = {};
+  Future<void> showPaymentSuccessNotification() async {
+  const androidDetails = AndroidNotificationDetails(
+    'payment_channel',
+    'Payment Notifications',
+    channelDescription: 'Notifies when a payment is successful',
+    importance: Importance.max,
+    priority: Priority.high,
+  );
+  
+
+  const notificationDetails = NotificationDetails(android: androidDetails);
+
+  await flutterLocalNotificationsPlugin.show(
+    0,
+    'Payment Successful',
+    'Your have a booking! ✅',
+    notificationDetails,
+  );
+}
+void listenForPaymentStatus(String bookingId, BuildContext context) {
+  FirebaseFirestore.instance
+      .collection('bookings')
+      .doc(bookingId)
+      .snapshots()
+      .listen((snapshot) async {
+    if (!snapshot.exists) return;
+
+    final data = snapshot.data();
+    final status = data?['paymentStatus'];
+
+    if (status == "pending" && !shownBookingNotifications.contains(bookingId)) {
+      shownBookingNotifications.add(bookingId); // ป้องกันแจ้งเตือนซ้ำ
+
+      await showPaymentSuccessNotification();
+      Navigator.of(context, rootNavigator: true).pop();
+
+      
+    } 
+    
+  
+  });
 }

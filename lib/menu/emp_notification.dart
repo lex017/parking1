@@ -72,31 +72,7 @@ class _EmpNotificationState extends State<EmpNotification> {
     }
   }
 
-  final Set<String> shownPaymentIds = {};
-  Future<void> _showNewPaymentNotification(QueryDocumentSnapshot doc) async {
-    final data = doc.data() as Map<String, dynamic>;
-    final userName = data['userName'] ?? 'New User';
-    final time = data['time'] ?? '';
-
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-      'booking_alerts',
-      'Booking Alerts',
-      channelDescription: 'Alerts for new bookings to verify',
-      importance: Importance.max,
-      priority: Priority.high,
-    );
-
-    const NotificationDetails platformDetails =
-        NotificationDetails(android: androidDetails);
-
-    await flutterLocalNotificationsPlugin.show(
-      1,
-      'New Booking Alert',
-      '$userName submitted a booking at $time',
-      platformDetails,
-    );
-  }
+ 
 
   @override
   Widget build(BuildContext context) {
@@ -144,21 +120,16 @@ class _EmpNotificationState extends State<EmpNotification> {
 
               if (snapshot.hasError) {
                 return const Center(
-                    child: Text("เกิดข้อผิดพลาดในการโหลดข้อมูล"));
+                    child: Text("Error to loading data"));
               }
 
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(child: Text("ไม่มีรายการที่รอดำเนินการ"));
+                return const Center(child: Text("Dont have list to working"));
               }
 
               final documents = snapshot.data!.docs;
 
-              for (var doc in documents) {
-                if (!shownPaymentIds.contains(doc.id)) {
-                  shownPaymentIds.add(doc.id); // Mark as notified
-                  _showNewPaymentNotification(doc); // 🔔 Show notification
-                }
-              }
+             
 
               return ListView.builder(
                 padding: const EdgeInsets.all(16),

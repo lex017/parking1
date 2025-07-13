@@ -56,68 +56,31 @@ class _DetailMoneyState extends State<DetailMoney> {
     }
   }
 
-  Future<Map<String, double>> fetchEarningsByDate(DateTime start, DateTime end) async {
-    Map<String, double> earningsByDay = {};
+  Future<Map<String, double>> fetchEarningsByDate(
+    DateTime start, DateTime end) async {
+  Map<String, double> earningsByDay = {};
 
-    final daysCount = end.difference(start).inDays + 1;
-    final List<DateTime> daysList = List.generate(daysCount, (i) => start.add(Duration(days: i)));
+  final daysCount = end.difference(start).inDays + 1;
+  final List<DateTime> daysList =
+      List.generate(daysCount, (i) => start.add(Duration(days: i)));
 
-    dayLabels = daysList.map((date) => DateFormat('d MMM').format(date)).toList();
+  dayLabels = daysList.map((date) => DateFormat('d MMM').format(date)).toList();
 
-    for (var label in dayLabels) {
-      earningsByDay[label] = 0;
-    }
-
-    try {
-      final bookingsSnapshot = await FirebaseFirestore.instance.collection('bookings').get();
-      final bookingMap = {
-        for (var doc in bookingsSnapshot.docs)
-          (doc.data() as Map<String, dynamic>)['userId']:
-              (doc.data() as Map<String, dynamic>)['nameparking'] ?? 'Unknown'
-      };
-
-      final paymentSnapshot = await FirebaseFirestore.instance
-          .collection('payments')
-          .where('status', isEqualTo: 'success')
-          .get();
-
-      for (var doc in paymentSnapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        final Timestamp? ts = data['timestamp'];
-        final String? userId = data['userId'];
-
-        double amount = (data['amount'] is String)
-            ? double.tryParse(data['amount']) ?? 0
-            : (data['amount'] as num).toDouble();
-
-        if (ts != null && userId != null) {
-          final dt = ts.toDate();
-
-          if (!dt.isBefore(start) && !dt.isAfter(end)) {
-            final label = DateFormat('d MMM').format(dt);
-            final String parkingName = bookingMap[userId] ?? 'Unknown';
-
-            if (dayLabels.contains(label) && (selectedParking == 'All' || selectedParking == parkingName)) {
-              earningsByDay[label] = earningsByDay[label]! + amount;
-            }
-          }
-        }
-      }
-    } catch (e) {
-      print("Error: $e");
-    }
-
-    return earningsByDay;
+  for (var label in dayLabels) {
+    earningsByDay[label] = 0;
   }
 
-  Future<int> fetchTicketCount(DateTime start, DateTime end) async {
-    int ticketCount = 0;
+  try {
+    final bookingsSnapshot = await FirebaseFirestore.instance
+        .collection('bookings')
+        .get();
 
-    final bookingsSnapshot = await FirebaseFirestore.instance.collection('bookings').get();
     final bookingMap = {
       for (var doc in bookingsSnapshot.docs)
-        (doc.data() as Map<String, dynamic>)['userId']:
-            (doc.data() as Map<String, dynamic>)['nameparking'] ?? 'Unknown'
+        doc.id: {
+          'nameparking': (doc.data() as Map<String, dynamic>)['nameparking'],
+          'locationId': (doc.data() as Map<String, dynamic>)['locationId']
+        }
     };
 
     final paymentSnapshot = await FirebaseFirestore.instance
@@ -128,87 +91,151 @@ class _DetailMoneyState extends State<DetailMoney> {
     for (var doc in paymentSnapshot.docs) {
       final data = doc.data() as Map<String, dynamic>;
       final Timestamp? ts = data['timestamp'];
-      final String? userId = data['userId'];
+      final String? bookingId = data['bookingId'];
 
-      if (ts != null && userId != null) {
+      double amount = (data['amount'] is String)
+          ? double.tryParse(data['amount']) ?? 0
+          : (data['amount'] as num).toDouble();
+
+      if (ts != null && bookingId != null && bookingMap.containsKey(bookingId)) {
         final dt = ts.toDate();
-        final parkingName = bookingMap[userId] ?? 'Unknown';
+        if (!dt.isBefore(start) && !dt.isAfter(end)) {
+          final label = DateFormat('d MMM').format(dt);
+          final bookingInfo = bookingMap[bookingId]!;
+          final parkingName = bookingInfo['nameparking'] ?? 'Unknown';
 
-        if (!dt.isBefore(start) && !dt.isAfter(end) && (selectedParking == 'All' || selectedParking == parkingName)) {
+          if (dayLabels.contains(label) &&
+              (selectedParking == 'All' || selectedParking == parkingName)) {
+            earningsByDay[label] = earningsByDay[label]! + amount;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    print("Error fetching earnings: $e");
+  }
+
+  return earningsByDay;
+}
+
+
+  Future<int> fetchTicketCount(DateTime start, DateTime end) async {
+  int ticketCount = 0;
+
+  try {
+    final bookingsSnapshot = await FirebaseFirestore.instance
+        .collection('bookings')
+        .get();
+
+    final bookingMap = {
+      for (var doc in bookingsSnapshot.docs)
+        doc.id: {
+          'nameparking': (doc.data() as Map<String, dynamic>)['nameparking'],
+          'locationId': (doc.data() as Map<String, dynamic>)['locationId']
+        }
+    };
+
+    final paymentSnapshot = await FirebaseFirestore.instance
+        .collection('payments')
+        .where('status', isEqualTo: 'success')
+        .get();
+
+    for (var doc in paymentSnapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final Timestamp? ts = data['timestamp'];
+      final String? bookingId = data['bookingId'];
+
+      if (ts != null && bookingId != null && bookingMap.containsKey(bookingId)) {
+        final dt = ts.toDate();
+        final parkingName = bookingMap[bookingId]?['nameparking'] ?? 'Unknown';
+
+        if (!dt.isBefore(start) &&
+            !dt.isAfter(end) &&
+            (selectedParking == 'All' || selectedParking == parkingName)) {
           ticketCount++;
         }
       }
     }
-    return ticketCount;
+  } catch (e) {
+    print("Error counting tickets: $e");
   }
+
+  return ticketCount;
+}
+
 
   Future<void> pickStartDate() async {
-  DateTime? picked = await showDatePicker(
-    context: context,
-    initialDate: startDate,
-    firstDate: DateTime(2020),
-    lastDate: endDate,
-    builder: (BuildContext context, Widget? child) {
-      return Theme(
-        data: ThemeData.light().copyWith(
-          primaryColor: Colors.blueAccent,
-          hintColor: Colors.blueAccent,
-          primaryColorDark: Colors.blueAccent,
-          buttonTheme: ButtonThemeData(textTheme: ButtonTextTheme.primary),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
+    DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: startDate,
+      firstDate: DateTime(2020),
+      lastDate: endDate,
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            primaryColor: Colors.blueAccent,
+            hintColor: Colors.blueAccent,
+            primaryColorDark: Colors.blueAccent,
+            buttonTheme: ButtonThemeData(textTheme: ButtonTextTheme.primary),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
+            ),
           ),
-        ),
-        child: child!,
-      );
-    },
-  );
-  if (picked != null && picked != startDate) {
-    setState(() {
-      startDate = picked;
-      if (startDate.isAfter(endDate)) {
-        endDate = startDate;
-      }
-      loadData();
-    });
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != startDate) {
+      setState(() {
+        startDate = picked;
+        if (startDate.isAfter(endDate)) {
+          endDate = startDate;
+        }
+        loadData();
+      });
+    }
   }
-}
 
-Future<void> pickEndDate() async {
-  DateTime? picked = await showDatePicker(
-    context: context,
-    initialDate: endDate,
-    firstDate: startDate,
-    lastDate: DateTime.now(),
-    builder: (BuildContext context, Widget? child) {
-      return Theme(
-        data: ThemeData.light().copyWith(
-          primaryColor: Colors.blueAccent,
-          hintColor: Colors.blueAccent,
-          primaryColorDark: Colors.blueAccent,
-          buttonTheme: ButtonThemeData(textTheme: ButtonTextTheme.primary),
-          textButtonTheme: TextButtonThemeData(
-            style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
+  Future<void> pickEndDate() async {
+    DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: endDate,
+      firstDate: startDate,
+      lastDate: DateTime.now(),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            primaryColor: Colors.blueAccent,
+            hintColor: Colors.blueAccent,
+            primaryColorDark: Colors.blueAccent,
+            buttonTheme: ButtonThemeData(textTheme: ButtonTextTheme.primary),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(foregroundColor: Colors.blueAccent),
+            ),
           ),
-        ),
-        child: child!,
-      );
-    },
-  );
-  if (picked != null && picked != endDate) {
-    setState(() {
-      endDate = picked;
-      loadData();
-    });
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != endDate) {
+      setState(() {
+        endDate = picked;
+        loadData();
+      });
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ປະຫວັດການຈ່າຍ',style: TextStyle(color: Colors.white,  fontWeight: FontWeight.bold,),),
+        title: const Text(
+          'ປະຫວັດການຈ່າຍ',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Colors.blueAccent,
         centerTitle: true,
         elevation: 4,
@@ -232,7 +259,9 @@ Future<void> pickEndDate() async {
                 items: parkingOptions
                     .map((p) => DropdownMenuItem(
                           value: p,
-                          child: Text(p, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          child: Text(p,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w600)),
                         ))
                     .toList(),
                 onChanged: (value) {
@@ -281,7 +310,7 @@ Future<void> pickEndDate() async {
                           borderRadius: BorderRadius.circular(8),
                           backDrawRodData: BackgroundBarChartRodData(
                             show: true,
-                            toY: (total < 10) ? 10 : total + total * 0.3,
+                            toY: total == 0 ? 10 : total + total * 0.3,
                             color: Colors.blueAccent.shade100,
                           ),
                         ),
@@ -308,24 +337,29 @@ Future<void> pickEndDate() async {
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 16),
                             child: SizedBox(
                               width: chartData.length * 70,
                               child: BarChart(
                                 BarChartData(
-                                  maxY: (total < 10) ? 10 : total + total * 0.3,
+                                  maxY: total == 0 ? 10 : total + total * 0.3,
                                   barGroups: chartData,
                                   borderData: FlBorderData(show: false),
-                                  gridData: FlGridData(show: true, drawVerticalLine: false),
+                                  gridData: FlGridData(
+                                      show: true, drawVerticalLine: false),
                                   titlesData: FlTitlesData(
                                     leftTitles: AxisTitles(
                                       sideTitles: SideTitles(
                                         showTitles: true,
                                         reservedSize: 38,
-                                        interval: (total / 5).ceilToDouble(),
+                                        interval: total == 0
+                                            ? 1
+                                            : (total / 5).ceilToDouble(),
                                         getTitlesWidget: (value, meta) {
                                           return Text(
-                                            NumberFormat.compact().format(value),
+                                            NumberFormat.compact()
+                                                .format(value),
                                             style: const TextStyle(
                                               color: Colors.grey,
                                               fontWeight: FontWeight.w500,
@@ -341,9 +375,12 @@ Future<void> pickEndDate() async {
                                         reservedSize: 30,
                                         getTitlesWidget: (value, meta) {
                                           int index = value.toInt();
-                                          if (index < 0 || index >= dayLabels.length) return const SizedBox.shrink();
+                                          if (index < 0 ||
+                                              index >= dayLabels.length)
+                                            return const SizedBox.shrink();
                                           return Padding(
-                                            padding: const EdgeInsets.only(top: 6),
+                                            padding:
+                                                const EdgeInsets.only(top: 6),
                                             child: Text(
                                               dayLabels[index],
                                               style: const TextStyle(
@@ -370,8 +407,14 @@ Future<void> pickEndDate() async {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _infoCard(
-                            icon: Icons.attach_money,
+                          _infoCardkip(
+                            icon: Image.asset(
+                              'assets/images/kip.png',
+                              width: 32,
+                              height: 32,
+                              color:
+                                  Colors.green.shade600, // optional color tint
+                            ),
                             title: 'ລາຍຮັບ',
                             value: NumberFormat("#,##0").format(total),
                             color: Colors.green.shade600,
@@ -412,10 +455,11 @@ Future<void> pickEndDate() async {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      icon: const Icon(Icons.calendar_today,color: Colors.white, size: 18),
+      icon: const Icon(Icons.calendar_today, color: Colors.white, size: 18),
       label: Text(
         DateFormat('yyyy-MM-dd').format(date),
-        style: const TextStyle(fontSize: 14,color: Colors.white, fontWeight: FontWeight.w600),
+        style: const TextStyle(
+            fontSize: 14, color: Colors.white, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -434,7 +478,10 @@ Future<void> pickEndDate() async {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: color.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 4)),
+          BoxShadow(
+              color: color.withOpacity(0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -463,4 +510,52 @@ Future<void> pickEndDate() async {
       ),
     );
   }
+}
+
+Widget _infoCardkip({
+  required Widget icon, // Accepts Icon or Image.asset
+  required String title,
+  required String value,
+  required Color color,
+  required double width,
+}) {
+  return Container(
+    width: width,
+    padding: const EdgeInsets.symmetric(vertical: 18),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: color.withOpacity(0.15),
+          blurRadius: 8,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        icon,
+        const SizedBox(height: 12),
+        Text(
+          title,
+          style: TextStyle(
+            color: color.withOpacity(0.9),
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    ),
+  );
 }

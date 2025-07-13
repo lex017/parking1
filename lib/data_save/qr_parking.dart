@@ -201,7 +201,7 @@ class _QrPayState extends State<QrParking> {
                   textStyle: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                child: const Text("Pay Now"),
+                child: Text("Pay Now",style: TextStyle(color: Colors.white),),
               )
             ],
           ),

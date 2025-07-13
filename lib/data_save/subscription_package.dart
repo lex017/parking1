@@ -153,7 +153,7 @@ class _ParkingPagekageState extends State<SubscriptionPackage> {
                   ),
                 );
               },
-              child: const Text("Next"),
+              child: Text("Next",style: TextStyle(color: Colors.white),),
             )
           ],
         ),

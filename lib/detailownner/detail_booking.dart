@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:parking1/detailownner/bookingDetail_his.dart';
 
 class DetailBooking extends StatefulWidget {
   final String userId;
@@ -28,6 +29,8 @@ class _DetailBookingState extends State<DetailBooking> {
     fetchParkingOptions();
   }
 
+  Set<String> ownerParkingNames = {};
+
   Future<void> fetchParkingOptions() async {
     try {
       final String ownerId = FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -44,6 +47,7 @@ class _DetailBookingState extends State<DetailBooking> {
 
       setState(() {
         parkingOptions = ['All', ...names.cast<String>()];
+        ownerParkingNames = names.cast<String>().toSet(); // 👈 Save this
         print("Owner ID: $ownerId");
       });
     } catch (e) {
@@ -52,10 +56,8 @@ class _DetailBookingState extends State<DetailBooking> {
   }
 
   Future<List<Map<String, dynamic>>> fetchBookings() async {
-    final String ownerId = FirebaseAuth.instance.currentUser?.uid ?? '';
     QuerySnapshot snapshot = await _firestore
         .collection('bookings')
-        .where('userId', isEqualTo: ownerId)
         .orderBy('timestamp', descending: true)
         .get();
 
@@ -63,20 +65,26 @@ class _DetailBookingState extends State<DetailBooking> {
       return {'id': doc.id, ...doc.data() as Map<String, dynamic>};
     }).toList();
 
-    // 🔽 กรองตามสถานะ
+    // 🔽 Filter to only bookings from my parkings
+    allBookings = allBookings.where((booking) {
+      return ownerParkingNames.contains(booking['nameparking']);
+    }).toList();
+
+    // 🔽 Filter by status
     if (selectedStatus != 'All') {
       allBookings = allBookings
           .where((booking) => booking['Status'] == selectedStatus)
           .toList();
     }
 
-    // 🔽 กรองตามชื่อที่จอดรถ
+    // 🔽 Filter by parking name
     if (selectedParking != 'All') {
       allBookings = allBookings
           .where((booking) => booking['nameparking'] == selectedParking)
           .toList();
     }
-    // 🔽 กรองตามหมายเลขทะเบียน (plate)
+
+    // 🔽 Filter by plate
     if (plateSearch.isNotEmpty) {
       String lowerPlate = plateSearch.toLowerCase();
       allBookings = allBookings.where((booking) {
@@ -88,7 +96,7 @@ class _DetailBookingState extends State<DetailBooking> {
       }).toList();
     }
 
-    // 🔽 กรองตามช่วงเวลา
+    // 🔽 Filter by date
     if (selectedDateFilter == 'Today') {
       DateTime now = DateTime.now();
       allBookings = allBookings.where((booking) {
@@ -201,7 +209,7 @@ class _DetailBookingState extends State<DetailBooking> {
                   itemBuilder: (context, index) {
                     Map<String, dynamic> booking = bookings[index];
                     final status =
-                        (booking['Status'] ?? 'Pending').toLowerCase();
+                        (booking['Status'] ?? 'pending').toLowerCase();
                     final timestamp = booking['timestamp']?.toDate();
 
                     // Status-based colors
@@ -240,6 +248,15 @@ class _DetailBookingState extends State<DetailBooking> {
                       elevation: 6,
                       shadowColor: Colors.deepPurpleAccent.withOpacity(0.3),
                       child: ListTile(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  BookingDetailPage(booking: booking),
+                            ),
+                          );
+                        },
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 20, vertical: 12),
                         title: Text(
@@ -249,6 +266,8 @@ class _DetailBookingState extends State<DetailBooking> {
                             color: Colors.blue.shade700,
                           ),
                         ),
+                        // ... rest remains the same
+
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -348,7 +367,7 @@ class _FilterDialogState extends State<FilterDialog> {
   }
 
   @override
-  void dispose()  {
+  void dispose() {
     plateController.dispose();
     super.dispose();
   }
@@ -371,7 +390,7 @@ class _FilterDialogState extends State<FilterDialog> {
     }
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: Colors.white,

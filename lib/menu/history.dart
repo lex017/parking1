@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:parking1/drawer.dart';
-import 'package:parking1/menu/detailHistory.dart'; // Import your details_history page
+import 'package:parking1/menu/detailHistory.dart';
 
 class history extends StatefulWidget {
   const history({super.key});
@@ -30,6 +30,7 @@ class _HistoryState extends State<history> {
     return FirebaseFirestore.instance
         .collection('bookings')
         .where('userId', isEqualTo: currentUserId)
+        .orderBy('timestamp', descending: true) // ✅ เรียงจากล่าสุด
         .snapshots()
         .asyncMap((snapshot) async {
       List<Map<String, dynamic>> historyList = [];
@@ -44,7 +45,6 @@ class _HistoryState extends State<history> {
       }
 
       paymentIds = paymentIds.toSet().toList();
-
       Map<String, Map<String, dynamic>> paymentsMap = {};
       List<QueryDocumentSnapshot> paymentsDocs = await fetchPaymentsInBatches(paymentIds);
 

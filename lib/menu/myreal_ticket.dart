@@ -29,7 +29,7 @@ class _MyrealTicketState extends State<MyrealTicket> {
         if (user == null) {
           return Scaffold(
             appBar: AppBar(title: const Text("My Tickets")),
-            body: const Center(child: Text("กรุณาเข้าสู่ระบบเพื่อดูตั๋วของคุณ")),
+            body: const Center(child: Text("Dont have ticket")),
           );
         }
 
@@ -51,7 +51,7 @@ class _MyrealTicketState extends State<MyrealTicket> {
               }
 
               if (snapshot.hasError) {
-                return const Center(child: Text("เกิดข้อผิดพลาดในการโหลดตั๋ว"));
+                return const Center(child: Text("Loading error"));
               }
 
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {

@@ -12,7 +12,7 @@ import 'package:http/http.dart' as http;
 class BuyTicket extends StatefulWidget {
   final String bookingId;
 
-  const BuyTicket({super.key, required this.bookingId});
+  const BuyTicket({super.key, required this.bookingId, });
 
   @override
   State<BuyTicket> createState() => _BuyTicketState();
@@ -202,7 +202,7 @@ class _BuyTicketState extends State<BuyTicket> {
         }
 
         // 🔁 Update Firestore every 5 seconds
-        if (remainingSeconds % 5 == 0) {
+        if (remainingSeconds % 1 == 0) {
           await FirebaseFirestore.instance
               .collection('bookings')
               .doc(widget.bookingId)

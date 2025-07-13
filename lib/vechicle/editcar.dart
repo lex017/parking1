@@ -63,7 +63,10 @@ class _EditCarState extends State<EditCar> {
     "ບໍລິສັດ/ທຸລະກິດ 100%": {"background": Colors.white, "text": Colors.black},
     "ບໍລິສັດ/ທຸລະກິດ 1%": {"background": Colors.white, "text": Colors.blue},
     "ເອກະຊົນຕ່າງດ້າວ": {"background": Colors.yellow, "text": Colors.lightBlue},
-    "ອົງການຈັດຕັ້ງສາກົນ(ນຳໃຊ້ສ່ວນຕົວ)": {"background": Colors.white, "text": Colors.lightBlue},
+    "ອົງການຈັດຕັ້ງສາກົນ(ນຳໃຊ້ສ່ວນຕົວ)": {
+      "background": Colors.white,
+      "text": Colors.lightBlue
+    },
   };
 
   @override
@@ -71,7 +74,8 @@ class _EditCarState extends State<EditCar> {
     super.initState();
     brandController = TextEditingController(text: widget.carData["brandName"]);
     colorController = TextEditingController(text: widget.carData["color"]);
-    plateController = TextEditingController(text: widget.carData["numberplate"]);
+    plateController =
+        TextEditingController(text: widget.carData["numberplate"]);
     nameController = TextEditingController(text: widget.carData["charplate"]);
 
     // กำหนดค่าเริ่มต้น dropdown จากข้อมูลเดิม
@@ -166,9 +170,11 @@ class _EditCarState extends State<EditCar> {
                   borderRadius: BorderRadius.circular(12),
                   child: TextFormField(
                     controller: brandController,
-                    decoration: _buildDecoration("Brand Name", Icons.directions_car),
+                    decoration:
+                        _buildDecoration("Brand Name", Icons.directions_car),
                     textInputAction: TextInputAction.next,
-                    validator: (v) => v == null || v.trim().isEmpty ? "Enter brand" : null,
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? "Enter brand" : null,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -182,7 +188,8 @@ class _EditCarState extends State<EditCar> {
                     controller: colorController,
                     decoration: _buildDecoration("Color", Icons.color_lens),
                     textInputAction: TextInputAction.next,
-                    validator: (v) => v == null || v.trim().isEmpty ? "Enter color" : null,
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty ? "Enter color" : null,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -194,9 +201,12 @@ class _EditCarState extends State<EditCar> {
                   borderRadius: BorderRadius.circular(12),
                   child: TextFormField(
                     controller: plateController,
-                    decoration: _buildDecoration("License Plate", Icons.confirmation_number),
+                    decoration: _buildDecoration(
+                        "License Plate", Icons.format_list_numbered_sharp),
                     textInputAction: TextInputAction.next,
-                    validator: (v) => v == null || v.trim().isEmpty ? "Enter plate number" : null,
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? "Enter plate number"
+                        : null,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -208,7 +218,8 @@ class _EditCarState extends State<EditCar> {
                   borderRadius: BorderRadius.circular(12),
                   child: DropdownButtonFormField<String>(
                     value: selectedProvince,
-                    decoration: _buildDecoration("Province", Icons.location_city),
+                    decoration:
+                        _buildDecoration("Province", Icons.location_city),
                     items: cities
                         .map((city) => DropdownMenuItem(
                               value: city,
@@ -222,7 +233,8 @@ class _EditCarState extends State<EditCar> {
                         });
                       }
                     },
-                    validator: (val) => val == null || val.isEmpty ? "Select province" : null,
+                    validator: (val) =>
+                        val == null || val.isEmpty ? "Select province" : null,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -232,25 +244,31 @@ class _EditCarState extends State<EditCar> {
                   elevation: 4,
                   shadowColor: Colors.black26,
                   borderRadius: BorderRadius.circular(12),
-                  child: DropdownButtonFormField<String>(
-                    value: selectedTypeplate,
-                    decoration: _buildDecoration("Plate Type", Icons.style),
-                    items: plateTypeList
-                        .map((type) => DropdownMenuItem(
-                              value: type,
-                              child: Text(type),
-                            ))
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() {
-                          selectedTypeplate = val;
-                        });
-                      }
-                    },
-                    validator: (val) => val == null || val.isEmpty ? "Select plate type" : null,
+                  child: SizedBox(
+                    width: double.infinity, // or a fixed width
+                    child: DropdownButtonFormField<String>(
+                      value: selectedTypeplate,
+                      decoration: _buildDecoration("Plate Type", Icons.style),
+                      items: plateTypeList
+                          .map((type) => DropdownMenuItem(
+                                value: type,
+                                child: Text(type),
+                              ))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() {
+                            selectedTypeplate = val;
+                          });
+                        }
+                      },
+                      validator: (val) => val == null || val.isEmpty
+                          ? "Select plate type"
+                          : null,
+                    ),
                   ),
                 ),
+
                 const SizedBox(height: 16),
 
                 // Charplate field
@@ -260,9 +278,12 @@ class _EditCarState extends State<EditCar> {
                   borderRadius: BorderRadius.circular(12),
                   child: TextFormField(
                     controller: nameController,
-                    decoration: _buildDecoration("Character Plate", Icons.text_fields),
+                    decoration:
+                        _buildDecoration("Character Plate", Icons.text_fields),
                     textInputAction: TextInputAction.done,
-                    validator: (v) => v == null || v.trim().isEmpty ? "Enter plate character" : null,
+                    validator: (v) => v == null || v.trim().isEmpty
+                        ? "Enter plate character"
+                        : null,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -275,12 +296,14 @@ class _EditCarState extends State<EditCar> {
                   style: ElevatedButton.styleFrom(
                     elevation: 6,
                     shadowColor: Colors.blueGrey,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 16),
                     backgroundColor: Colors.blueAccent,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    textStyle: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],

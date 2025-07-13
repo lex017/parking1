@@ -23,6 +23,7 @@ class _MapApiState extends State<map_api> {
   LatLng? _currentPosition;
   LatLng? _searchPosition;
   String? selectedDocId;
+  int checkedInCount = 0;
 
   final PanelController _panelController = PanelController();
   double _searchRadius = 500.0;
@@ -216,7 +217,7 @@ class _MapApiState extends State<map_api> {
       return FirebaseFirestore.instance
           .collection('bookings')
           .where('locationId', isEqualTo: docId)
-          .where('Status', isEqualTo: 'check-in')
+           .where('Status', whereIn: ['check-in', 'pending'])
           .snapshots()
           .map((snapshot) => snapshot.docs.length);
     }
@@ -318,16 +319,12 @@ class _MapApiState extends State<map_api> {
                       StreamBuilder<int>(
                         stream: getCheckedInCount(),
                         builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Text("Loading check-ins...",
-                                style: TextStyle(
-                                    fontSize: 16, color: Colors.black87));
-                          }
+                          checkedInCount = snapshot.data ?? 0;
+
                           return Text(
-                            "Car Slot: ${snapshot.data}/$carSlot",
+                            "Car Slot: $checkedInCount/$carSlot",
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.green,
                             ),

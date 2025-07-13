@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-
 import 'package:parking1/detailownner/detail_map.dart';
 import 'package:parking1/detailownner/detail_review.dart';
 import 'package:parking1/detailownner/edit_employee.dart';
@@ -25,7 +24,6 @@ class _DetailOwnerState extends State<DetailOwner> {
       child: Scaffold(
         body: Column(
           children: [
-            // ส่วนรูปภาพ
             Stack(
               children: [
                 StreamBuilder<DocumentSnapshot>(
@@ -73,7 +71,6 @@ class _DetailOwnerState extends State<DetailOwner> {
               ],
             ),
 
-            // ส่วนข้อมูลสถานที่
             StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('parking')
@@ -129,7 +126,7 @@ class _DetailOwnerState extends State<DetailOwner> {
               },
             ),
 
-            // แท็บเลือก
+   
             TabBar(
               labelColor: Colors.blue,
               unselectedLabelColor: Colors.grey,
@@ -141,7 +138,6 @@ class _DetailOwnerState extends State<DetailOwner> {
               ],
             ),
 
-            // เนื้อหาแต่ละแท็บขยายเต็มพื้นที่ที่เหลือ
             Expanded(
               child: TabBarView(
                 children: [

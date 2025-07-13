@@ -114,6 +114,7 @@ class _LocationPageState extends State<LocationPage> {
                   itemBuilder: (context, index) {
                     final location = locations[index].data() as Map<String, dynamic>;
                     final documentId = locations[index].id;
+                    
 
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),

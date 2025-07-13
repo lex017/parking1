@@ -121,68 +121,121 @@ void _pickTime() {
   showModalBottomSheet(
     context: context,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
+    backgroundColor: Colors.white,
     clipBehavior: Clip.antiAliasWithSaveLayer,
     builder: (context) {
-      return Container(
-        height: 320,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  Expanded(child: _buildPicker(24, selectedHour, (v) => selectedHour = v)),
-                  Expanded(child: _buildPicker(60, selectedMinute, (v) => selectedMinute = v)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  textStyle: const TextStyle(fontSize: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  backgroundColor: Colors.blueAccent
+      return StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: 380,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Center(
+                  child: Icon(Icons.access_time_rounded,
+                      color: Colors.blueAccent, size: 40),
                 ),
-                onPressed: () {
-                  final formatted = '${selectedHour.toString().padLeft(2,'0')}:'
-                      '${selectedMinute.toString().padLeft(2,'0')}';
-                  setState(() => timeController.text = formatted);
-                  Navigator.pop(context);
-                },
-                child: Text("Confirm",style: TextStyle(color: Colors.white),),
-              ),
+                const SizedBox(height: 10),
+                const Center(
+                  child: Text(
+                    'Select Time',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildPicker(
+                          count: 24,
+                          selected: selectedHour,
+                          onChanged: (v) =>
+                              setModalState(() => selectedHour = v),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildPicker(
+                          count: 60,
+                          selected: selectedMinute,
+                          onChanged: (v) =>
+                              setModalState(() => selectedMinute = v),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text(
+                      'Confirm Time',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () {
+                      final formatted = '${selectedHour.toString().padLeft(2, '0')}:${selectedMinute.toString().padLeft(2, '0')}';
+                      setState(() => timeController.text = formatted);
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       );
     },
   );
 }
-
-Widget _buildPicker(int count, int initial, ValueChanged<int> onChanged) {
-  return CupertinoPicker(
-    scrollController: FixedExtentScrollController(initialItem: initial),
-    itemExtent: 32,
-    backgroundColor: Colors.grey.shade200,
+Widget _buildPicker({
+  required int count,
+  required int selected,
+  required ValueChanged<int> onChanged,
+}) {
+  return ListWheelScrollView.useDelegate(
+    itemExtent: 40,
+    perspective: 0.002,
     diameterRatio: 1.5,
-    useMagnifier: true,
-    magnification: 1.2,
-    selectionOverlay: CupertinoPickerDefaultSelectionOverlay(
-      background: Colors.blue.withOpacity(0.2),
-    ),
+    physics: const FixedExtentScrollPhysics(),
     onSelectedItemChanged: onChanged,
-    children: List.generate(
-      count,
-      (i) => Center(child: Text(i.toString().padLeft(2, '0'))),
+    controller: FixedExtentScrollController(initialItem: selected),
+    childDelegate: ListWheelChildBuilderDelegate(
+      builder: (context, index) {
+        return Center(
+          child: Text(
+            index.toString().padLeft(2, '0'),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        );
+      },
+      childCount: count,
     ),
   );
 }
+
+
 
 
    void _initializeNotifications() async {
@@ -228,42 +281,23 @@ Widget _buildPicker(int count, int initial, ValueChanged<int> onChanged) {
   }
 
   Future<void> _sendNotification(String transactionId) async {
-    try {
-      FirebaseAuth auth = FirebaseAuth.instance;
-      String? uid = auth.currentUser?.uid;
+  try {
+    final String locationId = widget.documentId;
 
-      if (uid == null) {
-        print("No user logged in");
-        return;
-      }
+    // Save a notification to Firestore with locationId
+    await FirebaseFirestore.instance.collection('notifications').add({
+      'title': '🔔 New Booking',
+      'body': 'New booking needs verification for transaction ID: $transactionId',
+      'locationId': locationId,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
 
-      // Get the employee's locationId from Firestore
-      DocumentSnapshot empDoc = await FirebaseFirestore.instance
-          .collection('employees')
-          .doc(uid)
-          .get();
-
-      if (!empDoc.exists) {
-        print("Employee document not found");
-        return;
-      }
-
-      String? locationId = empDoc.get('locationId');
-
-      // Save the notification with locationId
-      await FirebaseFirestore.instance.collection('notifications').add({
-        'title': 'New Payment Verification',
-        'body':
-            'Payment for transaction ID: $transactionId requires verification.',
-        'locationId': locationId,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-
-      print("Notification saved with locationId: $locationId");
-    } catch (e) {
-      print("Error sending notification: $e");
-    }
+    print("Notification sent with locationId: $locationId");
+  } catch (e) {
+    print("Error sending notification: $e");
   }
+}
+
 
   Future<void> _savePaymentAndBooking() async {
   setState(() {
@@ -649,7 +683,7 @@ void listenForPaymentStatus(String bookingId, BuildContext context) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => BuyTicket(bookingId: bookingId),
+          builder: (context) => BuyTicket(bookingId: bookingId,),
         ),
       );
     } else if (status == "reject") {
@@ -846,32 +880,33 @@ void listenForPaymentStatus(String bookingId, BuildContext context) {
 
       // Submit Button
       Center(
-        child: ElevatedButton(
-          onPressed: _isLoading ? null : _savePaymentAndBooking,
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 16),
-            backgroundColor: Colors.black,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            elevation: 6,
-          ),
-          child: _isLoading
-              ? const SizedBox(
-                  height: 24,
-                  width: 24,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 3,
-                  ),
-                )
-              : const Text(
-                  "Pay Now",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-        ),
+  child: ElevatedButton(
+    onPressed: _isLoading ? null : _savePaymentAndBooking,
+    style: ElevatedButton.styleFrom(
+      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 16),
+      backgroundColor: Colors.black,
+      foregroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
       ),
+      elevation: 6,
+    ),
+    child: _isLoading
+        ? const SizedBox(
+            height: 24,
+            width: 24,
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 3,
+            ),
+          )
+        : const Text(
+            "Pay Now",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+  ),
+),
+
     ],
   ),
 )

@@ -142,7 +142,7 @@ class _VehicleState extends State<Vechicle> {
                               Icon(Icons.directions_car, color: Colors.blueAccent),
                               const SizedBox(width: 8.0),
                               Text(
-                                'Brand: ${vehicle.brandName}',
+                                '${vehicle.brandName}',
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,

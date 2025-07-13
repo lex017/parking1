@@ -45,7 +45,6 @@ class PayParking extends StatefulWidget {
     required this.name,
     required this.address,
     required this.description,
-    
     this.pricePerDay,
     this.pricePerMonth,
     this.totalPrice,
@@ -60,7 +59,9 @@ class PayParking extends StatefulWidget {
     required this.price,
     required this.parkingImage,
     required this.qrImage,
-    required this.landmark, required this.openTime, required this.closeTime,
+    required this.landmark,
+    required this.openTime,
+    required this.closeTime,
   });
 
   @override
@@ -74,7 +75,6 @@ class _PayPageState extends State<PayParking> {
   bool _isLoading = false;
   bool _isButtonDisabled = false;
   DateTime now = DateTime.now();
-
 
   final TextEditingController timeController = TextEditingController();
 
@@ -135,74 +135,128 @@ class _PayPageState extends State<PayParking> {
   }
 
   void _pickTime() {
-  int selectedHour = DateTime.now().hour;
-  int selectedMinute = DateTime.now().minute;
+    int selectedHour = DateTime.now().hour;
+    int selectedMinute = DateTime.now().minute;
 
-  showModalBottomSheet(
-    context: context,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-    ),
-    clipBehavior: Clip.antiAliasWithSaveLayer,
-    builder: (context) {
-      return Container(
-        height: 320,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Row(
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      backgroundColor: Colors.white,
+      clipBehavior: Clip.antiAliasWithSaveLayer,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              height: 380,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(child: _buildPicker(24, selectedHour, (v) => selectedHour = v)),
-                  Expanded(child: _buildPicker(60, selectedMinute, (v) => selectedMinute = v)),
+                  const Center(
+                    child: Icon(Icons.access_time_rounded,
+                        color: Colors.blueAccent, size: 40),
+                  ),
+                  const SizedBox(height: 10),
+                  const Center(
+                    child: Text(
+                      'Select Time',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildPicker(
+                            count: 24,
+                            selected: selectedHour,
+                            onChanged: (v) =>
+                                setModalState(() => selectedHour = v),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildPicker(
+                            count: 60,
+                            selected: selectedMinute,
+                            onChanged: (v) =>
+                                setModalState(() => selectedMinute = v),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.check_circle_outline),
+                      label: const Text(
+                        'Confirm Time',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        final formatted =
+                            '${selectedHour.toString().padLeft(2, '0')}:${selectedMinute.toString().padLeft(2, '0')}';
+                        setState(() => timeController.text = formatted);
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  textStyle: const TextStyle(fontSize: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  backgroundColor: Colors.blueAccent
-                ),
-                onPressed: () {
-                  final formatted = '${selectedHour.toString().padLeft(2,'0')}:'
-                      '${selectedMinute.toString().padLeft(2,'0')}';
-                  setState(() => timeController.text = formatted);
-                  Navigator.pop(context);
-                },
-                child: Text("Confirm",style: TextStyle(color: Colors.white),),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPicker({
+    required int count,
+    required int selected,
+    required ValueChanged<int> onChanged,
+  }) {
+    return ListWheelScrollView.useDelegate(
+      itemExtent: 40,
+      perspective: 0.002,
+      diameterRatio: 1.5,
+      physics: const FixedExtentScrollPhysics(),
+      onSelectedItemChanged: onChanged,
+      controller: FixedExtentScrollController(initialItem: selected),
+      childDelegate: ListWheelChildBuilderDelegate(
+        builder: (context, index) {
+          return Center(
+            child: Text(
+              index.toString().padLeft(2, '0'),
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
             ),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-Widget _buildPicker(int count, int initial, ValueChanged<int> onChanged) {
-  return CupertinoPicker(
-    scrollController: FixedExtentScrollController(initialItem: initial),
-    itemExtent: 32,
-    backgroundColor: Colors.grey.shade200,
-    diameterRatio: 1.5,
-    useMagnifier: true,
-    magnification: 1.2,
-    selectionOverlay: CupertinoPickerDefaultSelectionOverlay(
-      background: Colors.blue.withOpacity(0.2),
-    ),
-    onSelectedItemChanged: onChanged,
-    children: List.generate(
-      count,
-      (i) => Center(child: Text(i.toString().padLeft(2, '0'))),
-    ),
-  );
-}
+          );
+        },
+        childCount: count,
+      ),
+    );
+  }
 
   Future<String?> _uploadImageToCloudinary() async {
     try {
@@ -237,25 +291,27 @@ Widget _buildPicker(int count, int initial, ValueChanged<int> onChanged) {
   }
 
   bool isParkingOpen(String openTime, String closeTime) {
-  final now = TimeOfDay.now();
+    final now = TimeOfDay.now();
 
-  final open = TimeOfDay(
-    hour: int.parse(openTime.split(":")[0]),
-    minute: int.parse(openTime.split(":")[1]),
-  );
-  final close = TimeOfDay(
-    hour: int.parse(closeTime.split(":")[0]),
-    minute: int.parse(closeTime.split(":")[1]),
-  );
+    final open = TimeOfDay(
+      hour: int.parse(openTime.split(":")[0]),
+      minute: int.parse(openTime.split(":")[1]),
+    );
+    final close = TimeOfDay(
+      hour: int.parse(closeTime.split(":")[0]),
+      minute: int.parse(closeTime.split(":")[1]),
+    );
 
-  // Compare time
-  if (now.hour > open.hour || (now.hour == open.hour && now.minute >= open.minute)) {
-    if (now.hour < close.hour || (now.hour == close.hour && now.minute <= close.minute)) {
-      return true; // Parking is open
+    // Compare time
+    if (now.hour > open.hour ||
+        (now.hour == open.hour && now.minute >= open.minute)) {
+      if (now.hour < close.hour ||
+          (now.hour == close.hour && now.minute <= close.minute)) {
+        return true; // Parking is open
+      }
     }
+    return false;
   }
-  return false;
-}
 
   Future<void> _savebillAndBooking() async {
     setState(() {
@@ -328,7 +384,7 @@ Widget _buildPicker(int count, int initial, ValueChanged<int> onChanged) {
         'openTime': widget.openTime,
         'closeTime': widget.closeTime,
         'timezone': "Asia/Bangkok",
-        "isOpen": true, 
+        "isOpen": true,
         'status': "pending",
         'pagekage': "standard",
         'months': widget.months,
@@ -366,7 +422,7 @@ Widget _buildPicker(int count, int initial, ValueChanged<int> onChanged) {
         'openTime': widget.openTime,
         'closeTime': widget.closeTime,
         'timezone': "Asia/Bangkok",
-        "isOpen": true, 
+        "isOpen": true,
         'packageStartDate': FieldValue.serverTimestamp(), // Record when added
         'packageMonths': widget.months,
         'timestamp': FieldValue.serverTimestamp(),
@@ -443,9 +499,10 @@ Widget _buildPicker(int count, int initial, ValueChanged<int> onChanged) {
 
                 Future.delayed(const Duration(seconds: 2), () {
                   // Navigator.of(context, rootNavigator: true).pop();
-                  Navigator.pushReplacement(
+                  Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => ownerMain()),
+                    (Route<dynamic> route) => false, // 🔁 ลบทุกหน้าเก่าทิ้ง
                   );
                 });
               }
@@ -639,10 +696,28 @@ Widget _buildPicker(int count, int initial, ValueChanged<int> onChanged) {
             const SizedBox(height: 30),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isButtonDisabled ? null : _savebillAndBooking,
-                child: const Text("Submit Bill For parking"),
-              ),
+              child: ElevatedButton.icon(
+  onPressed: _isButtonDisabled ? null : _savebillAndBooking,
+  icon: const Icon(Icons.send, size: 20, color: Colors.white),
+  label: const Text(
+    "Submit Bill for Parking",
+    style: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w600,
+      color: Colors.white,
+    ),
+  ),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.blueAccent,
+    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+    elevation: 6,
+    shadowColor: Colors.blueAccent.withOpacity(0.4),
+  ),
+),
+
             ),
           ],
         ),

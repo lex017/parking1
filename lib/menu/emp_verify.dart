@@ -366,53 +366,71 @@ class _EmpVerifyState extends State<EmpVerify> {
     );
   }
 
-  Widget _buildReject(DocumentSnapshot payment) {
-    return Column(
-      children: [
-        SizedBox(
-          width: 250, // Full width for responsiveness
-          height: 50, // Height of the button
-          child: ElevatedButton(
-            onPressed: () async {
-              // Update the payment status in Firestore
+Widget _buildReject(DocumentSnapshot payment) {
+  return Column(
+    children: [
+      SizedBox(
+        width: 250,
+        height: 50,
+        child: ElevatedButton(
+          onPressed: () async {
+            try {
+              final bookingId = payment['bookingId'];
+
+              // อัปเดตสถานะใน payments
               await FirebaseFirestore.instance
                   .collection('payments')
                   .doc(payment.id)
                   .update({'status': 'reject'});
 
-              // Also update the payment status in the bookings collection
+              // อัปเดตสถานะทั้ง paymentStatus และ Status ใน bookings
               await FirebaseFirestore.instance
                   .collection('bookings')
-                  .doc(payment[
-                      'bookingId']) // Assuming bookingId is a field in payment document
-                  .update({'paymentStatus': 'reject'});
+                  .doc(bookingId)
+                  .update({
+                    'paymentStatus': 'reject',
+                    'Status': 'reject',
+                  });
 
-              // Show confirmation message
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Payment Rejected')),
-              );
+              // แสดง SnackBar ยืนยัน
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('ปฏิเสธการชำระเงินแล้ว')),
+                );
+              }
 
-              // Pop this screen after a slight delay so the SnackBar shows
+              // ปิดหน้าจอหลังดีเลย์เล็กน้อย
               Future.delayed(const Duration(milliseconds: 300), () {
-                Navigator.pop(context);
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
               });
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red, // Set background color to red
-              shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(12), // Adjust the radius as needed
-              ),
+            } catch (e) {
+              print("เกิดข้อผิดพลาด: $e");
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('เกิดข้อผิดพลาดในการปฏิเสธ')),
+                );
+              }
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(
-              'Reject',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20), // Set text color to white and adjust font size
+          ),
+          child: const Text(
+            'Reject',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
             ),
           ),
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
+
 }

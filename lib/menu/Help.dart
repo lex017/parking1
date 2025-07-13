@@ -67,27 +67,27 @@ class _HelpState extends State<Help> {
   }
 
   
-  Widget historyButton() {
-    return SizedBox(
-      width: 300,
-      height: 50,
-      child: ElevatedButton(
-        onPressed: () {
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color.fromARGB(255, 255, 255, 255), 
-        ),
-        child: const Text(
-          "History",
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 20.0,
-          ),
-        ),
-      ),
-    );
-  }
+  // Widget historyButton() {
+  //   return SizedBox(
+  //     width: 300,
+  //     height: 50,
+  //     child: ElevatedButton(
+  //       onPressed: () {
+  //       },
+  //       style: ElevatedButton.styleFrom(
+  //         backgroundColor: const Color.fromARGB(255, 255, 255, 255), 
+  //       ),
+  //       child: const Text(
+  //         "History",
+  //         style: TextStyle(
+  //           color: Colors.black,
+  //           fontWeight: FontWeight.bold,
+  //           fontSize: 20.0,
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -110,7 +110,7 @@ class _HelpState extends State<Help> {
               const SizedBox(height: 20.0),
               questionButton(),
               const SizedBox(height: 20.0),
-              historyButton(),
+              // historyButton(),
             ],
           ),
         ),
