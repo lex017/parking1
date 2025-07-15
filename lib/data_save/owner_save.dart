@@ -330,9 +330,9 @@ void listenForPaymentStatus(String newOwnerId) {
 
   Widget showText() {
     return Text(
-      "Data",
+      "Owner Register",
       style: TextStyle(
-          fontSize: 35.0,
+          fontSize: 22,
           fontWeight: FontWeight.bold,
           color: Colors.black,
           fontFamily: 'Roboto'),

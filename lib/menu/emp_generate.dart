@@ -264,7 +264,7 @@ class _EmpGenerateState extends State<EmpGenerate> {
 
   Widget _buildCashPaymentForm() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.all(15.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

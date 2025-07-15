@@ -279,11 +279,14 @@ Widget login() {
   return Row(
     mainAxisAlignment: MainAxisAlignment.center,
     children: [
-      Text(
-        "Already have an account?",
-        style: TextStyle(
-          fontSize: 16,
-          color: Theme.of(context).iconTheme.color, // Dynamically adjust text color
+      Flexible(
+        child: Text(
+          "Already have an account?",
+          style: TextStyle(
+            fontSize: 16,
+            color: Theme.of(context).iconTheme.color,
+          ),
+          overflow: TextOverflow.ellipsis,
         ),
       ),
       TextButton(
@@ -293,7 +296,7 @@ Widget login() {
             MaterialPageRoute(builder: (ctx) => const loginPage()),
           );
         },
-        child: Text(
+        child: const Text(
           "Click here",
           style: TextStyle(color: Colors.blue),
         ),
@@ -301,6 +304,7 @@ Widget login() {
     ],
   );
 }
+
 
   @override
 Widget build(BuildContext context) {

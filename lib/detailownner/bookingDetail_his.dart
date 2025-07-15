@@ -113,9 +113,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: ListView(
             children: [
-              _buildBookingCard(booking, ts),
+              _buildBookingCard(booking, ts, paymentData),
+
               const SizedBox(height: 16),
-              _buildPaymentCard(),
+      
             ],
           ),
         ),
@@ -123,63 +124,125 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     );
   }
 
-  Widget _buildBookingCard(Map<String, dynamic> booking, DateTime? ts) {
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      margin: EdgeInsets.zero,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: const LinearGradient(
-            colors: [Colors.white, Color(0xFFF9FBFF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(
+// Updated _buildInfoRow to accept Widget as iconWidget
+Widget _buildInfoRow(Widget iconWidget, String title, String value, {Color? valueColor}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        iconWidget,
+        const SizedBox(width: 12),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: const TextStyle(fontSize: 16, color: Colors.black87, height: 1.4),
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: primaryBlue.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.directions_car, color: primaryBlue, size: 28),
+                TextSpan(
+                  text: "$title: ",
+                  style: const TextStyle(fontWeight: FontWeight.w500),
                 ),
-                const SizedBox(width: 12),
-                const Text(
-                  "Vehicle Information",
+                TextSpan(
+                  text: value,
                   style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1E1E2C),
+                    color: valueColor ?? const Color(0xFF555770),
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ],
             ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+// Your _buildBookingCard function, using the updated _buildInfoRow
+Widget _buildBookingCard(Map<String, dynamic> booking, DateTime? ts, Map<String, dynamic>? paymentData) {
+  return Card(
+    elevation: 8,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    margin: EdgeInsets.zero,
+    child: Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          colors: [Colors.white, Color(0xFFF9FBFF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // ===== Vehicle Info Header =====
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: primaryBlue.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.directions_car, color: primaryBlue, size: 28),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                "Vehicle Information",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E1E2C),
+                ),
+              ),
+            ],
+          ),
+          Divider(),
+          const SizedBox(height: 20),
+
+          // ===== Booking Info =====
+          _buildInfoRow(Icon(Icons.person, color: Colors.blueGrey[600], size: 24), "User", booking['userName']),
+          _buildInfoRow(Icon(Icons.local_parking, color: Colors.blueGrey[600], size: 24), "Parking", booking['nameparking']),
+          _buildInfoRow(Icon(Icons.location_on, color: Colors.blueGrey[600], size: 24), "Province", booking['province']),
+          _buildInfoRow(Icon(Icons.confirmation_number, color: Colors.blueGrey[600], size: 24), "Plate",
+              "${booking['charplate']} ${booking['numberplate']}"),
+          _buildInfoRow(Icon(Icons.category, color: Colors.blueGrey[600], size: 24), "Type", booking['typeplate']),
+          if (paymentData != null)
+            _buildInfoRow(Icon(Icons.directions_car, color: Colors.blueGrey[600], size: 24), "Vehicle", paymentData['vechicle'] ?? "-"),
+          _buildInfoRow(Icon(Icons.color_lens, color: Colors.blueGrey[600], size: 24), "Color", booking['color']),
+          _buildInfoRow(Icon(Icons.info, color: Colors.blueGrey[600], size: 24), "Status", booking['Status'],
+              valueColor: _getStatusColor(booking['Status'])),
+          _buildInfoRow(Icon(Icons.calendar_today, color: Colors.blueGrey[600], size: 24), "Booking Time",
+              ts != null ? DateFormat('yyyy-MM-dd HH:mm').format(ts) : "Unknown"),
+
+        Divider(),
+
+          // ===== Payment Section =====
+          if (paymentData != null) ...[
+           
+            _buildInfoRow(Icon(Icons.receipt, color: Colors.blueGrey[600], size: 24), "Payment Status", paymentData['status'],
+                valueColor: _getStatusColor(paymentData['status'])),
+            _buildInfoRow(
+              Image.asset(
+                'assets/images/kip.png',
+                width: 24,
+                height: 24,
+                color: Colors.green,
+              ),
+              "Amount",
+              paymentData['amount'].toString(),
+            ),
+            _buildInfoRow(Icon(Icons.date_range, color: Colors.blueGrey[600], size: 24), "Paid on", "${paymentData['date']} ${paymentData['time']}"),
+
+            // ===== Payment Receipt Image =====
             const SizedBox(height: 20),
-            _buildInfoRow(Icons.person, "User", booking['userName']),
-            _buildInfoRow(Icons.local_parking, "Parking", booking['nameparking']),
-            _buildInfoRow(Icons.location_on, "Province", booking['province']),
-            _buildInfoRow(Icons.confirmation_number, "Plate",
-                "${booking['charplate']} ${booking['numberplate']}"),
-            _buildInfoRow(Icons.category, "Type", booking['typeplate']),
-            _buildInfoRow(Icons.color_lens, "Color", booking['color']),
-            _buildInfoRow(Icons.info, "Status", booking['Status'],
-                valueColor: _getStatusColor(booking['Status'])),
-            _buildInfoRow(Icons.calendar_today, "Date",
-                ts != null ? DateFormat('yyyy-MM-dd HH:mm').format(ts) : "Unknown"),
-            const SizedBox(height: 20),
-            if (booking['image'] != null)
+            if (paymentData['imageBill'] != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "Vehicle Image",
+                    "Payment Receipt",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -188,16 +251,18 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                   ),
                   const SizedBox(height: 10),
                   GestureDetector(
-                    onTap: () => _openFullImage(booking['image']),
-                    child: _roundedImage(booking['image']),
+                    onTap: () => _openFullImage(paymentData['imageBill']),
+                    child: _roundedImage(paymentData['imageBill']),
                   ),
                 ],
               ),
-          ]),
-        ),
+          ],
+        ]),
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildPaymentCard() {
     return Card(
@@ -247,8 +312,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                   ),
                 ),
               )
-            else if (paymentData != null)
-              ..._buildPaymentInfo(paymentData!)
+          
             else
               const Center(
                 child: Padding(
@@ -269,28 +333,28 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String title, String value, {Color? valueColor}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, color: Colors.blueGrey[600], size: 22),
-        const SizedBox(width: 12),
-        Expanded(
-          child: RichText(
-            text: TextSpan(style: const TextStyle(fontSize: 16, color: Colors.black87, height: 1.4), children: [
-              TextSpan(text: "$title: ", style: const TextStyle(fontWeight: FontWeight.w500)),
-              TextSpan(
-                  text: value,
-                  style: TextStyle(
-                    color: valueColor ?? const Color(0xFF555770),
-                    fontWeight: FontWeight.w400,
-                  )),
-            ]),
-          ),
-        ),
-      ]),
-    );
-  }
+  // Widget _buildInfoRow(IconData icon, String title, String value, {Color? valueColor}) {
+  //   return Padding(
+  //     padding: const EdgeInsets.symmetric(vertical: 8),
+  //     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  //       Icon(icon, color: Colors.blueGrey[600], size: 22),
+  //       const SizedBox(width: 12),
+  //       Expanded(
+  //         child: RichText(
+  //           text: TextSpan(style: const TextStyle(fontSize: 16, color: Colors.black87, height: 1.4), children: [
+  //             TextSpan(text: "$title: ", style: const TextStyle(fontWeight: FontWeight.w500)),
+  //             TextSpan(
+  //                 text: value,
+  //                 style: TextStyle(
+  //                   color: valueColor ?? const Color(0xFF555770),
+  //                   fontWeight: FontWeight.w400,
+  //                 )),
+  //           ]),
+  //         ),
+  //       ),
+  //     ]),
+  //   );
+  // }
 
   Color _getStatusColor(String? status) {
     if (status == null) return const Color(0xFF555770);
@@ -371,32 +435,37 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
         ),
       );
 
-  List<Widget> _buildPaymentInfo(Map<String, dynamic> p) {
-    return [
-      _buildInfoRow(Icons.receipt, "Status", p['status'], valueColor: _getStatusColor(p['status'])),
-      _buildInfoRow(Icons.attach_money, "Amount", p['amount'].toString()),
-      _buildInfoRow(Icons.date_range, "Date", "${p['date']} ${p['time']}"),
-      _buildInfoRow(Icons.directions_car, "Vehicle", p['vechicle']),
-      const SizedBox(height: 20),
-      if (p['imageBill'] != null)
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Payment Receipt",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E1E2C),
-              ),
+ 
+}
+Widget _buildInfoRow(Widget iconWidget, String title, String value, {Color? valueColor}) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        iconWidget,
+        const SizedBox(width: 12),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: const TextStyle(fontSize: 16, color: Colors.black87, height: 1.4),
+              children: [
+                TextSpan(
+                  text: "$title: ",
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+                TextSpan(
+                  text: value,
+                  style: TextStyle(
+                    color: valueColor ?? const Color(0xFF555770),
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            GestureDetector(
-              onTap: () => _openFullImage(p['imageBill']),
-              child: _roundedImage(p['imageBill']),
-            ),
-          ],
+          ),
         ),
-    ];
-  }
+      ],
+    ),
+  );
 }

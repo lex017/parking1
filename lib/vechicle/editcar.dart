@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 
 class EditCar extends StatefulWidget {
   final String documentId;
@@ -204,11 +205,18 @@ class _EditCarState extends State<EditCar> {
                     decoration: _buildDecoration(
                         "License Plate", Icons.format_list_numbered_sharp),
                     textInputAction: TextInputAction.next,
+                    keyboardType:
+                        TextInputType.number, // 👈 only numeric keyboard
+                    inputFormatters: [
+                      FilteringTextInputFormatter
+                          .digitsOnly, // 👈 allow digits only
+                    ],
                     validator: (v) => v == null || v.trim().isEmpty
                         ? "Enter plate number"
                         : null,
                   ),
                 ),
+
                 const SizedBox(height: 16),
 
                 // Province Dropdown
@@ -247,6 +255,7 @@ class _EditCarState extends State<EditCar> {
                   child: SizedBox(
                     width: double.infinity, // or a fixed width
                     child: DropdownButtonFormField<String>(
+                      isExpanded: true,
                       value: selectedTypeplate,
                       decoration: _buildDecoration("Plate Type", Icons.style),
                       items: plateTypeList

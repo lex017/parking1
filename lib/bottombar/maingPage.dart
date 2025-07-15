@@ -40,8 +40,8 @@ class _MainPageState extends State<mainPage> {
       "https://api.cloudinary.com/v1_1/doiq3nkso/resources/image";
 
   List<String> adImages = [
-    'https://res.cloudinary.com/doiq3nkso/image/upload/v1736348080/sivz7kpn9yhcajh6r0mb.jpg',
     'https://res.cloudinary.com/doiq3nkso/image/upload/v1736348049/ojs7n8aufknyoerqfxex.jpg',
+    'https://res.cloudinary.com/doiq3nkso/image/upload/v1752486982/addd_ezkcgn.jpg',
     'https://res.cloudinary.com/doiq3nkso/image/upload/v1736348850/jwufyzc7imcwz3ylpi5d.png'
   ];
 
@@ -128,7 +128,7 @@ class _MainPageState extends State<mainPage> {
     return SizedBox(
       height: 200,
       child: PageView.builder(
-        controller: _pageController, // ✅ Added controller
+        controller: _pageController, 
         itemCount: adImages.length,
         itemBuilder: (context, index) {
           return adCard(imageUrl: adImages[index]);
@@ -433,7 +433,7 @@ class _MainPageState extends State<mainPage> {
                       ],
                     ),
                     Padding(
-                      padding: const EdgeInsets.all(8.0),
+                      padding: const EdgeInsets.all(4.0),
                       child: Row(
                         children: [
                           FutureBuilder<String>(
@@ -477,8 +477,8 @@ class _MainPageState extends State<mainPage> {
                                   Text(
                                     username,
                                     style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 22,
+                               
+                                      fontSize: 16,
                                       color: Theme.of(context)
                                           .textTheme
                                           .titleLarge
@@ -571,13 +571,16 @@ class _MainPageState extends State<mainPage> {
           children: [
             adSlider(), // Assuming this widget is created somewhere else
             const SizedBox(height: 24),
-             Text(
-              'service'.tr(),
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+             Padding(
+               padding: const EdgeInsets.all(8.0),
+               child: Text(
+                'service'.tr(),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+                           ),
+             ),
             const SizedBox(height: 16),
             dashboardSection(
                 context), // Assuming this widget is created somewhere else

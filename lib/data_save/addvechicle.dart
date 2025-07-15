@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase Auth
+import 'package:flutter/services.dart';
 import 'package:parking1/bottombar/vechicle.dart';
 
 class AddVechicle extends StatefulWidget {
@@ -56,7 +57,7 @@ class _VechicleState extends State<AddVechicle> {
     if (brandNameController.text.isEmpty ||
         colorController.text.isEmpty ||
         nameplateController.text.isEmpty ||
-        plateController.text.isEmpty ) {
+        plateController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill out all fields")),
       );
@@ -116,7 +117,6 @@ class _VechicleState extends State<AddVechicle> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  
                   Text(
                     "Selected City: ${widget.selectedCity}",
                     style: const TextStyle(
@@ -125,7 +125,6 @@ class _VechicleState extends State<AddVechicle> {
                         color: Colors.black),
                   ),
                   const SizedBox(height: 20),
-
                   Text(
                     "Selected Plate: ${widget.selectedcolor}",
                     style: const TextStyle(
@@ -134,7 +133,6 @@ class _VechicleState extends State<AddVechicle> {
                         color: Colors.black),
                   ),
                   SizedBox(height: 20),
-
                   TextField(
                     controller: brandNameController,
                     decoration: InputDecoration(
@@ -144,7 +142,6 @@ class _VechicleState extends State<AddVechicle> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
                   TextField(
                     controller: colorController,
                     decoration: InputDecoration(
@@ -154,7 +151,6 @@ class _VechicleState extends State<AddVechicle> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
                   TextField(
                     controller: nameplateController,
                     decoration: InputDecoration(
@@ -164,17 +160,22 @@ class _VechicleState extends State<AddVechicle> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
                   TextField(
                     controller: plateController,
+                    keyboardType:
+                        TextInputType.number, // 👈 show numeric keyboard
+                    inputFormatters: [
+                      FilteringTextInputFormatter
+                          .digitsOnly, // 👈 allow digits only
+                    ],
                     decoration: InputDecoration(
                       labelText: "Plate".tr(),
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 40),
-
                   Center(
                     child: ElevatedButton(
                       onPressed: _savePaymentData,

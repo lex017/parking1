@@ -85,7 +85,6 @@ class _EmpMainState extends State<emp_main> {
       }
     });
   }
-  
 
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
@@ -594,11 +593,12 @@ class _EmpMainState extends State<emp_main> {
                   child: _buildDashboardButton(context,
                       iconPath: 'assets/images/history1.png',
                       label: 'History'.tr(), onPressed: () async {
-                        String locationId = await _getLocationId();
+                String locationId = await _getLocationId();
                 Navigator.of(context).push(
                   MaterialPageRoute(
                       builder: (context) => DetailEmployee(
-                            empId: empId, locationId: locationId,
+                            empId: empId,
+                            locationId: locationId,
                           )),
                 );
               })),
@@ -638,17 +638,35 @@ class _EmpMainState extends State<emp_main> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                  child: _buildDashboardButton(context,
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('payments')
+                .where('locationId', isEqualTo: locationId)
+                .where('status', isEqualTo: 'pending')
+                .snapshots(),
+                  builder: (context, snapshot) {
+                    int pendingCount =
+                        snapshot.hasData ? snapshot.data!.docs.length : 0;
+
+                    return _buildDashboardButton(
+                      context,
                       iconPath: 'assets/images/online-booking.png',
-                      label: 'Verify'.tr(), onPressed: () async {
-                String locationId = await _getLocationId();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        EmpNotification(empId: empId, locationId: locationId),
-                  ),
-                );
-              })),
+                      label: 'Verify'.tr(),
+                      iconBadgeCount: pendingCount, // <-- pass here
+                      onPressed: () async {
+                        String locationId = await _getLocationId();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => EmpNotification(
+                                empId: empId, locationId: locationId),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+
               SizedBox(width: 16),
               Expanded(
                   child: _buildDashboardButton(context,
@@ -674,41 +692,73 @@ class _EmpMainState extends State<emp_main> {
 
 // Helper method to build styled button
   Widget _buildDashboardButton(
-    BuildContext context, {
-    required String iconPath,
-    required String label,
-    required VoidCallback onPressed,
-  }) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(
-              iconPath,
-              width: 48,
-              height: 48,
-              color: Colors.blueAccent,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
+  BuildContext context, {
+  required String iconPath,
+  required String label,
+  required VoidCallback onPressed,
+  int? iconBadgeCount, // optional badge count
+}) {
+  return InkWell(
+    onTap: onPressed,
+    borderRadius: BorderRadius.circular(16),
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Image.asset(
+                iconPath,
+                width: 48,
+                height: 48,
                 color: Colors.blueAccent,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
               ),
+              if (iconBadgeCount != null && iconBadgeCount > 0)
+                Positioned(
+                  right: -6,
+                  top: -6,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 20,
+                      minHeight: 20,
+                    ),
+                    child: Text(
+                      iconBadgeCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.blueAccent,
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _buildScanSummary() {
     return Column(
@@ -739,8 +789,9 @@ class _EmpMainState extends State<emp_main> {
     );
   }
 }
- final Set<String> shownBookingNotifications = {};
-  Future<void> showPaymentSuccessNotification() async {
+
+final Set<String> shownBookingNotifications = {};
+Future<void> showPaymentSuccessNotification() async {
   const androidDetails = AndroidNotificationDetails(
     'payment_channel',
     'Payment Notifications',
@@ -748,7 +799,6 @@ class _EmpMainState extends State<emp_main> {
     importance: Importance.max,
     priority: Priority.high,
   );
-  
 
   const notificationDetails = NotificationDetails(android: androidDetails);
 
@@ -759,6 +809,7 @@ class _EmpMainState extends State<emp_main> {
     notificationDetails,
   );
 }
+
 void listenForPaymentStatus(String bookingId, BuildContext context) {
   FirebaseFirestore.instance
       .collection('bookings')
@@ -775,10 +826,6 @@ void listenForPaymentStatus(String bookingId, BuildContext context) {
 
       await showPaymentSuccessNotification();
       Navigator.of(context, rootNavigator: true).pop();
-
-      
-    } 
-    
-  
+    }
   });
 }

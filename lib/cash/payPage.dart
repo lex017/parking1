@@ -210,30 +210,34 @@ Widget _buildPicker({
   required int selected,
   required ValueChanged<int> onChanged,
 }) {
-  return ListWheelScrollView.useDelegate(
-    itemExtent: 40,
-    perspective: 0.002,
-    diameterRatio: 1.5,
-    physics: const FixedExtentScrollPhysics(),
-    onSelectedItemChanged: onChanged,
-    controller: FixedExtentScrollController(initialItem: selected),
-    childDelegate: ListWheelChildBuilderDelegate(
-      builder: (context, index) {
-        return Center(
-          child: Text(
-            index.toString().padLeft(2, '0'),
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+  return Container(
+    color: Colors.white, // Set the background color to white or any color you prefer
+    child: ListWheelScrollView.useDelegate(
+      itemExtent: 40,
+      perspective: 0.002,
+      diameterRatio: 1.5,
+      physics: const FixedExtentScrollPhysics(),
+      onSelectedItemChanged: onChanged,
+      controller: FixedExtentScrollController(initialItem: selected),
+      childDelegate: ListWheelChildBuilderDelegate(
+        builder: (context, index) {
+          return Center(
+            child: Text(
+              index.toString().padLeft(2, '0'),
+              style: TextStyle(
+                fontSize: 30,
+                fontWeight: FontWeight.bold,
+                color: index == selected ? Colors.blue : Colors.black87,
+              ),
             ),
-          ),
-        );
-      },
-      childCount: count,
+          );
+        },
+        childCount: count,
+      ),
     ),
   );
 }
+
 
 
 
@@ -731,16 +735,6 @@ void listenForPaymentStatus(String bookingId, BuildContext context) {
   child: Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Text(
-        "Payment & Booking Details",
-        style: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-          color: Colors.black87,
-        ),
-      ),
-      const SizedBox(height: 20),
-
       // Amount Card
       Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
@@ -761,7 +755,16 @@ void listenForPaymentStatus(String bookingId, BuildContext context) {
         ),
         child: Row(
           children: [
-            const Icon(Icons.attach_money, color: Colors.green, size: 28),
+             Padding(
+               padding: const EdgeInsets.all(8.0),
+               child: Image.asset(
+                 'assets/images/kip.png',
+                 width: 24,
+                 height: 24,
+                 color: Colors.green,
+               ),
+             ),
+
             const SizedBox(width: 10),
             Text(
               "Amount: ${widget.pricePerHour}",
@@ -884,7 +887,7 @@ void listenForPaymentStatus(String bookingId, BuildContext context) {
     onPressed: _isLoading ? null : _savePaymentAndBooking,
     style: ElevatedButton.styleFrom(
       padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 16),
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.blue,
       foregroundColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),

@@ -350,7 +350,7 @@ Widget _buildPicker({
         'tag': tag,
         'locationId': widget.parkingId,
         'date': DateFormat('d/M/yyyy').format(DateTime.now()),
-        'time': timeController,
+        'time': timeController.text,
         'timestamp': FieldValue.serverTimestamp(),
       });
 

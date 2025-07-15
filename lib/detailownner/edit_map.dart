@@ -37,7 +37,7 @@ class _EditMapState extends State<EditMap> {
   Uint8List? _imageBytes;
   final ImagePicker _picker = ImagePicker();
   bool _loading = true;
-   DateTime now = DateTime.now();
+  DateTime now = DateTime.now();
   final String cloudinaryUrl =
       "https://api.cloudinary.com/v1_1/doiq3nkso/image/upload";
   final String uploadPreset = "parking";
@@ -48,57 +48,130 @@ class _EditMapState extends State<EditMap> {
     _loadData();
   }
 
-  void _pickTime(TextEditingController controller) {
-  showModalBottomSheet(
-    context: context,
-    builder: (context) {
-      DateTime selectedTime = DateTime.now();
+  void _pickCustomTime(TextEditingController controller) {
+    int selectedHour = DateTime.now().hour;
+    int selectedMinute = DateTime.now().minute;
 
-      return StatefulBuilder(
-        builder: (context, setModalState) {
-          return Container(
-            height: 300,
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Expanded(
-                  child: TimePickerSpinner(
-                    is24HourMode: true,
-                    isShowSeconds: false, // hide seconds if not needed
-                    normalTextStyle:
-                        const TextStyle(fontSize: 18, color: Colors.grey),
-                    highlightedTextStyle:
-                        const TextStyle(fontSize: 24, color: Colors.black),
-                    spacing: 40,
-                    itemHeight: 60,
-                    isForce2Digits: true,
-                    time: selectedTime,
-                    onTimeChange: (time) {
-                      setModalState(() {
-                        selectedTime = time;
-                      });
-                    },
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      backgroundColor: Colors.white,
+      clipBehavior: Clip.antiAliasWithSaveLayer,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              height: 360,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Center(
+                    child: Icon(Icons.access_time_rounded,
+                        color: Colors.blueAccent, size: 40),
                   ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    final formatted = DateFormat('HH:mm').format(selectedTime);
-                    setState(() {
-                      controller.text = formatted;
-                    });
-                    Navigator.pop(context);
-                  },
-                  child: const Text("Confirm"),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  const Center(
+                    child: Text(
+                      'Select Time',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildPicker(
+                            count: 24,
+                            selected: selectedHour,
+                            onChanged: (value) {
+                              setModalState(() => selectedHour = value);
+                            },
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildPicker(
+                            count: 60,
+                            selected: selectedMinute,
+                            onChanged: (value) {
+                              setModalState(() => selectedMinute = value);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.check_circle_outline),
+                      label: const Text(
+                        'Confirm Time',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        final formatted =
+                            '${selectedHour.toString().padLeft(2, '0')}:${selectedMinute.toString().padLeft(2, '0')}';
+                        controller.text = formatted;
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPicker({
+    required int count,
+    required int selected,
+    required ValueChanged<int> onChanged,
+  }) {
+    return ListWheelScrollView.useDelegate(
+      itemExtent: 40,
+      perspective: 0.002,
+      diameterRatio: 1.5,
+      physics: const FixedExtentScrollPhysics(),
+      onSelectedItemChanged: onChanged,
+      controller: FixedExtentScrollController(initialItem: selected),
+      childDelegate: ListWheelChildBuilderDelegate(
+        builder: (context, index) {
+          return Center(
+            child: Text(
+              index.toString().padLeft(2, '0'),
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
           );
         },
-      );
-    },
-  );
-}
-
+        childCount: count,
+      ),
+    );
+  }
 
   Future<void> _pickImage() async {
     try {
@@ -240,7 +313,7 @@ class _EditMapState extends State<EditMap> {
     super.dispose();
   }
 
-    @override
+  @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
@@ -257,39 +330,39 @@ class _EditMapState extends State<EditMap> {
           children: [
             // Name & Address Card
             Card(
-  shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(12),
-  ),
-  elevation: 4,
-  margin: EdgeInsets.only(top: screenHeight * 0.02, bottom: screenHeight * 0.02),
-  child: Padding(
-    padding: EdgeInsets.symmetric(
-      vertical: screenHeight * 0.02,
-      horizontal: screenWidth * 0.03,
-    ),
-    child: GestureDetector(
-      onTap: () async {
-        final selectedLocation = await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => MapPickerPage()),
-        );
-        if (selectedLocation != null) {
-          setState(() {
-            _addressCtrl.text = selectedLocation['address'];
-          });
-        }
-      },
-      child: AbsorbPointer(
-        child: _buildTextField(
-          _addressCtrl,
-          'Address (Tap to select)',
-          Icons.location_on,
-        ),
-      ),
-    ),
-  ),
-),
-
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 4,
+              margin: EdgeInsets.only(
+                  top: screenHeight * 0.02, bottom: screenHeight * 0.02),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  vertical: screenHeight * 0.02,
+                  horizontal: screenWidth * 0.03,
+                ),
+                child: GestureDetector(
+                  onTap: () async {
+                    final selectedLocation = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => MapPickerPage()),
+                    );
+                    if (selectedLocation != null) {
+                      setState(() {
+                        _addressCtrl.text = selectedLocation['address'];
+                      });
+                    }
+                  },
+                  child: AbsorbPointer(
+                    child: _buildTextField(
+                      _addressCtrl,
+                      'Address (Tap to select)',
+                      Icons.location_on,
+                    ),
+                  ),
+                ),
+              ),
+            ),
 
             // Price Card
             Card(
@@ -340,7 +413,7 @@ class _EditMapState extends State<EditMap> {
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8)),
                         ),
-                        onTap: () => _pickTime(_timeopenCtrl),
+                        onTap: () => _pickCustomTime(_timeopenCtrl),
                         validator: (v) =>
                             (v == null || v.isEmpty) ? 'Enter Open Time' : null,
                       ),
@@ -356,7 +429,7 @@ class _EditMapState extends State<EditMap> {
                           border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8)),
                         ),
-                        onTap: () => _pickTime(_timecloseCtrl),
+                        onTap: () => _pickCustomTime(_timecloseCtrl),
                         validator: (v) => (v == null || v.isEmpty)
                             ? 'Enter Close Time'
                             : null,
@@ -445,8 +518,8 @@ class _EditMapState extends State<EditMap> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blueAccent,
                         foregroundColor: Colors.white,
-                        padding:
-                            EdgeInsets.symmetric(vertical: screenHeight * 0.018),
+                        padding: EdgeInsets.symmetric(
+                            vertical: screenHeight * 0.018),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
@@ -472,27 +545,30 @@ class _EditMapState extends State<EditMap> {
                 ),
                 child: Column(
                   children: [
-                    DropdownButtonFormField<String>(
-                      value: _selectedTag,
-                      items: _tagOptions.map((tag) {
-                        return DropdownMenuItem<String>(
-                          value: tag,
-                          child: Text(tag),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedTag = value;
-                        });
-                      },
-                      decoration: InputDecoration(
-                        labelText: 'Tag',
-                        prefixIcon: Icon(Icons.label),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
+                   DropdownButtonFormField<String>(
+  value: _tagOptions.contains(_selectedTag) ? _selectedTag : null,
+  items: _tagOptions.map((tag) {
+    return DropdownMenuItem<String>(
+      value: tag,
+      child: Text(tag),
+    );
+  }).toList(),
+  onChanged: (value) {
+    setState(() {
+      _selectedTag = value;
+    });
+  },
+  validator: (value) =>
+      value == null ? 'Please select a tag' : null,
+  decoration: InputDecoration(
+    labelText: 'Tag',
+    prefixIcon: Icon(Icons.label),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+    ),
+  ),
+),
+
                     SizedBox(height: screenHeight * 0.02),
                     TextFormField(
                       controller: _descriptionCtrl,
@@ -530,8 +606,7 @@ class _EditMapState extends State<EditMap> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueAccent,
                 foregroundColor: Colors.white,
-                padding:
-                    EdgeInsets.symmetric(vertical: screenHeight * 0.02),
+                padding: EdgeInsets.symmetric(vertical: screenHeight * 0.02),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -544,7 +619,6 @@ class _EditMapState extends State<EditMap> {
       ),
     );
   }
-
 
   Widget _buildTextField(
     TextEditingController controller,

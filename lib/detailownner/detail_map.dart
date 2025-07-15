@@ -123,7 +123,6 @@ class _DetailMapState extends State<DetailMap> {
       backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
       body: Column(
         children: [
-          
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -178,9 +177,14 @@ class _DetailMapState extends State<DetailMap> {
                   ),
                   const SizedBox(height: 12),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Icon(Icons.attach_money,
-                          color: Colors.green, size: 22),
+                      Image.asset(
+                        'assets/images/kip.png',
+                        width: 18,
+                        height: 18,
+                        color: Colors.green,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         "Price: ",
@@ -201,6 +205,7 @@ class _DetailMapState extends State<DetailMap> {
                   ),
                   const SizedBox(height: 8),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const Icon(Icons.access_time,
                           color: Colors.green, size: 20),

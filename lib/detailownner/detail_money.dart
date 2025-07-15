@@ -14,6 +14,7 @@ class DetailMoney extends StatefulWidget {
 class _DetailMoneyState extends State<DetailMoney> {
   String selectedParking = 'All';
   List<String> parkingOptions = ['All'];
+  Set<String> ownerParkingNames = {};
 
   late Future<Map<String, double>> earningsFuture;
   late Future<int> ticketCountFuture;
@@ -43,13 +44,17 @@ class _DetailMoneyState extends State<DetailMoney> {
           .where('ownerId', isEqualTo: ownerId)
           .get();
 
-      final names = snapshot.docs.map((doc) {
-        var data = doc.data() as Map<String, dynamic>;
-        return data['nameparking'] ?? 'Unknown';
-      }).toSet();
+      final names = snapshot.docs
+          .map((doc) {
+            var data = doc.data() as Map<String, dynamic>;
+            return data['nameparking'] ?? 'Unknown';
+          })
+          .cast<String>()
+          .toSet();
 
       setState(() {
-        parkingOptions = ['All', ...names.cast<String>()];
+        parkingOptions = ['All', ...names.toList()];
+        ownerParkingNames = names;
       });
     } catch (e) {
       print('Error: $e');
@@ -57,112 +62,118 @@ class _DetailMoneyState extends State<DetailMoney> {
   }
 
   Future<Map<String, double>> fetchEarningsByDate(
-    DateTime start, DateTime end) async {
-  Map<String, double> earningsByDay = {};
+      DateTime start, DateTime end) async {
+    Map<String, double> earningsByDay = {};
 
-  final daysCount = end.difference(start).inDays + 1;
-  final List<DateTime> daysList =
-      List.generate(daysCount, (i) => start.add(Duration(days: i)));
+    final daysCount = end.difference(start).inDays + 1;
+    final List<DateTime> daysList =
+        List.generate(daysCount, (i) => start.add(Duration(days: i)));
 
-  dayLabels = daysList.map((date) => DateFormat('d MMM').format(date)).toList();
+    dayLabels =
+        daysList.map((date) => DateFormat('d MMM').format(date)).toList();
 
-  for (var label in dayLabels) {
-    earningsByDay[label] = 0;
-  }
+    for (var label in dayLabels) {
+      earningsByDay[label] = 0;
+    }
 
-  try {
-    final bookingsSnapshot = await FirebaseFirestore.instance
-        .collection('bookings')
-        .get();
+    try {
+      final bookingsSnapshot =
+          await FirebaseFirestore.instance.collection('bookings').get();
 
-    final bookingMap = {
-      for (var doc in bookingsSnapshot.docs)
-        doc.id: {
-          'nameparking': (doc.data() as Map<String, dynamic>)['nameparking'],
-          'locationId': (doc.data() as Map<String, dynamic>)['locationId']
-        }
-    };
+      final bookingMap = {
+        for (var doc in bookingsSnapshot.docs)
+          doc.id: {
+            'nameparking': (doc.data() as Map<String, dynamic>)['nameparking'],
+            'locationId': (doc.data() as Map<String, dynamic>)['locationId']
+          }
+      };
 
-    final paymentSnapshot = await FirebaseFirestore.instance
-        .collection('payments')
-        .where('status', isEqualTo: 'success')
-        .get();
+      final paymentSnapshot = await FirebaseFirestore.instance
+          .collection('payments')
+          .where('status', isEqualTo: 'success')
+          .get();
 
-    for (var doc in paymentSnapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final Timestamp? ts = data['timestamp'];
-      final String? bookingId = data['bookingId'];
+      for (var doc in paymentSnapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final Timestamp? ts = data['timestamp'];
+        final String? bookingId = data['bookingId'];
 
-      double amount = (data['amount'] is String)
-          ? double.tryParse(data['amount']) ?? 0
-          : (data['amount'] as num).toDouble();
+        double amount = (data['amount'] is String)
+            ? double.tryParse(data['amount']) ?? 0
+            : (data['amount'] as num).toDouble();
 
-      if (ts != null && bookingId != null && bookingMap.containsKey(bookingId)) {
-        final dt = ts.toDate();
-        if (!dt.isBefore(start) && !dt.isAfter(end)) {
-          final label = DateFormat('d MMM').format(dt);
-          final bookingInfo = bookingMap[bookingId]!;
-          final parkingName = bookingInfo['nameparking'] ?? 'Unknown';
+        if (ts != null &&
+            bookingId != null &&
+            bookingMap.containsKey(bookingId)) {
+          final dt = ts.toDate();
+          if (!dt.isBefore(start) && !dt.isAfter(end)) {
+            final label = DateFormat('d MMM').format(dt);
+            final bookingInfo = bookingMap[bookingId]!;
+            final parkingName = bookingInfo['nameparking'] ?? 'Unknown';
 
-          if (dayLabels.contains(label) &&
-              (selectedParking == 'All' || selectedParking == parkingName)) {
-            earningsByDay[label] = earningsByDay[label]! + amount;
+            if (dayLabels.contains(label) &&
+                (selectedParking == 'All'
+                    ? ownerParkingNames.contains(parkingName)
+                    : selectedParking == parkingName)) {
+              earningsByDay[label] = earningsByDay[label]! + amount;
+            }
           }
         }
       }
+    } catch (e) {
+      print("Error fetching earnings: $e");
     }
-  } catch (e) {
-    print("Error fetching earnings: $e");
+
+    return earningsByDay;
   }
-
-  return earningsByDay;
-}
-
 
   Future<int> fetchTicketCount(DateTime start, DateTime end) async {
-  int ticketCount = 0;
+    int ticketCount = 0;
 
-  try {
-    final bookingsSnapshot = await FirebaseFirestore.instance
-        .collection('bookings')
-        .get();
+    try {
+      final bookingsSnapshot =
+          await FirebaseFirestore.instance.collection('bookings').get();
 
-    final bookingMap = {
-      for (var doc in bookingsSnapshot.docs)
-        doc.id: {
-          'nameparking': (doc.data() as Map<String, dynamic>)['nameparking'],
-          'locationId': (doc.data() as Map<String, dynamic>)['locationId']
-        }
-    };
+      final bookingMap = {
+        for (var doc in bookingsSnapshot.docs)
+          doc.id: {
+            'nameparking': (doc.data() as Map<String, dynamic>)['nameparking'],
+            'locationId': (doc.data() as Map<String, dynamic>)['locationId']
+          }
+      };
 
-    final paymentSnapshot = await FirebaseFirestore.instance
-        .collection('payments')
-        .where('status', isEqualTo: 'success')
-        .get();
+      final paymentSnapshot = await FirebaseFirestore.instance
+          .collection('payments')
+          .where('status', isEqualTo: 'success')
+          .get();
 
-    for (var doc in paymentSnapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final Timestamp? ts = data['timestamp'];
-      final String? bookingId = data['bookingId'];
+      for (var doc in paymentSnapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final Timestamp? ts = data['timestamp'];
+        final String? bookingId = data['bookingId'];
 
-      if (ts != null && bookingId != null && bookingMap.containsKey(bookingId)) {
-        final dt = ts.toDate();
-        final parkingName = bookingMap[bookingId]?['nameparking'] ?? 'Unknown';
+        if (ts != null &&
+            bookingId != null &&
+            bookingMap.containsKey(bookingId)) {
+          final dt = ts.toDate();
+          final parkingName =
+              bookingMap[bookingId]?['nameparking'] ?? 'Unknown';
 
-        if (!dt.isBefore(start) &&
-            !dt.isAfter(end) &&
-            (selectedParking == 'All' || selectedParking == parkingName)) {
-          ticketCount++;
+          if (!dt.isBefore(start) &&
+              !dt.isAfter(end) &&
+              (selectedParking == 'All'
+                  ? ownerParkingNames.contains(parkingName)
+                  : selectedParking == parkingName)) {
+            ticketCount++;
+          }
         }
       }
+    } catch (e) {
+      print("Error counting tickets: $e");
     }
-  } catch (e) {
-    print("Error counting tickets: $e");
+
+    return ticketCount;
   }
-
-  return ticketCount;
-}
-
 
   Future<void> pickStartDate() async {
     DateTime? picked = await showDatePicker(
@@ -513,7 +524,7 @@ class _DetailMoneyState extends State<DetailMoney> {
 }
 
 Widget _infoCardkip({
-  required Widget icon, // Accepts Icon or Image.asset
+  required Widget icon,
   required String title,
   required String value,
   required Color color,

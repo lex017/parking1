@@ -186,9 +186,9 @@ class _EmpGenerateState extends State<EmpQrpay> {
 
     Map<String, dynamic> ticketData = {
       "province": _selectedProvince,
-      "plateType": _selectedPlateType,
-      "namePlate": nameplateController.text,
-      "plate": plateController.text,
+      "typeplate": _selectedPlateType,
+      "charplate": nameplateController.text,
+      "numberplate": plateController.text,
       "empId": empId, // Add empId here
       "locationId": locationId, // Add locationId here
       "imageUrl": imageUrl ?? "", // Handle optional image

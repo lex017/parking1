@@ -139,33 +139,12 @@ class _MapApiState extends State<map_api> {
     });
   }
 
-  void _searchInRadius() {
-    if (_searchPosition == null) return;
-
-    Set<Marker> filteredMarkers = _markers.where((marker) {
-      double distance = Geolocator.distanceBetween(
-        _searchPosition!.latitude,
-        _searchPosition!.longitude,
-        marker.position.latitude,
-        marker.position.longitude,
-      );
-      return distance <= _searchRadius;
-    }).toSet();
-
-    setState(() {
-      _markers.clear();
-      _markers.addAll(filteredMarkers);
-    });
-
-    _mapController.animateCamera(
-      CameraUpdate.newLatLng(_searchPosition!),
-    );
-  }
+ 
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Map Markers')),
+      appBar: AppBar(title: const Text('Find parking')),
       body: Stack(
         children: [
           GoogleMap(
@@ -197,15 +176,7 @@ class _MapApiState extends State<map_api> {
               child: const Icon(Icons.my_location, color: Colors.blue),
             ),
           ),
-          Positioned(
-            top: 90,
-            right: 20,
-            child: FloatingActionButton(
-              backgroundColor: Colors.white,
-              onPressed: _searchInRadius,
-              child: const Icon(Icons.search, color: Colors.blue),
-            ),
-          ),
+         
         ],
       ),
     );
@@ -217,7 +188,7 @@ class _MapApiState extends State<map_api> {
       return FirebaseFirestore.instance
           .collection('bookings')
           .where('locationId', isEqualTo: docId)
-           .where('Status', whereIn: ['check-in', 'pending'])
+          .where('Status', whereIn: ['check-in', 'pending'])
           .snapshots()
           .map((snapshot) => snapshot.docs.length);
     }
@@ -298,17 +269,29 @@ class _MapApiState extends State<map_api> {
                   ),
                   const SizedBox(height: 8),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Icon(Icons.attach_money,
-                          size: 20, color: Colors.green),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            bottom: 2), // tweak this for best alignment
+                        child: Image.asset(
+                          'assets/images/kip.png',
+                          width: 16,
+                          height: 16,
+                          color: Colors.green,
+                        ),
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         "$price kip",
                         style: const TextStyle(
-                            fontSize: 16, color: Colors.black87),
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 12),
                   // Real-time Check-in Counter
                   Row(
