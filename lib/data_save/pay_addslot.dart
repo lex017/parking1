@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:lottie/lottie.dart';
+import 'package:parking1/bottombar/chatPage.dart';
 import 'package:parking1/chose/ownerMain.dart';
 import 'package:parking1/homepage.dart';
 import 'package:time_picker_spinner/time_picker_spinner.dart';
@@ -40,6 +41,7 @@ class _PayPageState extends State<PayAddslot> {
   Uint8List? _imageBytes;
   final ImagePicker _picker = ImagePicker();
   bool _isButtonDisabled = false;
+  bool _isSubmitting = false;
 
   String imageBill = '';
   String locationId = '';
@@ -103,131 +105,129 @@ class _PayPageState extends State<PayAddslot> {
     }
   }
 
+  void _pickTime() {
+    int selectedHour = DateTime.now().hour;
+    int selectedMinute = DateTime.now().minute;
 
-
-void _pickTime() {
-  int selectedHour = DateTime.now().hour;
-  int selectedMinute = DateTime.now().minute;
-
-  showModalBottomSheet(
-    context: context,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    backgroundColor: Colors.white,
-    clipBehavior: Clip.antiAliasWithSaveLayer,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setModalState) {
-          return Container(
-            height: 380,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Center(
-                  child: Icon(Icons.access_time_rounded,
-                      color: Colors.blueAccent, size: 40),
-                ),
-                const SizedBox(height: 10),
-                const Center(
-                  child: Text(
-                    'Select Time',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      backgroundColor: Colors.white,
+      clipBehavior: Clip.antiAliasWithSaveLayer,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              height: 380,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Center(
+                    child: Icon(Icons.access_time_rounded,
+                        color: Colors.blueAccent, size: 40),
+                  ),
+                  const SizedBox(height: 10),
+                  const Center(
+                    child: Text(
+                      'Select Time',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _buildPicker(
-                          count: 24,
-                          selected: selectedHour,
-                          onChanged: (v) =>
-                              setModalState(() => selectedHour = v),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildPicker(
+                            count: 24,
+                            selected: selectedHour,
+                            onChanged: (v) =>
+                                setModalState(() => selectedHour = v),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildPicker(
+                            count: 60,
+                            selected: selectedMinute,
+                            onChanged: (v) =>
+                                setModalState(() => selectedMinute = v),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.check_circle_outline),
+                      label: const Text(
+                        'Confirm Time',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _buildPicker(
-                          count: 60,
-                          selected: selectedMinute,
-                          onChanged: (v) =>
-                              setModalState(() => selectedMinute = v),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text(
-                      'Confirm Time',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      onPressed: () {
+                        final formatted =
+                            '${selectedHour.toString().padLeft(2, '0')}:${selectedMinute.toString().padLeft(2, '0')}';
+                        setState(() => timeController.text = formatted);
+                        Navigator.pop(context);
+                      },
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () {
-                      final formatted = '${selectedHour.toString().padLeft(2, '0')}:${selectedMinute.toString().padLeft(2, '0')}';
-                      setState(() => timeController.text = formatted);
-                      Navigator.pop(context);
-                    },
                   ),
-                ),
-              ],
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPicker({
+    required int count,
+    required int selected,
+    required ValueChanged<int> onChanged,
+  }) {
+    return ListWheelScrollView.useDelegate(
+      itemExtent: 40,
+      perspective: 0.002,
+      diameterRatio: 1.5,
+      physics: const FixedExtentScrollPhysics(),
+      onSelectedItemChanged: onChanged,
+      controller: FixedExtentScrollController(initialItem: selected),
+      childDelegate: ListWheelChildBuilderDelegate(
+        builder: (context, index) {
+          return Center(
+            child: Text(
+              index.toString().padLeft(2, '0'),
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
           );
         },
-      );
-    },
-  );
-}
-Widget _buildPicker({
-  required int count,
-  required int selected,
-  required ValueChanged<int> onChanged,
-}) {
-  return ListWheelScrollView.useDelegate(
-    itemExtent: 40,
-    perspective: 0.002,
-    diameterRatio: 1.5,
-    physics: const FixedExtentScrollPhysics(),
-    onSelectedItemChanged: onChanged,
-    controller: FixedExtentScrollController(initialItem: selected),
-    childDelegate: ListWheelChildBuilderDelegate(
-      builder: (context, index) {
-        return Center(
-          child: Text(
-            index.toString().padLeft(2, '0'),
-            style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-        );
-      },
-      childCount: count,
-    ),
-  );
-}
-
-
-
+        childCount: count,
+      ),
+    );
+  }
 
   Future<String?> _uploadImageToCloudinary() async {
     try {
@@ -374,6 +374,8 @@ Widget _buildPicker({
 
   void _showVerificationDialog(String transactionId) {
     bool isVerified = false;
+    bool isRejected = false;
+    bool dialogShown = false;
 
     showDialog(
       context: context,
@@ -386,28 +388,67 @@ Widget _buildPicker({
                 .doc(transactionId)
                 .snapshots()
                 .listen((docSnapshot) {
-              if (!isVerified &&
-                  docSnapshot.exists &&
-                  docSnapshot.data()?['status'] == "update") {
-                isVerified = true; // persist success
+              final status = docSnapshot.data()?['status'];
+
+              // 🟢 Success path
+              if (!isVerified && status == "update") {
+                isVerified = true;
 
                 Future.delayed(const Duration(seconds: 2), () {
                   Navigator.of(context, rootNavigator: true).pop();
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const ownerMain(), // Replace with your main page
-                    ),
+                    MaterialPageRoute(builder: (context) => const ownerMain()),
                     (route) => false,
                   );
                 });
               }
+
+              // 🔴 Rejection path
+              if (!isRejected && status == "rejected" && !dialogShown) {
+                isRejected = true;
+                dialogShown = true;
+
+                Navigator.of(context, rootNavigator: true)
+                    .pop(); // Close current
+
+                // Show rejection dialog
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text("Payment Rejected"),
+                    content: const Text(
+                      "Your payment was rejected.\nPlease contact the admin.",
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Close dialog
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ChatPage(
+                                bookingId: transactionId,
+                                initialMessage:
+                                    'My bill was rejected. Please help me.\nTransaction ID: $transactionId',
+                              ),
+                            ),
+                            (route) => false,
+                          );
+                        },
+                        child: const Text("Go to Admin"),
+                      ),
+                    ],
+                  ),
+                );
+              }
             });
 
+            // Default verifying/loading UI
             return AlertDialog(
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16.0)),
+                borderRadius: BorderRadius.circular(16.0),
+              ),
               title: Center(
                 child: Text(
                   isVerified ? "Bill Successful" : "Bill Verification",
@@ -438,13 +479,11 @@ Widget _buildPicker({
                             'https://lottie.host/849ddcf8-8e91-46e2-8b7d-294c25f98b8f/C3UHzTkWtW.json',
                             width: 150,
                             height: 150,
-                            fit: BoxFit.cover,
                           )
                         : Lottie.network(
                             'https://lottie.host/0f94c2a0-04ba-4ac7-b980-c529bd4fcc62/eLTNAOsywB.json',
                             width: 150,
                             height: 150,
-                            fit: BoxFit.cover,
                           ),
                     const SizedBox(height: 20),
                     Text(
@@ -463,37 +502,33 @@ Widget _buildPicker({
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 10),
-                    Center(
+                    if (!isVerified)
+                      Center(
                         child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Colors.blueAccent, // Text color
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(12.0), // Rounded corners
-                        ),
-                        padding: EdgeInsets.symmetric(
-                            vertical: 12.0, horizontal: 20.0), // Button padding
-                        elevation: 5, // Shadow effect
-                      ),
-                      onPressed: () {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const Homepage(), // Replace with your main page
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blueAccent,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 12.0, horizontal: 20.0),
                           ),
-                          (route) => false,
-                        );
-                      },
-                      child: const Text(
-                        "Go to Main",
-                        style: TextStyle(
-                          fontSize: 16.0, // Text size
-                          fontWeight: FontWeight.bold, // Make text bold
+                          onPressed: () {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const Homepage()),
+                              (route) => false,
+                            );
+                          },
+                          child: const Text(
+                            "Go to Main",
+                            style: TextStyle(
+                                fontSize: 16.0, fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ),
-                    )),
                   ],
                 ),
               ),
@@ -540,45 +575,48 @@ Widget _buildPicker({
     });
   }
 
-String _formatKip(num value) {
-  return value.toStringAsFixed(0).replaceAllMapped(
-    RegExp(r'\B(?=(\d{3})+(?!\d))'),
-    (match) => ',',
-  );
-}
+  String _formatKip(num value) {
+    return value.toStringAsFixed(0).replaceAllMapped(
+          RegExp(r'\B(?=(\d{3})+(?!\d))'),
+          (match) => ',',
+        );
+  }
 
-Widget _infoTile(String label, String value, Color accentColor) {
-  return Card(
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    elevation: 2,
-    child: ListTile(
-      tileColor: accentColor.withOpacity(0.1),
-      leading: Icon(Icons.info, color: accentColor),
-      title: Text(label, style: TextStyle(fontWeight: FontWeight.w600)),
-      trailing: Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: accentColor)),
+  Widget _infoTile(String label, String value, Color accentColor) {
+    return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-  );
-}
+      elevation: 2,
+      child: ListTile(
+        tileColor: accentColor.withOpacity(0.1),
+        leading: Icon(Icons.info, color: accentColor),
+        title: Text(label, style: TextStyle(fontWeight: FontWeight.w600)),
+        trailing: Text(value,
+            style: TextStyle(fontWeight: FontWeight.bold, color: accentColor)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
 
-Widget _buildImagePreview() {
-  if (_selectedImage != null) {
-    return Image.file(_selectedImage!, fit: BoxFit.cover, width: double.infinity);
+  Widget _buildImagePreview() {
+    if (_selectedImage != null) {
+      return Image.file(_selectedImage!,
+          fit: BoxFit.cover, width: double.infinity);
+    }
+    if (_imageBytes != null) {
+      return Image.memory(_imageBytes!,
+          fit: BoxFit.cover, width: double.infinity);
+    }
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.camera_alt_outlined, size: 36, color: Colors.grey),
+          SizedBox(height: 8),
+          Text("Tap to upload proof", style: TextStyle(color: Colors.grey)),
+        ],
+      ),
+    );
   }
-  if (_imageBytes != null) {
-    return Image.memory(_imageBytes!, fit: BoxFit.cover, width: double.infinity);
-  }
-  return Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: const [
-        Icon(Icons.camera_alt_outlined, size: 36, color: Colors.grey),
-        SizedBox(height: 8),
-        Text("Tap to upload proof", style: TextStyle(color: Colors.grey)),
-      ],
-    ),
-  );
-}
 
   @override
   Widget build(BuildContext context) {
@@ -588,98 +626,139 @@ Widget _buildImagePreview() {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-  padding: const EdgeInsets.all(16),
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      // 🔹 Remaining & Price Info Cards
-      _infoTile("Remaining Days", "${widget.remainingDays} days", Colors.orange),
-      const SizedBox(height: 12),
-      _infoTile("Price per Day", "${_formatKip(widget.pricePerDay)} Kip", Colors.green),
-      const SizedBox(height: 12),
-      _infoTile("Total Price", "${_formatKip(widget.totalPrice)} Kip", Colors.redAccent),
-      const SizedBox(height: 20),
-
-      // 📅 Date Card
-      Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.teal.shade50,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.teal, width: 2),
-        ),
-        child: Row(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.calendar_today, color: Colors.teal),
-            const SizedBox(width: 8),
-            Text(
-              "Date: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}",
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.teal),
+            // 🔹 Remaining & Price Info Cards
+            _infoTile("Remaining Days", "${widget.remainingDays} days",
+                Colors.orange),
+            const SizedBox(height: 12),
+            _infoTile("Price per Day", "${_formatKip(widget.pricePerDay)} Kip",
+                Colors.green),
+            const SizedBox(height: 12),
+            _infoTile("Total Price", "${_formatKip(widget.totalPrice)} Kip",
+                Colors.redAccent),
+            const SizedBox(height: 20),
+
+            // 📅 Date Card
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.teal.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.teal, width: 2),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today, color: Colors.teal),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Date: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}",
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.teal),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // ⏰ Time picker input
+            TextFormField(
+              controller: timeController,
+              decoration: InputDecoration(
+                labelText: "Select Time",
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.access_time),
+                  onPressed: _pickTime,
+                ),
+              ),
+              readOnly: true,
+            ),
+            const SizedBox(height: 20),
+
+            // 📸 Image upload
+            GestureDetector(
+              onTap: _pickImage,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  color: Colors.grey.shade200,
+                  height: 200,
+                  width: double.infinity,
+                  child: _buildImagePreview(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 30),
+
+            // ✅ Submit button
+             SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isButtonDisabled || _isSubmitting
+                    ? null
+                    : () async {
+                        setState(() {
+                          _isSubmitting = true;
+                        });
+
+                        await _savebillAndBooking();
+
+                        setState(() {
+                          _isSubmitting = false;
+                        });
+                      },
+                icon: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.send, size: 20, color: Colors.white),
+                label: _isSubmitting
+                    ? const Text(
+                        "Submitting...",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        "Submit Bill for Parking",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 6,
+                  shadowColor: Colors.blueAccent.withOpacity(0.4),
+                ),
+              ),
             ),
           ],
         ),
       ),
-      const SizedBox(height: 20),
-
-      // ⏰ Time picker input
-      TextFormField(
-        controller: timeController,
-        decoration: InputDecoration(
-          labelText: "Select Time",
-          filled: true,
-          fillColor: Colors.grey.shade100,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-          suffixIcon: IconButton(
-            icon: const Icon(Icons.access_time),
-            onPressed: _pickTime,
-          ),
-        ),
-        readOnly: true,
-      ),
-      const SizedBox(height: 20),
-
-      // 📸 Image upload
-      GestureDetector(
-        onTap: _pickImage,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            color: Colors.grey.shade200,
-            height: 200,
-            width: double.infinity,
-            child: _buildImagePreview(),
-          ),
-        ),
-      ),
-      const SizedBox(height: 30),
-
-      // ✅ Submit button
-      SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _isButtonDisabled ? null : _savebillAndBooking,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _isButtonDisabled ? Colors.grey : Colors.blueAccent,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 4,
-          ),
-          child: _isButtonDisabled
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                )
-              : const Text("Submit Bill", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
-        ),
-      ),
-    ],
-  ),
-),
-
     );
   }
 }

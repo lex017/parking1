@@ -14,6 +14,7 @@ import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
+import 'package:parking1/bottombar/chatPage.dart';
 import 'package:parking1/chose/ownerMain.dart';
 import 'package:parking1/homepage.dart';
 import 'package:time_picker_spinner/time_picker_spinner.dart';
@@ -75,6 +76,8 @@ class _PayPageState extends State<PayParking> {
   bool _isLoading = false;
   bool _isButtonDisabled = false;
   DateTime now = DateTime.now();
+
+  bool _isSubmitting = false;
 
   final TextEditingController timeController = TextEditingController();
 
@@ -480,6 +483,8 @@ class _PayPageState extends State<PayParking> {
 
   void _showVerificationDialog(String transactionId) {
     bool isVerified = false;
+    bool isRejected = false;
+    bool isDialogShown = false;
 
     showDialog(
       context: context,
@@ -492,21 +497,58 @@ class _PayPageState extends State<PayParking> {
                 .doc(transactionId)
                 .snapshots()
                 .listen((docSnapshot) {
-              if (!isVerified &&
-                  docSnapshot.exists &&
-                  docSnapshot.data()?['status'] == "success") {
-                isVerified = true; // persist success
+              final status = docSnapshot.data()?['status'];
+
+              if (!isVerified && status == "success") {
+                isVerified = true;
 
                 Future.delayed(const Duration(seconds: 2), () {
-                  // Navigator.of(context, rootNavigator: true).pop();
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => ownerMain()),
-                    (Route<dynamic> route) => false, // 🔁 ลบทุกหน้าเก่าทิ้ง
+                    (Route<dynamic> route) => false,
                   );
                 });
               }
+
+              if (!isRejected && status == "rejected" && !isDialogShown) {
+                isRejected = true;
+                isDialogShown = true;
+
+                Navigator.of(context, rootNavigator: true)
+                    .pop(); // Close current dialog
+
+                // Show alert only once
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text("Payment Rejected"),
+                    content: const Text(
+                        "Your payment was rejected.\nPlease contact the admin."),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Close dialog
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ChatPage(
+                                bookingId: transactionId,
+                                initialMessage:
+                                    'My bill was rejected. Please help me.\nTransaction ID: $transactionId',
+                              ),
+                            ),
+                            (route) => false,
+                          );
+                        },
+                        child: const Text("Go to Admin"),
+                      ),
+                    ],
+                  ),
+                );
+              }
             });
+
             return AlertDialog(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16.0)),
@@ -564,38 +606,6 @@ class _PayPageState extends State<PayParking> {
                       style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 10),
-                    Center(
-                        child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        backgroundColor: Colors.blueAccent, // Text color
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(12.0), // Rounded corners
-                        ),
-                        padding: EdgeInsets.symmetric(
-                            vertical: 12.0, horizontal: 20.0), // Button padding
-                        elevation: 5, // Shadow effect
-                      ),
-                      onPressed: () {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                const Homepage(), // Replace with your main page
-                          ),
-                          (route) => false,
-                        );
-                      },
-                      child: const Text(
-                        "Go to Main",
-                        style: TextStyle(
-                          fontSize: 16.0, // Text size
-                          fontWeight: FontWeight.bold, // Make text bold
-                        ),
-                      ),
-                    )),
                   ],
                 ),
               ),
@@ -694,30 +704,61 @@ class _PayPageState extends State<PayParking> {
               ),
             ),
             const SizedBox(height: 30),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-  onPressed: _isButtonDisabled ? null : _savebillAndBooking,
-  icon: const Icon(Icons.send, size: 20, color: Colors.white),
-  label: const Text(
-    "Submit Bill for Parking",
-    style: TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
-      color: Colors.white,
-    ),
-  ),
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.blueAccent,
-    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-    elevation: 6,
-    shadowColor: Colors.blueAccent.withOpacity(0.4),
-  ),
-),
+                onPressed: _isButtonDisabled || _isSubmitting
+                    ? null
+                    : () async {
+                        setState(() {
+                          _isSubmitting = true;
+                        });
 
+                        await _savebillAndBooking();
+
+                        setState(() {
+                          _isSubmitting = false;
+                        });
+                      },
+                icon: _isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.send, size: 20, color: Colors.white),
+                label: _isSubmitting
+                    ? const Text(
+                        "Submitting...",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        "Submit Bill for Parking",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 6,
+                  shadowColor: Colors.blueAccent.withOpacity(0.4),
+                ),
+              ),
             ),
           ],
         ),

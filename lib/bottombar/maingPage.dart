@@ -102,7 +102,8 @@ class _MainPageState extends State<mainPage> {
       return 'Unknown'; // Return 'Unknown' in case of error
     }
   }
-   void _startAutoSlide() {
+
+  void _startAutoSlide() {
     _timer = Timer.periodic(Duration(seconds: 3), (timer) {
       if (adImages.isNotEmpty && _pageController.hasClients) {
         _currentPage++;
@@ -117,7 +118,8 @@ class _MainPageState extends State<mainPage> {
       }
     });
   }
-   Widget adSlider() {
+
+  Widget adSlider() {
     if (adImages.isEmpty) {
       return const SizedBox(
         height: 200,
@@ -128,7 +130,7 @@ class _MainPageState extends State<mainPage> {
     return SizedBox(
       height: 200,
       child: PageView.builder(
-        controller: _pageController, 
+        controller: _pageController,
         itemCount: adImages.length,
         itemBuilder: (context, index) {
           return adCard(imageUrl: adImages[index]);
@@ -163,54 +165,64 @@ class _MainPageState extends State<mainPage> {
   }
 
   Widget dashboardSection(BuildContext context) {
-    // Accept BuildContext
     return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: GridView.count(
-        crossAxisCount: 2,
-        crossAxisSpacing: 20,
-        mainAxisSpacing: 16,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        children: [
-          dashboardButton(
-            iconPath: 'assets/images/pin5.png',
-            label: 'find_parking'.tr(),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (context) => map_api(documentId: 'documentId')),
-              );
-            },
-          ),
-          dashboardButton(
-            iconPath: 'assets/images/file5.png',
-            label: 'history'.tr(),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => history()),
-              );
-            },
-          ),
-          dashboardButton(
-            iconPath: 'assets/images/vehicle.png',
-            label: 'vehicle'.tr(),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => Vechicle()),
-              );
-            },
-          ),
-          dashboardButton(
-            iconPath: 'assets/images/chat5.png',
-            label: 'help'.tr(),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => Help()),
-              );
-            },
-          ),
-        ],
+      padding: const EdgeInsets.all(16.0), // reduce from 20 to 16
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          double width = constraints.maxWidth;
+          double itemWidth = (width - 20) / 2; // 2 items, 20 spacing
+          double itemHeight = 140; // you can adjust this
+          double aspectRatio = itemWidth / itemHeight;
+
+          return GridView.count(
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 14,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            childAspectRatio: aspectRatio,
+            children: [
+              dashboardButton(
+                iconPath: 'assets/images/pin5.png',
+                label: 'find_parking'.tr(),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            map_api(documentId: 'documentId')),
+                  );
+                },
+              ),
+              dashboardButton(
+                iconPath: 'assets/images/file5.png',
+                label: 'history'.tr(),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => history()),
+                  );
+                },
+              ),
+              dashboardButton(
+                iconPath: 'assets/images/vehicle.png',
+                label: 'vehicle'.tr(),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => Vechicle()),
+                  );
+                },
+              ),
+              dashboardButton(
+                iconPath: 'assets/images/chat5.png',
+                label: 'help'.tr(),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => Help()),
+                  );
+                },
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -254,7 +266,7 @@ class _MainPageState extends State<mainPage> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
                     color: Theme.of(context).textTheme.bodyLarge?.color,
                   ),
                 ),
@@ -477,7 +489,6 @@ class _MainPageState extends State<mainPage> {
                                   Text(
                                     username,
                                     style: TextStyle(
-                               
                                       fontSize: 16,
                                       color: Theme.of(context)
                                           .textTheme
@@ -569,18 +580,19 @@ class _MainPageState extends State<mainPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            adSlider(), // Assuming this widget is created somewhere else
+            adSlider(), 
             const SizedBox(height: 24),
-             Padding(
-               padding: const EdgeInsets.all(8.0),
-               child: Text(
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0, top: 8.0, bottom: 8.0),
+              child: Text(
                 'service'.tr(),
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 19,
                   fontWeight: FontWeight.bold,
                 ),
-                           ),
-             ),
+              ),
+            ),
+
             const SizedBox(height: 16),
             dashboardSection(
                 context), // Assuming this widget is created somewhere else

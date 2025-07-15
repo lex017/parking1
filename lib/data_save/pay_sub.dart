@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:lottie/lottie.dart';
+import 'package:parking1/bottombar/chatPage.dart';
 import 'package:parking1/chose/ownerMain.dart';
 import 'package:parking1/homepage.dart';
 import 'package:time_picker_spinner/time_picker_spinner.dart';
@@ -50,6 +51,8 @@ class _PayPageState extends State<PaySub> {
   Uint8List? _imageBytes;
   final ImagePicker _picker = ImagePicker();
   bool _isButtonDisabled = false;
+  bool _isSubmitting = false;
+  
 
   String imageBill = '';
   String locationId = '';
@@ -404,135 +407,169 @@ Widget _buildPicker({
     }
   }
 
-  void _showVerificationDialog(String transactionId) {
-    bool isVerified = false;
+void _showVerificationDialog(String transactionId) {
+  bool isVerified = false;
+  bool isRejected = false;
+  bool dialogHandled = false; // Prevent double dialogs
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            FirebaseFirestore.instance
-                .collection('parking_bill')
-                .doc(transactionId)
-                .snapshots()
-                .listen((docSnapshot) {
-              if (!isVerified &&
-                  docSnapshot.exists &&
-                  docSnapshot.data()?['status'] == "renew") {
-                isVerified = true; // persist success
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          FirebaseFirestore.instance
+              .collection('parking_bill')
+              .doc(transactionId)
+              .snapshots()
+              .listen((docSnapshot) {
+            final status = docSnapshot.data()?['status'];
 
-                Future.delayed(const Duration(seconds: 2), () {
-                  Navigator.of(context, rootNavigator: true).pop();
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => ownerMain()),
-                  );
-                });
-              }
-            });
+            if (!isVerified && status == "renew") {
+              isVerified = true;
+              Future.delayed(const Duration(seconds: 2), () {
+                Navigator.of(context, rootNavigator: true).pop();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => ownerMain()),
+                );
+              });
+            }
 
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16.0)),
-              title: Center(
-                child: Text(
-                  isVerified ? "Bill Successful" : "Bill Verification",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    color: isVerified ? Colors.green : Colors.blueAccent,
-                  ),
+            if (!isRejected && status == "rejected" && !dialogHandled) {
+              isRejected = true;
+              dialogHandled = true;
+
+              Navigator.of(context, rootNavigator: true).pop(); // close verifying dialog
+
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text("Payment Rejected"),
+                  content: const Text(
+                      "Your payment was rejected.\nPlease contact the admin."),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.pushAndRemoveUntil(
+  context,
+  MaterialPageRoute(
+    builder: (context) => ChatPage(
+      bookingId: transactionId,
+      initialMessage: 'My bill was rejected. Please help me.\nTransaction ID: $transactionId',
+    ),
+  ),
+  (route) => false,
+);
+
+                      },
+                      child: const Text("Go to Admin"),
+                    ),
+                  ],
+                ),
+              );
+            }
+          });
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0)),
+            title: Center(
+              child: Text(
+                isVerified ? "Bill Successful" : "Bill Verification",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: isVerified ? Colors.green : Colors.blueAccent,
                 ),
               ),
-              content: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: isVerified
-                        ? [Colors.green.shade50, Colors.white]
-                        : [Colors.blue.shade50, Colors.white],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                  borderRadius: BorderRadius.circular(16.0),
+            ),
+            content: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: isVerified
+                      ? [Colors.green.shade50, Colors.white]
+                      : [Colors.blue.shade50, Colors.white],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
                 ),
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  isVerified
+                      ? Lottie.network(
+                          'https://lottie.host/849ddcf8-8e91-46e2-8b7d-294c25f98b8f/C3UHzTkWtW.json',
+                          width: 150,
+                          height: 150,
+                          fit: BoxFit.cover,
+                        )
+                      : Lottie.network(
+                          'https://lottie.host/0f94c2a0-04ba-4ac7-b980-c529bd4fcc62/eLTNAOsywB.json',
+                          width: 150,
+                          height: 150,
+                          fit: BoxFit.cover,
+                        ),
+                  const SizedBox(height: 20),
+                  Text(
                     isVerified
-                        ? Lottie.network(
-                            'https://lottie.host/849ddcf8-8e91-46e2-8b7d-294c25f98b8f/C3UHzTkWtW.json',
-                            width: 150,
-                            height: 150,
-                            fit: BoxFit.cover,
-                          )
-                        : Lottie.network(
-                            'https://lottie.host/0f94c2a0-04ba-4ac7-b980-c529bd4fcc62/eLTNAOsywB.json',
-                            width: 150,
-                            height: 150,
-                            fit: BoxFit.cover,
-                          ),
-                    const SizedBox(height: 20),
-                    Text(
-                      isVerified
-                          ? "Bill Verified Successfully!"
-                          : "Waiting for bill verification...",
-                      style: const TextStyle(fontSize: 18),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      isVerified
-                          ? "Thank you for your bill."
-                          : "Please do not close the app.",
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 10),
-                    Center(
-                        child: ElevatedButton(
+                        ? "Bill Verified Successfully!"
+                        : "Waiting for bill verification...",
+                    style: const TextStyle(fontSize: 18),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    isVerified
+                        ? "Thank you for your bill."
+                        : "Please do not close the app.",
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 10),
+                  Center(
+                    child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        backgroundColor: Colors.blueAccent, // Text color
+                        backgroundColor: Colors.blueAccent,
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(12.0), // Rounded corners
+                          borderRadius: BorderRadius.circular(12.0),
                         ),
-                        padding: EdgeInsets.symmetric(
-                            vertical: 12.0, horizontal: 20.0), // Button padding
-                        elevation: 5, // Shadow effect
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 12.0, horizontal: 20.0),
+                        elevation: 5,
                       ),
                       onPressed: () {
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                const Homepage(), // Replace with your main page
-                          ),
+                              builder: (context) => const Homepage()),
                           (route) => false,
                         );
                       },
                       child: const Text(
                         "Go to Main",
                         style: TextStyle(
-                          fontSize: 16.0, // Text size
-                          fontWeight: FontWeight.bold, // Make text bold
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    )),
-                  ],
-                ),
+                    ),
+                  ),
+                ],
               ),
-              backgroundColor: Colors.white,
-              elevation: 10,
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+            backgroundColor: Colors.white,
+            elevation: 10,
+          );
+        },
+      );
+    },
+  );
+}
 
   void listenForBillStatus(String transactionId) {
     FirebaseFirestore.instance
@@ -691,22 +728,62 @@ Widget _buildPicker({
               ),
             ),
             const SizedBox(height: 30),
-            SizedBox(
+           SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isButtonDisabled ? null : _savebillAndBooking,
-                child: _isButtonDisabled
+              child: ElevatedButton.icon(
+                onPressed: _isButtonDisabled || _isSubmitting
+                    ? null
+                    : () async {
+                        setState(() {
+                          _isSubmitting = true;
+                        });
+
+                        await _savebillAndBooking();
+
+                        setState(() {
+                          _isSubmitting = false;
+                        });
+                      },
+                icon: _isSubmitting
                     ? const SizedBox(
-                        height: 20,
                         width: 20,
+                        height: 20,
                         child: CircularProgressIndicator(
-                          color: Colors.white,
                           strokeWidth: 2,
+                          color: Colors.white,
                         ),
                       )
-                    : const Text("Submit Bill"),
+                    : const Icon(Icons.send, size: 20, color: Colors.white),
+                label: _isSubmitting
+                    ? const Text(
+                        "Submitting...",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        "Submit Bill for Parking",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 6,
+                  shadowColor: Colors.blueAccent.withOpacity(0.4),
+                ),
               ),
             ),
+
           ],
         ),
       ),

@@ -129,6 +129,14 @@ class _DetailMapState extends State<DetailMap> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                   const Text(
+                    "Ev support",
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 10,),
                   if (categories.isNotEmpty)
                     Wrap(
                       spacing: 8.0,
@@ -151,14 +159,8 @@ class _DetailMapState extends State<DetailMap> {
                         );
                       }).toList(),
                     ),
-                  const SizedBox(height: 15),
-                  const Text(
-                    "Description",
-                    style: TextStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  const SizedBox(height: 10),
+                 
                   const SizedBox(height: 8),
                   Text(
                     description.isEmpty

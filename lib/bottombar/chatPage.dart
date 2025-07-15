@@ -8,26 +8,35 @@ import 'package:http/http.dart' as http;
 
 class ChatPage extends StatefulWidget {
   final String bookingId;
-  const ChatPage({Key? key, required this.bookingId}) : super(key: key);
+  final String? initialMessage; // <-- New field for prefilled message
+
+  const ChatPage({Key? key, required this.bookingId, this.initialMessage}) : super(key: key);
 
   @override
   State<ChatPage> createState() => _ChatPageState();
 }
 
 class _ChatPageState extends State<ChatPage> {
-  final TextEditingController _messageController = TextEditingController();
+  late TextEditingController _messageController; // late because initialized in initState
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final ImagePicker _picker = ImagePicker();
 
   String _userId = '';
   String _userName = 'User';
-  final String _adminId = 'admin'; // replace with actual admin UID
+  final String _adminId = 'admin';
 
   @override
   void initState() {
     super.initState();
+    _messageController = TextEditingController(text: widget.initialMessage ?? '');
     _loadUserData();
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserData() async {
@@ -139,9 +148,7 @@ class _ChatPageState extends State<ChatPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Chat with Admin'),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(color: Colors.blue),
-        ),
+        backgroundColor: Colors.blue,
       ),
       body: Container(
         color: Colors.grey[100],

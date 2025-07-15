@@ -86,57 +86,86 @@ class _ParkingPagekageState extends State<SubscriptionPackage> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const Text(
-              'Package Slot Car',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            _buildPackageButton("1 Month"),
-            _buildPackageButton("3 Month 25%"),
-            _buildPackageButton("6 Month 20%"),
-            _buildPackageButton("Custom", isCustom: true),
-            const SizedBox(height: 16),
-            if (selectedPackage == "Custom") ...[
-              TextField(
-                controller: customMonthsController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: "Enter number of months",
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 10),
-            ],
-            _buildDetailBox(detail, months, slots),
-            const Spacer(),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                backgroundColor: Colors.blue,
-              ),
-              onPressed: () {
-                final detail = packageDetails[selectedPackage]!;
-                int months = selectedPackage == "Custom"
-                    ? (int.tryParse(customMonthsController.text) ?? 1)
-                    : detail['months'];
-                int slots = int.tryParse(carSlotController.text) ?? 10;
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Select package',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildPackageButton("1 Month"),
+                    _buildPackageButton("3 Month 25%"),
+                    _buildPackageButton("6 Month 20%"),
+                    _buildPackageButton("Custom", isCustom: true),
+                    const SizedBox(height: 16),
+                    if (selectedPackage == "Custom") ...[
+                      TextField(
+                        controller: customMonthsController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: "Enter number of months",
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    TextField(
+                      controller: carSlotController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: "Enter car slots (min 10)",
+                        border: const OutlineInputBorder(),
+                        errorText: carSlotError,
+                      ),
+                      onChanged: (value) {
+                        int? val = int.tryParse(value);
+                        if (val == null || val < 10) {
+                          carSlotError = "Minimum slot is 10";
+                        } else {
+                          carSlotError = null;
+                        }
+                        setState(() {});
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildDetailBox(detail, months, slots),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(50),
+                          backgroundColor: Colors.blue,
+                        ),
+                        onPressed: () {
+                          final detail = packageDetails[selectedPackage]!;
+                          int months = selectedPackage == "Custom"
+                              ? (int.tryParse(customMonthsController.text) ?? 1)
+                              : detail['months'];
+                          int slots =
+                              int.tryParse(carSlotController.text) ?? 10;
 
-                if (slots < 10) {
-                  setState(() {
-                    carSlotError = "Minimum slot is 10";
-                  });
-                  return;
-                }
+                          if (slots < 10) {
+                            setState(() {
+                              carSlotError = "Minimum slot is 10";
+                            });
+                            return;
+                          }
 
-                final priceInfo = calculatePrice(
-                    detail: detail, months: months, slots: slots);
+                          final priceInfo = calculatePrice(
+                              detail: detail, months: months, slots: slots);
 
-                Navigator.push(
+                         Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => QrSub(
@@ -149,14 +178,20 @@ class _ParkingPagekageState extends State<SubscriptionPackage> {
                       pricePerMonth: priceInfo['perMonth'],
                       totalPrice: priceInfo['totalPrice'],
                       parkingId: widget.parkingId,
-                    ),
-                  ),
-                );
-              },
-              child: Text("Next",style: TextStyle(color: Colors.white),),
-            )
-          ],
-        ),
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text("Next",
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

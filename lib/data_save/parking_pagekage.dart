@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:parking1/data_save/qr_parking.dart';
 
@@ -30,7 +29,12 @@ class ParkingPagekage extends StatefulWidget {
     required this.latitude,
     required this.longitude,
     required this.parkingImageBytes,
-    required this.qrImageBytes, required this.parkingImage, required this.qrImage, required this.landmark, required this.openTime, required this.closeTime,
+    required this.qrImageBytes,
+    required this.parkingImage,
+    required this.qrImage,
+    required this.landmark,
+    required this.openTime,
+    required this.closeTime,
   });
 
   @override
@@ -62,7 +66,7 @@ class _ParkingPagekageState extends State<ParkingPagekage> {
         "payPercent": 20,
       },
       "Custom": {
-        "months": 1, // default, can be overwritten
+        "months": 1,
         "payPercent": 30,
       },
     };
@@ -75,7 +79,6 @@ class _ParkingPagekageState extends State<ParkingPagekage> {
   }) {
     double payPercent = (detail['payPercent'] ?? 0).toDouble() / 100;
     int price = widget.price;
-
     double perDay = price * payPercent * slots;
     double perMonth = perDay * 30;
     double totalPrice = perMonth * months;
@@ -97,113 +100,129 @@ class _ParkingPagekageState extends State<ParkingPagekage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Owner'),
+        title: const Text('Package Slot Car'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            const Text(
-              'Package Slot Car',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            _buildPackageButton("1 Month"),
-            _buildPackageButton("3 Month 25%"),
-            _buildPackageButton("6 Month 20%"),
-            _buildPackageButton("Custom", isCustom: true),
-            const SizedBox(height: 16),
-            if (selectedPackage == "Custom") ...[
-              TextField(
-                controller: customMonthsController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: "Enter number of months",
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 10),
-            ],
-            TextField(
-              controller: carSlotController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: "Enter car slots (min 10)",
-                border: const OutlineInputBorder(),
-                errorText: carSlotError,
-              ),
-              onChanged: (value) {
-                int? val = int.tryParse(value);
-                if (val == null || val < 10) {
-                  carSlotError = "Minimum slot is 10";
-                } else {
-                  carSlotError = null;
-                }
-                setState(() {});
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildDetailBox(detail, months, slots),
-            const Spacer(),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                backgroundColor: Colors.blue,
-              ),
-              onPressed: () {
-                final detail = packageDetails[selectedPackage]!;
-                int months = selectedPackage == "Custom"
-                    ? (int.tryParse(customMonthsController.text) ?? 1)
-                    : detail['months'];
-                int slots = int.tryParse(carSlotController.text) ?? 10;
-
-                if (slots < 10) {
-                  setState(() {
-                    carSlotError = "Minimum slot is 10";
-                  });
-                  return;
-                }
-
-                final priceInfo = calculatePrice(
-                    detail: detail, months: months, slots: slots);
-
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => QrParking(
-                      name: widget.name,
-                      address: widget.address,
-                      description: widget.description,
-                      price:widget.price,
-                      pricePerDay: priceInfo['perDay'],
-                      pricePerMonth: priceInfo['perMonth'],
-                      totalPrice: priceInfo['totalPrice'],
-                      latitude: widget.latitude,
-                      longitude: widget.longitude,
-                      slots: slots,
-                      months: months,
-                      packageType: selectedPackage,
-                      evSupport: widget.evSupport,
-                      parkingImageBytes: widget.parkingImageBytes,
-                      qrImageBytes: widget.qrImageBytes,
-                      parkingImage: widget.parkingImage,
-                      qrImage: widget.qrImage, 
-                      landmark: widget.landmark,
-                      openTime: widget.openTime,
-                      closeTime: widget.closeTime,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Select package',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                  ),
-                );
-              },
-              child: const Text("Next"),
-            )
-          ],
-        ),
+                    const SizedBox(height: 16),
+                    _buildPackageButton("1 Month"),
+                    _buildPackageButton("3 Month 25%"),
+                    _buildPackageButton("6 Month 20%"),
+                    _buildPackageButton("Custom", isCustom: true),
+                    const SizedBox(height: 16),
+                    if (selectedPackage == "Custom") ...[
+                      TextField(
+                        controller: customMonthsController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: "Enter number of months",
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    TextField(
+                      controller: carSlotController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: "Enter car slots (min 10)",
+                        border: const OutlineInputBorder(),
+                        errorText: carSlotError,
+                      ),
+                      onChanged: (value) {
+                        int? val = int.tryParse(value);
+                        if (val == null || val < 10) {
+                          carSlotError = "Minimum slot is 10";
+                        } else {
+                          carSlotError = null;
+                        }
+                        setState(() {});
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildDetailBox(detail, months, slots),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(50),
+                          backgroundColor: Colors.blue,
+                        ),
+                        onPressed: () {
+                          final detail = packageDetails[selectedPackage]!;
+                          int months = selectedPackage == "Custom"
+                              ? (int.tryParse(customMonthsController.text) ?? 1)
+                              : detail['months'];
+                          int slots =
+                              int.tryParse(carSlotController.text) ?? 10;
+
+                          if (slots < 10) {
+                            setState(() {
+                              carSlotError = "Minimum slot is 10";
+                            });
+                            return;
+                          }
+
+                          final priceInfo = calculatePrice(
+                              detail: detail, months: months, slots: slots);
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => QrParking(
+                                name: widget.name,
+                                address: widget.address,
+                                description: widget.description,
+                                price: widget.price,
+                                pricePerDay: priceInfo['perDay'],
+                                pricePerMonth: priceInfo['perMonth'],
+                                totalPrice: priceInfo['totalPrice'],
+                                latitude: widget.latitude,
+                                longitude: widget.longitude,
+                                slots: slots,
+                                months: months,
+                                packageType: selectedPackage,
+                                evSupport: widget.evSupport,
+                                parkingImageBytes: widget.parkingImageBytes,
+                                qrImageBytes: widget.qrImageBytes,
+                                parkingImage: widget.parkingImage,
+                                qrImage: widget.qrImage,
+                                landmark: widget.landmark,
+                                openTime: widget.openTime,
+                                closeTime: widget.closeTime,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text("Next",
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -235,12 +254,9 @@ class _ParkingPagekageState extends State<ParkingPagekage> {
     final priceInfo =
         calculatePrice(detail: detail, months: months, slots: slots);
 
-    String perDayText =
-        "${priceInfo['perDay']!.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',')} kip";
-    String perMonthText =
-        "${priceInfo['perMonth']!.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',')} kip";
-    String totalPriceText =
-        "${priceInfo['totalPrice']!.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',')} kip";
+    String perDayText = "${priceInfo['perDay']!.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',')} kip";
+    String perMonthText = "${priceInfo['perMonth']!.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',')} kip";
+    String totalPriceText = "${priceInfo['totalPrice']!.toStringAsFixed(0).replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',')} kip";
 
     return Container(
       padding: const EdgeInsets.all(16),

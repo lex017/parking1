@@ -202,7 +202,7 @@ class _EmpMainState extends State<emp_main> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Employee Profile",
+        title:  Text("Employee".tr(),
             style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.blueAccent,
         elevation: 0,
@@ -471,12 +471,13 @@ class _EmpMainState extends State<emp_main> {
                   Text(
                     "$firstName $lastName",
                     style: const TextStyle(
-                      fontSize: 24,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 10),
+                  Divider(),
                   Text(
                     "Status: Employee",
                     style: const TextStyle(
@@ -499,20 +500,6 @@ class _EmpMainState extends State<emp_main> {
                       fontSize: 15,
                       color: Colors.grey,
                     ),
-                  ),
-                  Divider(),
-                  const SizedBox(height: 3),
-                  Text(
-                    "Count Scan: $_totalMoney",
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    "Date: $_currentDate", // ✅ Fixed reference to date
-                    style: const TextStyle(fontSize: 15, color: Colors.grey),
                   ),
                 ],
               ),
@@ -582,106 +569,137 @@ class _EmpMainState extends State<emp_main> {
 
   Widget buttonFour(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(20.0),
+      padding: const EdgeInsets.all(16.0), // reduced from 20
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                  child: _buildDashboardButton(context,
-                      iconPath: 'assets/images/history1.png',
-                      label: 'History'.tr(), onPressed: () async {
-                String locationId = await _getLocationId();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (context) => DetailEmployee(
-                            empId: empId,
-                            locationId: locationId,
-                          )),
-                );
-              })),
-              SizedBox(width: 16),
-              Expanded(
-                  child: _buildDashboardButton(context,
-                      iconPath: 'assets/images/ticket1.png',
-                      label: 'Generate Ticket'.tr(), onPressed: () async {
-                String locationId = await _getLocationId();
-
-                // Pass locationId to EmpGenerate screen after fetching it
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => EmpGenerate(
-                      empId: empId,
-                      locationId: locationId,
-                    ),
-                  ),
-                );
-              })),
-              SizedBox(width: 16),
-              Expanded(
-                  child: _buildDashboardButton(context,
-                      iconPath: 'assets/images/ticket.png',
-                      label: 'Ticket Generate'.tr(), onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (context) => MyrealTicket(
-                            empId: empId,
-                          )),
-                );
-              })),
+              Flexible(
+                child: _buildDashboardButton(
+                  context,
+                  iconPath: 'assets/images/history1.png',
+                  label: 'History'.tr(),
+                  onPressed: () async {
+                    String locationId = await _getLocationId();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => DetailEmployee(
+                          empId: empId,
+                          locationId: locationId,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12), // reduced from 16
+              Flexible(
+                child: _buildDashboardButton(
+                  context,
+                  iconPath: 'assets/images/ticket1.png',
+                  label: 'Generate Ticket'.tr(),
+                  onPressed: () async {
+                    String locationId = await _getLocationId();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => EmpGenerate(
+                          empId: empId,
+                          locationId: locationId,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12), // reduced from 16
+              Flexible(
+                child: _buildDashboardButton(
+                  context,
+                  iconPath: 'assets/images/ticket.png',
+                  label: 'Ticket Generate'.tr(),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => MyrealTicket(empId: empId),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('payments')
-                .where('locationId', isEqualTo: locationId)
-                .where('status', isEqualTo: 'pending')
-                .snapshots(),
-                  builder: (context, snapshot) {
-                    int pendingCount =
-                        snapshot.hasData ? snapshot.data!.docs.length : 0;
+              Flexible(
+                child: FutureBuilder<String>(
+                  future:
+                      _getLocationId(), // function that returns locationId from Firestore
+                  builder: (context, locationSnapshot) {
+                    if (!locationSnapshot.hasData) {
+                      return _buildDashboardButton(
+                        context,
+                        iconPath: 'assets/images/online-booking.png',
+                        label: 'Verify'.tr(),
+                        iconBadgeCount: 0,
+                        onPressed: () {},
+                      );
+                    }
 
-                    return _buildDashboardButton(
-                      context,
-                      iconPath: 'assets/images/online-booking.png',
-                      label: 'Verify'.tr(),
-                      iconBadgeCount: pendingCount, // <-- pass here
-                      onPressed: () async {
-                        String locationId = await _getLocationId();
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => EmpNotification(
-                                empId: empId, locationId: locationId),
-                          ),
+                    final locId = locationSnapshot.data!;
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('payments')
+                          .where('locationId', isEqualTo: locId)
+                          .where('status', isEqualTo: 'pending')
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        int pendingCount =
+                            snapshot.hasData ? snapshot.data!.docs.length : 0;
+
+                        return _buildDashboardButton(
+                          context,
+                          iconPath: 'assets/images/online-booking.png',
+                          label: 'Verify'.tr(),
+                          iconBadgeCount: pendingCount,
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => EmpNotification(
+                                  empId: empId,
+                                  locationId: locId,
+                                ),
+                              ),
+                            );
+                          },
                         );
                       },
                     );
                   },
                 ),
               ),
-
-              SizedBox(width: 16),
-              Expanded(
-                  child: _buildDashboardButton(context,
-                      iconPath: 'assets/images/document.png',
-                      label: 'Pending'.tr(), onPressed: () async {
-                String locationId = await _getLocationId();
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (context) => EmpPending(
-                            empId: empId,
-                            locationId: locationId,
-                          )),
-                );
-              })),
-              // To keep the row with 2 buttons only, you can add a Spacer or empty container here if needed
+              const SizedBox(width: 12),
+              Flexible(
+                child: _buildDashboardButton(
+                  context,
+                  iconPath: 'assets/images/document.png',
+                  label: 'Pending'.tr(),
+                  onPressed: () async {
+                    String locationId = await _getLocationId(); 
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => EmpPending(
+                          empId: empId,
+                          locationId: locationId,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
               const Spacer(),
             ],
           ),
@@ -692,73 +710,72 @@ class _EmpMainState extends State<emp_main> {
 
 // Helper method to build styled button
   Widget _buildDashboardButton(
-  BuildContext context, {
-  required String iconPath,
-  required String label,
-  required VoidCallback onPressed,
-  int? iconBadgeCount, // optional badge count
-}) {
-  return InkWell(
-    onTap: onPressed,
-    borderRadius: BorderRadius.circular(16),
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Image.asset(
-                iconPath,
-                width: 48,
-                height: 48,
-                color: Colors.blueAccent,
-              ),
-              if (iconBadgeCount != null && iconBadgeCount > 0)
-                Positioned(
-                  right: -6,
-                  top: -6,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 20,
-                      minHeight: 20,
-                    ),
-                    child: Text(
-                      iconBadgeCount.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+    BuildContext context, {
+    required String iconPath,
+    required String label,
+    required VoidCallback onPressed,
+    int? iconBadgeCount, // optional badge count
+  }) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Image.asset(
+                  iconPath,
+                  width: 48,
+                  height: 48,
+                  color: Colors.blueAccent,
+                ),
+                if (iconBadgeCount != null && iconBadgeCount > 0)
+                  Positioned(
+                    right: -6,
+                    top: -6,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
                       ),
-                      textAlign: TextAlign.center,
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Text(
+                        iconBadgeCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.blueAccent,
-              fontWeight: FontWeight.w600,
-              fontSize: 16,
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.blueAccent,
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   Widget _buildScanSummary() {
     return Column(
