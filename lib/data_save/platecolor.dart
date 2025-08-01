@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:parking1/data_save/addvechicle.dart'; // Assuming this is your AddVehicle page
 
@@ -24,7 +25,7 @@ class _PlatetypeState extends State<Platetype> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Select Plate")),
+      appBar: AppBar(title: Text("Select_Plate".tr())),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -114,7 +115,7 @@ class _PlatetypeState extends State<Platetype> {
                 foregroundColor: Colors.white,
                 minimumSize: const Size(double.infinity, 50),
               ),
-              child: const Text("Next"),
+              child: Text("Next".tr()),
             ),
           ],
         ),

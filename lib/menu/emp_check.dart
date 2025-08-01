@@ -201,7 +201,7 @@ class _ScanCheckState extends State<ScanCheck> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Ticket Status"),
+        title: const Text("Ticket_Status"),
         backgroundColor: Colors.blue,
       ),
       body: Container(

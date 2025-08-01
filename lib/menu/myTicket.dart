@@ -137,8 +137,9 @@ class _MyTicketState extends State<MyTicket> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) =>
-                                            BuyTicket(bookingId: bookingId,),
+                                        builder: (context) => BuyTicket(
+                                          bookingId: bookingId,
+                                        ),
                                       ),
                                     );
                                   }
@@ -168,7 +169,7 @@ class _MyTicketState extends State<MyTicket> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          "Location: $bookingname",
+                                          "${'locationLabel'.tr()} $bookingname",
                                           style: const TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
@@ -176,15 +177,22 @@ class _MyTicketState extends State<MyTicket> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          "Date: $bookingDate | Time: $bookingTime",
+                                          "date_text".tr(args: [bookingDate]),
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black54,
+                                          ),
+                                        ),
+                                        Text(
+                                          "time_text".tr(args: [bookingTime]),
                                           style: const TextStyle(
                                             fontSize: 14,
                                             color: Colors.black54,
                                           ),
                                         ),
                                         if (!isClickable)
-                                          const Text(
-                                            "Waiting for payment confirmation...",
+                                          Text(
+                                            "waiting_payment".tr(),
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: Colors.redAccent,

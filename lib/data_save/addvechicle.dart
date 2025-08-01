@@ -118,19 +118,25 @@ class _VechicleState extends State<AddVechicle> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Selected City: ${widget.selectedCity}",
+                    'selectedCity'.tr(args: [
+                      '${widget.selectedCity}'
+                    ]), // Use the translation key with the city variable
                     style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black),
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    "Selected Plate: ${widget.selectedcolor}",
+                    'selectedPlate'.tr(args: [
+                      '${widget.selectedcolor}'
+                    ]), // Use the translation key with the plate variable
                     style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black),
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
                   ),
                   SizedBox(height: 20),
                   TextField(
@@ -163,10 +169,10 @@ class _VechicleState extends State<AddVechicle> {
                   TextField(
                     controller: plateController,
                     keyboardType:
-                        TextInputType.number, // 👈 show numeric keyboard
+                        TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter
-                          .digitsOnly, // 👈 allow digits only
+                          .digitsOnly, 
                     ],
                     decoration: InputDecoration(
                       labelText: "Plate".tr(),

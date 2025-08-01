@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -104,7 +105,7 @@ class _EmpNotificationState extends State<EmpNotification> {
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            title: const Text("Pending Tickets"),
+            title:  Text("Pending_Tickets".tr()),
             backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
           ),
           body: StreamBuilder<QuerySnapshot>(

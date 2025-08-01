@@ -90,7 +90,7 @@ class _EmpVerifyState extends State<EmpVerify> {
                     radius: 40,
                     backgroundImage: profileImageUrl.isNotEmpty
                         ? NetworkImage(profileImageUrl)
-                        : const AssetImage('assets/default_profile.png')
+                        : const AssetImage('assets/images/profile-user.png')
                             as ImageProvider,
                   ),
                   const SizedBox(width: 16),

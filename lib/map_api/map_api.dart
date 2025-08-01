@@ -1,7 +1,9 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:parking1/map_api/btnlocation.dart';
 import 'dart:ui' as ui;
@@ -139,12 +141,10 @@ class _MapApiState extends State<map_api> {
     });
   }
 
- 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Find parking')),
+      appBar: AppBar(title: Text('Find_parking').tr()),
       body: Stack(
         children: [
           GoogleMap(
@@ -165,7 +165,7 @@ class _MapApiState extends State<map_api> {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             panel: selectedDocId != null
                 ? parkLocation(selectedDocId!)
-                : const Center(child: Text("Select a parking location")),
+                : Center(child: Text("Select_a_parking_location".tr())),
           ),
           Positioned(
             top: 20,
@@ -176,7 +176,6 @@ class _MapApiState extends State<map_api> {
               child: const Icon(Icons.my_location, color: Colors.blue),
             ),
           ),
-         
         ],
       ),
     );
@@ -185,12 +184,28 @@ class _MapApiState extends State<map_api> {
   Widget parkLocation(String docId) {
     /// Fetches the count of 'check-in' vehicles for this location
     Stream<int> getCheckedInCount() {
-      return FirebaseFirestore.instance
+      final bookingsStream = FirebaseFirestore.instance
           .collection('bookings')
-          .where('locationId', isEqualTo: docId)
+          .where('locationId', isEqualTo: docId) // FIXED HERE
           .where('Status', whereIn: ['check-in', 'pending'])
           .snapshots()
           .map((snapshot) => snapshot.docs.length);
+
+      final ticketrealStream = FirebaseFirestore.instance
+          .collection('ticketreal')
+          .where('locationId', isEqualTo: docId) // FIXED HERE
+          .where('Status', whereIn: ['check-in'])
+          .snapshots()
+          .map((snapshot) {
+            print("Ticketreal count for $docId: ${snapshot.docs.length}");
+            return snapshot.docs.length;
+          });
+
+      return Rx.combineLatest2<int, int, int>(
+        bookingsStream,
+        ticketrealStream,
+        (bookingCount, ticketRealCount) => bookingCount + ticketRealCount,
+      );
     }
 
     return FutureBuilder<DocumentSnapshot>(
@@ -210,6 +225,8 @@ class _MapApiState extends State<map_api> {
         final price = data['price'] ?? 'Unknown Price';
         final carSlot = data['car_slot'] ?? 0;
         final imageUrl = data['imageUrl'] ?? '';
+        final formatter = NumberFormat('#,##0', context.locale.languageCode); 
+        String formattedPrice = formatter.format(price);
 
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
@@ -230,17 +247,15 @@ class _MapApiState extends State<map_api> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Location name
                   Text(
                     locationName,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
                   ),
                   const SizedBox(height: 12),
-                  // Display image with rounded corners
                   if (imageUrl.isNotEmpty)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
@@ -252,7 +267,6 @@ class _MapApiState extends State<map_api> {
                       ),
                     ),
                   const SizedBox(height: 16),
-                  // Address and price row
                   Row(
                     children: [
                       const Icon(Icons.location_on,
@@ -267,13 +281,12 @@ class _MapApiState extends State<map_api> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 20),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.only(
-                            bottom: 2), // tweak this for best alignment
+                        padding: const EdgeInsets.only(bottom: 2),
                         child: Image.asset(
                           'assets/images/kip.png',
                           width: 16,
@@ -283,7 +296,7 @@ class _MapApiState extends State<map_api> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        "$price kip",
+                        "$formattedPrice kip".tr(),
                         style: const TextStyle(
                           fontSize: 16,
                           color: Colors.black87,
@@ -291,9 +304,7 @@ class _MapApiState extends State<map_api> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 12),
-                  // Real-time Check-in Counter
                   Row(
                     children: [
                       const Icon(Icons.directions_car,
@@ -303,9 +314,11 @@ class _MapApiState extends State<map_api> {
                         stream: getCheckedInCount(),
                         builder: (context, snapshot) {
                           checkedInCount = snapshot.data ?? 0;
-
                           return Text(
-                            "Car Slot: $checkedInCount/$carSlot",
+                            'carSlotStatus'.tr(args: [
+                              checkedInCount.toString(),
+                              carSlot.toString()
+                            ]), // Pass both variables as arguments
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -316,18 +329,13 @@ class _MapApiState extends State<map_api> {
                       ),
                     ],
                   ),
-
-                  // Next button aligned to the right
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       ElevatedButton.icon(
-                        icon: const Icon(
-                          Icons.map,
-                          color: Colors.white,
-                        ),
-                        label: const Text(
-                          "Next",
+                        icon: const Icon(Icons.map, color: Colors.white),
+                        label: Text(
+                          "Next".tr(),
                           style: TextStyle(color: Colors.white),
                         ),
                         style: ElevatedButton.styleFrom(

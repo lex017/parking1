@@ -202,8 +202,7 @@ class _EmpMainState extends State<emp_main> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title:  Text("Employee".tr(),
-            style: TextStyle(color: Colors.white)),
+        title: Text("Employee".tr(), style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.blueAccent,
         elevation: 0,
         actions: [
@@ -479,7 +478,7 @@ class _EmpMainState extends State<emp_main> {
                   const SizedBox(height: 10),
                   Divider(),
                   Text(
-                    "Status: Employee",
+                    "StatusEmployee".tr(),
                     style: const TextStyle(
                       fontSize: 15,
                       color: Colors.grey,
@@ -487,7 +486,9 @@ class _EmpMainState extends State<emp_main> {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    "Location: $locationId",
+                    'locationLabel'.tr(args: [
+                      locationId
+                    ]), // Use the translation key with the locationId variable
                     style: const TextStyle(
                       fontSize: 15,
                       color: Colors.grey,
@@ -495,7 +496,9 @@ class _EmpMainState extends State<emp_main> {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    "ID: $empId",
+                    'idLabel'.tr(args: [
+                      empId
+                    ]), // Use the translation key with the empId variable
                     style: const TextStyle(
                       fontSize: 15,
                       color: Colors.grey,
@@ -688,7 +691,7 @@ class _EmpMainState extends State<emp_main> {
                   iconPath: 'assets/images/document.png',
                   label: 'Pending'.tr(),
                   onPressed: () async {
-                    String locationId = await _getLocationId(); 
+                    String locationId = await _getLocationId();
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => EmpPending(

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:parking1/bottombar/chatPage.dart';
 import 'package:parking1/bottombar/questionpage.dart';
@@ -27,8 +28,8 @@ class _HelpState extends State<Help> {
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.blue,
       ),
-      child: const Text(
-        "Question",
+      child:  Text(
+        "Question".tr(),
         style: TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.bold,
@@ -54,8 +55,8 @@ class _HelpState extends State<Help> {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color.fromARGB(255, 0, 121, 227), // Custom button color
         ),
-        child: const Text(
-          "Chat",
+        child:  Text(
+          "Chat".tr(),
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -93,7 +94,7 @@ class _HelpState extends State<Help> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Help"),
+        title:  Text("Help".tr()),
         centerTitle: true, 
       ),
       body: Center(

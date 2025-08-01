@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:io';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -274,8 +275,8 @@ class _EmpGenerateState extends State<EmpGenerate> {
               return DropdownMenuItem<String>(
                   value: province, child: Text(province));
             }).toList(),
-            decoration: const InputDecoration(
-              labelText: "Province",
+            decoration:  InputDecoration(
+              labelText: "Province".tr(),
               border: OutlineInputBorder(),
             ),
             onChanged: (value) {
@@ -299,8 +300,8 @@ class _EmpGenerateState extends State<EmpGenerate> {
                 ),
               );
             }).toList(),
-            decoration: const InputDecoration(
-              labelText: "Plate Type",
+            decoration: InputDecoration(
+              labelText: "Plate_Type".tr(),
               border: OutlineInputBorder(),
             ),
             onChanged: (value) {
@@ -313,8 +314,8 @@ class _EmpGenerateState extends State<EmpGenerate> {
           TextFormField(
             controller: nameplateController,
             inputFormatters: [UpperCaseTextFormatter()],
-            decoration: const InputDecoration(
-              labelText: "Name Plate",
+            decoration: InputDecoration(
+              labelText: "Name_Plate".tr(),
               border: OutlineInputBorder(),
             ),
           ),
@@ -325,8 +326,8 @@ class _EmpGenerateState extends State<EmpGenerate> {
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly, // Allow digits only
             ],
-            decoration: const InputDecoration(
-              labelText: "Plate Number",
+            decoration:  InputDecoration(
+              labelText: "Plate_Number".tr(),
               border: OutlineInputBorder(),
             ),
           ),
@@ -370,7 +371,7 @@ class _EmpGenerateState extends State<EmpGenerate> {
                 child: Text(
                   _isLoading
                       ? "Processing..."
-                      : "Generate Ticket (Cash Payment)",
+                      : "Generate_Ticket_(Cash Payment)".tr(),
                   style: const TextStyle(
                       fontSize: 16, fontWeight: FontWeight.bold),
                 ),
@@ -423,12 +424,12 @@ class _EmpGenerateState extends State<EmpGenerate> {
                       ),
             const SizedBox(height: 20),
             Text(
-              "QR Payment",
+              "QR_Payment".tr(),
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 20),
             Text(
-              "Amount to Pay:",
+              "Amount_to Pay:".tr(),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             Text(
@@ -456,8 +457,8 @@ class _EmpGenerateState extends State<EmpGenerate> {
               },
               icon: const Icon(Icons.arrow_forward,
                   color: Colors.amber, size: 20),
-              label: const Text(
-                "Continue to Payment",
+              label:  Text(
+                "Continue_to_Payment".tr(),
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
@@ -481,7 +482,7 @@ class _EmpGenerateState extends State<EmpGenerate> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Generate Ticket'),
+        title:  Text('Generate_Ticket'.tr()),
       ),
       body: Column(
         children: [
@@ -498,14 +499,14 @@ class _EmpGenerateState extends State<EmpGenerate> {
               borderRadius: BorderRadius.circular(8),
               selectedColor: Colors.white,
               fillColor: Colors.blue,
-              children: const [
+              children: [
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text("Cash Payment"),
+                  child: Text("Cash_Payment".tr()),
                 ),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text("QR Payment"),
+                  child: Text("QR_Payment".tr()),
                 ),
               ],
             ),

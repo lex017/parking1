@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 
 class DetailHistory extends StatelessWidget {
@@ -32,7 +33,7 @@ class DetailHistory extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('History Details'),
+        title: Text('History_Details'.tr()), // Applied .tr()
         backgroundColor: Colors.lightBlue,
       ),
       backgroundColor: Colors.grey[200],
@@ -61,9 +62,9 @@ class DetailHistory extends StatelessWidget {
                 // Header area
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                       horizontal: 16, vertical: 20),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [Colors.lightBlue, Color.fromARGB(255, 3, 0, 155)],
                       begin: Alignment.topLeft,
@@ -72,7 +73,7 @@ class DetailHistory extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      'Parking Ticket',
+                      'Parking_Ticket'.tr(), // Applied .tr()
                       style: titleStyle,
                     ),
                   ),
@@ -91,7 +92,7 @@ class DetailHistory extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Location: ${bookingData['nameparking'] ?? 'N/A'}',
+                        'location_display'.tr(namedArgs: {"locationName": bookingData['nameparking'] ?? 'N/A'}), // Applied .tr() with namedArgs
                         style: detailTitleStyle,
                       ),
                       const SizedBox(height: 8),
@@ -101,7 +102,7 @@ class DetailHistory extends StatelessWidget {
                               color: Colors.lightBlue),
                           const SizedBox(width: 8),
                           Text(
-                            'Date: ${bookingData['bookingDate'] ?? 'N/A'}',
+                            'date_display'.tr(namedArgs: {"date": bookingData['bookingDate'] ?? 'N/A'}), // Applied .tr() with namedArgs
                             style: detailTextStyle,
                           ),
                         ],
@@ -113,7 +114,7 @@ class DetailHistory extends StatelessWidget {
                               color: Colors.lightBlue),
                           const SizedBox(width: 8),
                           Text(
-                            'Time: ${bookingData['bookingTime'] ?? 'N/A'}',
+                            'time_display'.tr(namedArgs: {"time": bookingData['bookingTime'] ?? 'N/A'}), // Applied .tr() with namedArgs
                             style: detailTextStyle,
                           ),
                         ],
@@ -125,42 +126,42 @@ class DetailHistory extends StatelessWidget {
                               color: Colors.lightBlue),
                           const SizedBox(width: 8),
                           Text(
-                            'Status: ${bookingData['Status'] ?? 'N/A'}',
+                            'status_display'.tr(namedArgs: {"parkingStatus": bookingData['Status'] ?? 'N/A'}), // Applied .tr() with namedArgs
                             style: detailTextStyle,
                           ),
                         ],
                       ),
                       const Divider(height: 30, thickness: 1),
                       Text(
-                        'Payment Details',
+                        'Payment_Details'.tr(), // Applied .tr()
                         style: detailTitleStyle,
                       ),
                       const SizedBox(height: 8),
                       PaymentDetailRow(
                         icon: Icons.monetization_on,
-                        label: 'Amount',
+                        label: 'Amount'.tr(), // Applied .tr()
                         value: '${paymentData['amount'] ?? 'N/A'}',
                       ),
                       PaymentDetailRow(
                         icon: Icons.date_range,
-                        label: 'Payment Date',
+                        label: 'Payment_Date'.tr(), // Applied .tr()
                         value: '${paymentData['date'] ?? 'N/A'}',
                       ),
                       PaymentDetailRow(
                         icon: Icons.access_time,
-                        label: 'Payment Time',
+                        label: 'Payment_Time'.tr(), // Applied .tr()
                         value: '${paymentData['time'] ?? 'N/A'}',
                       ),
                       PaymentDetailRow(
                         icon: Icons.payment,
-                        label: 'Payment Status',
+                        label: 'Payment_Status'.tr(), // Applied .tr()
                         value: '${bookingData['paymentStatus'] ?? 'N/A'}',
                       ),
                       if (paymentData.containsKey('imageBill') &&
                           paymentData['imageBill'] != null) ...[
                         const SizedBox(height: 20),
                         Text(
-                          'Payment Image',
+                          'Payment_Image'.tr(), // Applied .tr()
                           style: detailTitleStyle,
                         ),
                         const SizedBox(height: 10),
@@ -201,7 +202,7 @@ class DetailHistory extends StatelessWidget {
 /// Custom widget for payment detail row.
 class PaymentDetailRow extends StatelessWidget {
   final IconData icon;
-  final String label;
+  final String label; // This 'label' is already passed as a translated string
   final String value;
 
   const PaymentDetailRow({
@@ -210,6 +211,7 @@ class PaymentDetailRow extends StatelessWidget {
     required this.label,
     required this.value,
   }) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     final labelStyle = TextStyle(
@@ -227,7 +229,8 @@ class PaymentDetailRow extends StatelessWidget {
         children: [
           Icon(icon, color: Colors.lightBlue),
           const SizedBox(width: 8),
-          Text('$label: ', style: labelStyle),
+          Text(
+              '${label}: ', style: labelStyle), // Label already translated before being passed
           Text(value, style: valueStyle),
         ],
       ),
@@ -307,7 +310,7 @@ class FullScreenImage extends StatelessWidget {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text('Image View'),
+        title: Text('Image_View'.tr()), // Applied .tr()
       ),
       body: Center(
         child: InteractiveViewer(

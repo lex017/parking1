@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:parking1/cash/QrPay.dart';
@@ -87,19 +88,18 @@ class _BtnLocationState extends State<detailPay> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text("Select a Car"),
+          title: Text("Select_a_Car".tr()),
           content: SizedBox(
             width: double.maxFinite,
             child: carList.isEmpty
-                ? const Center(child: Text("No vehicles found"))
+                ? Center(child: Text("No_vehicles_found".tr()))
                 : ListView.builder(
                     itemCount: carList.length,
                     itemBuilder: (context, index) {
                       return ListTile(
                         title: Text(carList[index]['brandName']!),
                         onTap: () {
-                          Navigator.pop(
-                              context, carList[index]); // Return both values
+                          Navigator.pop(context, carList[index]);
                         },
                       );
                     },
@@ -253,6 +253,9 @@ class _BtnLocationState extends State<detailPay> {
                 final nameLocation = data['nameparking'] ?? 'Unknown Name';
                 final price = data['price'] ?? 0;
                 pricePerHour = price;
+                final formatter =
+                    NumberFormat('#,##0', context.locale.languageCode);
+                String formattedPrice = formatter.format(pricePerHour);
 
                 return Container(
                   padding: const EdgeInsets.all(20),
@@ -291,13 +294,16 @@ class _BtnLocationState extends State<detailPay> {
                       ),
                       const SizedBox(height: 20),
 
-                      Text(
-                        "Price: $pricePerHour LAK",
-                        style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black),
-                      ),
+                      // Text(
+                      //   'itemPrice'.tr(args: [
+                      //     formattedPrice
+                      //   ]), // Pass the already formatted price
+                      //   style: const TextStyle(
+                      //     fontSize: 18,
+                      //     fontWeight: FontWeight.bold,
+                      //     color: Colors.black,
+                      //   ),
+                      // ),
 
                       const SizedBox(height: 20),
 
@@ -307,8 +313,8 @@ class _BtnLocationState extends State<detailPay> {
                         children: [
                           Row(
                             children: [
-                              const Text(
-                                "Select Car: ",
+                              Text(
+                                "SelectCar".tr(),
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -329,8 +335,8 @@ class _BtnLocationState extends State<detailPay> {
                                   child: DropdownButtonHideUnderline(
                                     child: DropdownButton2<String>(
                                       isExpanded: true,
-                                      hint: const Text(
-                                        'Choose a Car',
+                                      hint: Text(
+                                        'ChooseaCar'.tr(),
                                         style: TextStyle(color: Colors.black54),
                                       ),
                                       items: [
@@ -344,12 +350,12 @@ class _BtnLocationState extends State<detailPay> {
                                         DropdownMenuItem<String>(
                                           value: 'add_new',
                                           child: Row(
-                                            children: const [
+                                            children: [
                                               Icon(Icons.add,
                                                   color: Colors.blueAccent),
                                               SizedBox(width: 8),
                                               Text(
-                                                'Add New Car',
+                                                'AddNewCar'.tr(),
                                                 style: TextStyle(
                                                   color: Colors.blueAccent,
                                                   fontWeight: FontWeight.bold,
@@ -418,17 +424,19 @@ class _BtnLocationState extends State<detailPay> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                "Total Price",
+                              Text(
+                                "Total_Price".tr(),
                                 style:
                                     TextStyle(fontSize: 16, color: Colors.grey),
                               ),
                               Text(
-                                "$pricePerHour LAK",
+                                'itemPrice'.tr(args: [
+                                  formattedPrice
+                                ]), // Pass the already formatted price
                                 style: const TextStyle(
-                                  fontSize: 24,
+                                  fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
+                                  color: Colors.black,
                                 ),
                               ),
                             ],
@@ -457,8 +465,8 @@ class _BtnLocationState extends State<detailPay> {
                                   },
                             icon: const Icon(Icons.arrow_forward,
                                 color: Colors.white),
-                            label: const Text(
-                              "GO",
+                            label: Text(
+                              "GO".tr(),
                               style:
                                   TextStyle(fontSize: 18, color: Colors.white),
                             ),

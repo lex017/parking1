@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -110,8 +111,8 @@ class _QrPayState extends State<QrPay> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "QR Pay",
+        title: Text(
+          "QR_Pay".tr(),
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -142,8 +143,8 @@ class _QrPayState extends State<QrPay> {
                         ),
               const SizedBox(height: 20),
               // Display remaining time
-              const Text(
-                "Remaining Time",
+               Text(
+                "Remaining_Time".tr(),
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
@@ -183,7 +184,7 @@ class _QrPayState extends State<QrPay> {
                   textStyle: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                child: Text("Pay Now",style: TextStyle(color: Colors.white),),
+                child: Text("Pay Now".tr(),style: TextStyle(color: Colors.white),),
               ),
             ],
           ),

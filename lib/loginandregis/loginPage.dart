@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -92,7 +93,7 @@ class _LoginPageState extends State<loginPage> {
 
   Widget showText() {
     return Text(
-      "LOGIN",
+      "LOGIN".tr(),
       style: TextStyle(
         fontSize: 35.0,
         fontWeight: FontWeight.bold,
@@ -104,7 +105,7 @@ class _LoginPageState extends State<loginPage> {
 
   Widget showText1() {
     return Text(
-      "Welcome to 4Jord",
+      "Welcome_to_4Jord".tr(),
       style: TextStyle(
         fontSize: 20.0,
         fontWeight: FontWeight.bold,
@@ -130,7 +131,7 @@ class _LoginPageState extends State<loginPage> {
          border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30)
           ),
-          labelText: 'Email',
+          labelText: 'Email'.tr(),
           labelStyle: TextStyle(
               color: Theme.of(context)
                   .textTheme
@@ -164,7 +165,7 @@ class _LoginPageState extends State<loginPage> {
          border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30)
           ),
-          labelText: 'Password',
+          labelText: 'Password'.tr(),
           labelStyle: TextStyle(
               color: Theme.of(context)
                   .textTheme
@@ -202,8 +203,8 @@ class _LoginPageState extends State<loginPage> {
             });
           },
         ),
-        const Text(
-          "Remember Me",
+         Text(
+          "Remember_Me".tr(),
           style: TextStyle(fontSize: 16),
         ),
       ],
@@ -223,8 +224,8 @@ class _LoginPageState extends State<loginPage> {
             ? const CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               )
-            : const Text(
-                "Login",
+            :  Text(
+                "Login".tr(),
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -287,7 +288,7 @@ class _LoginPageState extends State<loginPage> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          "Register",
+          "Register".tr(),
           style: TextStyle(
             fontSize: 16,
             color: Theme.of(context)
@@ -304,7 +305,7 @@ class _LoginPageState extends State<loginPage> {
             );
           },
           child: Text(
-            "Click here",
+            "Click_here".tr(),
             style: TextStyle(
               color: Colors.blue, // Adjusts link color dynamically
               fontWeight: FontWeight.bold,

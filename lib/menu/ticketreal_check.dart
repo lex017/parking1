@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -176,7 +177,7 @@ class _ScanCheckState extends State<TicketrealCheck> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Ticket Status"),
+        title:Text("Ticket_Status".tr()),
         backgroundColor: Colors.blue,
       ),
       body: Container(
@@ -199,8 +200,8 @@ class _ScanCheckState extends State<TicketrealCheck> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Scan Check',
+                   Text(
+                    'Scan_Check'.tr(),
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,

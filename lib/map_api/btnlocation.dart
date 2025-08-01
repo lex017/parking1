@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:parking1/cash/QrPay.dart';
 import 'package:parking1/chose/comment.dart';
 import 'package:parking1/map_api/selectdetail.dart';
+import 'package:rxdart/rxdart.dart';
 
 class btnLocation extends StatefulWidget {
   final String documentId;
@@ -42,15 +44,36 @@ class _BtnLocationState extends State<btnLocation> {
     );
   }
 
+//  Stream<int> getCheckedInCount() {
+//     return FirebaseFirestore.instance
+//         .collection('bookings')
+//         .where('locationId', isEqualTo: widget.documentId)
+//         .where('Status', whereIn: ['check-in', 'pending'])
+//         // .where('parkingStatus', isEqualTo: 'check-in')
+//         .snapshots()
+//         .map((snapshot) => snapshot.docs.length);
+//   }
   /// Fetches the count of 'check-in' vehicles for this location
   Stream<int> getCheckedInCount() {
-    return FirebaseFirestore.instance
+    final bookingsStream = FirebaseFirestore.instance
         .collection('bookings')
         .where('locationId', isEqualTo: widget.documentId)
         .where('Status', whereIn: ['check-in', 'pending'])
-        // .where('parkingStatus', isEqualTo: 'check-in')
         .snapshots()
         .map((snapshot) => snapshot.docs.length);
+
+    final ticketrealStream = FirebaseFirestore.instance
+        .collection('ticketreal')
+        .where('locationId', isEqualTo: widget.documentId)
+        .where('Status', whereIn: ['check-in'])
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+
+    return Rx.combineLatest2<int, int, int>(
+      bookingsStream,
+      ticketrealStream,
+      (bookingCount, ticketRealCount) => bookingCount + ticketRealCount,
+    );
   }
 
   void _showFullDialog(BuildContext context) {
@@ -128,7 +151,7 @@ class _BtnLocationState extends State<btnLocation> {
                         child: Center(child: CircularProgressIndicator()),
                       );
                     }
-        
+
                     if (snapshot.hasError) {
                       return const SizedBox(
                         height: 300,
@@ -140,7 +163,7 @@ class _BtnLocationState extends State<btnLocation> {
                         ),
                       );
                     }
-        
+
                     if (!snapshot.hasData || !snapshot.data!.exists) {
                       return const SizedBox(
                         height: 300,
@@ -152,10 +175,10 @@ class _BtnLocationState extends State<btnLocation> {
                         ),
                       );
                     }
-        
+
                     final data = snapshot.data!.data() as Map<String, dynamic>;
                     final imageUrl = data['imageUrl'] ?? '';
-        
+
                     return GestureDetector(
                       onTap: () {
                         if (imageUrl.isNotEmpty) {
@@ -204,7 +227,7 @@ class _BtnLocationState extends State<btnLocation> {
                 ),
               ],
             ),
-        
+
             // Information section
             SizedBox(
               child: StreamBuilder<DocumentSnapshot>(
@@ -216,7 +239,7 @@ class _BtnLocationState extends State<btnLocation> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
-        
+
                   if (snapshot.hasError) {
                     return const Center(
                       child: Text(
@@ -225,7 +248,7 @@ class _BtnLocationState extends State<btnLocation> {
                       ),
                     );
                   }
-        
+
                   if (!snapshot.hasData || !snapshot.data!.exists) {
                     return const Center(
                       child: Text(
@@ -234,18 +257,18 @@ class _BtnLocationState extends State<btnLocation> {
                       ),
                     );
                   }
-        
+
                   final data = snapshot.data!.data() as Map<String, dynamic>;
                   final nameLocation = data['nameparking'] ?? 'Unknown Name';
                   final description =
                       data['description'] ?? 'No description available';
-        
+
                   final landmark = data['landmark'] ?? 'None';
                   final opentime = data['openTime'] ?? 'none';
                   final closetime = data['closeTime'] ?? 'none';
                   final carSlot = data['car_slot'] ?? 0;
                   availableSlots = carSlot;
-        
+
                   return Container(
                     padding: const EdgeInsets.all(20),
                     width: double.infinity,
@@ -285,24 +308,27 @@ class _BtnLocationState extends State<btnLocation> {
                                 Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          Comment(documentId: widget.documentId),
+                                      builder: (context) => Comment(
+                                          documentId: widget.documentId),
                                     ));
                               },
                             ),
                           ],
                         ),
-        
+
                         const SizedBox(height: 10),
-                        
+
                         // Real-time Check-in Counter
                         StreamBuilder<int>(
                           stream: getCheckedInCount(),
                           builder: (context, snapshot) {
                             checkedInCount = snapshot.data ?? 0;
-        
+
                             return Text(
-                              "Car Slot: $checkedInCount/$availableSlots",
+                              'carSlotStatus'.tr(args: [
+                                checkedInCount.toString(),
+                                availableSlots.toString()
+                              ]), // Pass both variables as arguments
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -311,8 +337,10 @@ class _BtnLocationState extends State<btnLocation> {
                             );
                           },
                         ),
-        
-                        SizedBox(height: 10,),
+
+                        SizedBox(
+                          height: 10,
+                        ),
                         Row(
                           children: [
                             Icon(Icons.access_time_sharp,
@@ -338,39 +366,41 @@ class _BtnLocationState extends State<btnLocation> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                         // Description with Read more / Read less
-                          Text(
-                            description,
-                            maxLines: _isDescriptionExpanded ? null : 3,
-                            overflow: _isDescriptionExpanded
-                                ? TextOverflow.visible
-                                : TextOverflow.ellipsis,
+                        // Description with Read more / Read less
+                        Text(
+                          description,
+                          maxLines: _isDescriptionExpanded ? null : 3,
+                          overflow: _isDescriptionExpanded
+                              ? TextOverflow.visible
+                              : TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            height: 1.6,
+                            color: Colors.grey,
+                          ),
+                        ),
+
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _isDescriptionExpanded = !_isDescriptionExpanded;
+                            });
+                          },
+                          child: Text(
+                            _isDescriptionExpanded
+                                ? "Readless".tr()
+                                : "Readmore".tr(),
                             style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue,
                               fontSize: 16,
-                              height: 1.6,
-                              color: Colors.grey,
                             ),
                           ),
-        
-                          GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _isDescriptionExpanded = !_isDescriptionExpanded;
-                              });
-                            },
-                            child: Text(
-                              _isDescriptionExpanded ? "Read less" : "Read more",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                     
+                        ),
+
                         const SizedBox(height: 20),
                         Text(
-                          'Nearby places',
+                          'Nearbyplaces'.tr(),
                           style: const TextStyle(
                               fontWeight: FontWeight.bold, color: Colors.black),
                         ),
@@ -383,11 +413,9 @@ class _BtnLocationState extends State<btnLocation> {
                             color: Colors.grey,
                           ),
                         ),
-                        
-                        const SizedBox(height:55),
-        
-           
-        
+
+                        const SizedBox(height: 55),
+
                         SizedBox(
                           width: 500,
                           height: 50,
@@ -407,14 +435,15 @@ class _BtnLocationState extends State<btnLocation> {
                                     }
                                   },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: (checkedInCount == availableSlots)
-                                  ? Colors.red
-                                  : Colors.blue,
+                              backgroundColor:
+                                  (checkedInCount == availableSlots)
+                                      ? Colors.red
+                                      : Colors.blue,
                             ),
                             child: Text(
                               (checkedInCount >= availableSlots)
-                                  ? "Sold Out"
-                                  : "Booking",
+                                  ? "SoldOut".tr()
+                                  : "Booking".tr(),
                               style: const TextStyle(
                                   fontSize: 18, color: Colors.white),
                             ),

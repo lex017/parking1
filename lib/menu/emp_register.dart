@@ -11,6 +11,7 @@ import 'package:parking1/chose/ownerMain.dart';
 import 'package:parking1/menu/emp_main.dart';
 import 'package:parking1/menu/employee_login.dart';
 import 'package:parking1/model/employeedata.dart';
+import 'package:easy_localization/easy_localization.dart'; // Import easy_localization
 
 class emp_register extends StatefulWidget {
   final String ownerId;
@@ -67,13 +68,13 @@ class _RegisterPageState extends State<emp_register> {
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No image selected')),
+          SnackBar(content: Text('No_image_selected'.tr())), // Localized
         );
       }
     } catch (e) {
       print("Error selecting image: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error selecting image')),
+        SnackBar(content: Text('Error_selecting_image'.tr())), // Localized
       );
     }
   }
@@ -115,13 +116,13 @@ class _RegisterPageState extends State<emp_register> {
       width: 350,
       child: TextFormField(
         onSaved: (value) => firstname = value,
-        validator: RequiredValidator(errorText: "Please enter your first name"),
-        decoration: const InputDecoration(
-          border: UnderlineInputBorder(),
-          labelText: 'First Name',
+        validator: RequiredValidator(errorText: "Enter_first_name".tr()), // Localized
+        decoration: InputDecoration(
+          border: const UnderlineInputBorder(),
+          labelText: 'First_Name'.tr(), // Localized
           filled: true,
           fillColor: Colors.white,
-          prefixIcon: Icon(Icons.person, color: Colors.black, size: 35.0),
+          prefixIcon: const Icon(Icons.person, color: Colors.black, size: 35.0),
         ),
       ),
     );
@@ -132,14 +133,14 @@ class _RegisterPageState extends State<emp_register> {
       width: 350,
       child: TextFormField(
         onSaved: (value) => lastname = value,
-        validator: RequiredValidator(errorText: "Please enter your last name"),
-        decoration: const InputDecoration(
-          border: UnderlineInputBorder(),
-          labelText: 'Last Name',
+        validator: RequiredValidator(errorText: "Enter_last_name".tr()), // Localized
+        decoration: InputDecoration(
+          border: const UnderlineInputBorder(),
+          labelText: 'Last_Name'.tr(), // Localized
           filled: true,
           fillColor: Colors.white,
           prefixIcon:
-              Icon(Icons.person_outline, color: Colors.black, size: 35.0),
+              const Icon(Icons.person_outline, color: Colors.black, size: 35.0),
         ),
       ),
     );
@@ -150,15 +151,15 @@ class _RegisterPageState extends State<emp_register> {
       width: 350,
       child: TextFormField(
         onSaved: (value) => age = value,
-        validator: RequiredValidator(errorText: "Please enter your age"),
+        validator: RequiredValidator(errorText: "Enter_age".tr()), // Localized
         keyboardType: TextInputType.number,
-        decoration: const InputDecoration(
-          border: UnderlineInputBorder(),
-          labelText: 'Age',
+        decoration: InputDecoration(
+          border: const UnderlineInputBorder(),
+          labelText: 'Age'.tr(), // Localized
           filled: true,
           fillColor: Colors.white,
           prefixIcon:
-              Icon(Icons.calendar_today, color: Colors.black, size: 35.0),
+              const Icon(Icons.calendar_today, color: Colors.black, size: 35.0),
         ),
       ),
     );
@@ -172,18 +173,18 @@ class _RegisterPageState extends State<emp_register> {
         onSaved: (value) => myUser.emp_id = value ?? '',
         validator: (value) {
           if (value == null || value.isEmpty) {
-            return 'Please enter an Employee ID';
+            return 'Enter_employee_ID'.tr(); // Localized
           } else if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(value)) {
-            return 'Employee ID can only contain letters and numbers';
+            return 'Employee_ID_alphanumeric'.tr(); // Localized
           }
           return null;
         },
-        decoration: const InputDecoration(
-          border: UnderlineInputBorder(),
-          labelText: 'Employee ID',
+        decoration: InputDecoration(
+          border: const UnderlineInputBorder(),
+          labelText: 'Employee_ID'.tr(), // Localized
           filled: true,
           fillColor: Colors.white,
-          prefixIcon: Icon(Icons.badge, color: Colors.black, size: 35.0),
+          prefixIcon: const Icon(Icons.badge, color: Colors.black, size: 35.0),
         ),
       ),
     );
@@ -224,19 +225,19 @@ class _RegisterPageState extends State<emp_register> {
                 );
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Registration failed: $e')),
+                  SnackBar(content: Text('Registration_failed'.tr(args: [e.toString()]))), // Localized with arg
                 );
               }
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Employee ID is required')),
+                SnackBar(content: Text('Employee_ID_required'.tr())), // Localized
               );
             }
           }
         },
-        child: const Text(
-          "Register",
-          style: TextStyle(
+        child: Text(
+          "Register".tr(), // Localized
+          style: const TextStyle(
             color: Colors.black,
             fontWeight: FontWeight.bold,
             fontSize: 20.0,
@@ -259,14 +260,14 @@ class _RegisterPageState extends State<emp_register> {
         List<DropdownMenuItem<String>> items = snapshot.data!.docs.map((doc) {
           return DropdownMenuItem(
             value: doc.id,
-            child: Text(doc['nameparking'] ?? 'Unknown Location'),
+            child: Text(doc['nameparking'] ?? 'Unknown_Location'.tr()), // Localized
           );
         }).toList();
         return SizedBox(
           width: 350,
           child: DropdownButtonFormField<String>(
             value: selectedLocation,
-            hint: const Text('Select Location ID'),
+            hint: Text('Select_Location_ID'.tr()), // Localized
             items: items,
             onChanged: (value) {
               setState(() {
@@ -274,13 +275,13 @@ class _RegisterPageState extends State<emp_register> {
               });
             },
             validator: (value) =>
-                value == null ? 'Please select a location' : null,
-            decoration: const InputDecoration(
-              border: UnderlineInputBorder(),
+                value == null ? 'Please_select_location'.tr() : null, // Localized
+            decoration: InputDecoration(
+              border: const UnderlineInputBorder(),
               filled: true,
               fillColor: Colors.white,
               prefixIcon:
-                  Icon(Icons.location_on, color: Colors.black, size: 35.0),
+                  const Icon(Icons.location_on, color: Colors.black, size: 35.0),
             ),
           ),
         );
@@ -293,23 +294,23 @@ class _RegisterPageState extends State<emp_register> {
       width: 350,
       child: DropdownButtonFormField<String>(
         value: selectedGender,
-        hint: const Text('Select Gender'),
+        hint: Text('Select_Gender'.tr()), // Localized
         items: [
-          DropdownMenuItem(value: 'Male', child: Text('Male')),
-          DropdownMenuItem(value: 'Female', child: Text('Female')),
-          DropdownMenuItem(value: 'Other', child: Text('Other')),
+          DropdownMenuItem(value: 'Male', child: Text('Male'.tr())), // Localized
+          DropdownMenuItem(value: 'Female', child: Text('Female'.tr())), // Localized
+          DropdownMenuItem(value: 'Other', child: Text('Other'.tr())), // Localized
         ],
         onChanged: (value) {
           setState(() {
             selectedGender = value;
           });
         },
-        validator: (value) => value == null ? 'Please select a gender' : null,
-        decoration: const InputDecoration(
-          border: UnderlineInputBorder(),
+        validator: (value) => value == null ? 'Please_select_gender'.tr() : null, // Localized
+        decoration: InputDecoration(
+          border: const UnderlineInputBorder(),
           filled: true,
           fillColor: Colors.white,
-          prefixIcon: Icon(Icons.transgender, color: Colors.black, size: 35.0),
+          prefixIcon: const Icon(Icons.transgender, color: Colors.black, size: 35.0),
         ),
       ),
     );
@@ -344,10 +345,10 @@ class _RegisterPageState extends State<emp_register> {
                       width: double.infinity,
                     ),
                   )
-                : const Center(
+                : Center(
                     child: Text(
-                      "Tap to upload image",
-                      style: TextStyle(color: Colors.grey),
+                      "Tap_to_upload_image".tr(), // Localized
+                      style: const TextStyle(color: Colors.grey),
                     ),
                   ),
       ),
@@ -360,12 +361,12 @@ Widget passwordInput() {
       obscureText: obs,
       onSaved: (value) => password = value,
       validator: MultiValidator([
-        RequiredValidator(errorText: "Please enter a password"),
-        MinLengthValidator(6, errorText: "Password must be at least 6 characters"),
+        RequiredValidator(errorText: "Enter_password".tr()), // Localized
+        MinLengthValidator(6, errorText: "Password_min_length".tr()), // Localized
       ]),
       decoration: InputDecoration(
         border: const UnderlineInputBorder(),
-        labelText: 'Password',
+        labelText: 'Password'.tr(), // Localized
         filled: true,
         fillColor: Colors.white,
         prefixIcon: const Icon(Icons.lock, color: Colors.black, size: 35.0),
@@ -386,7 +387,7 @@ Widget passwordInput() {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text("Sign up Employee"),
+        title: Text("Sign_up_Employee".tr()), // Localized
       ),
       body: Stack(
         children: [

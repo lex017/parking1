@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:parking1/data_save/buyticket.dart';
@@ -7,7 +8,8 @@ import 'package:parking1/menu/real_ticket.dart';
 class DetailEmployee extends StatefulWidget {
   final String empId;
   final String locationId;
-  const DetailEmployee({super.key, required this.empId, required this.locationId});
+  const DetailEmployee(
+      {super.key, required this.empId, required this.locationId});
 
   @override
   State<DetailEmployee> createState() => _DetailEmployeeState();
@@ -32,8 +34,10 @@ class _DetailEmployeeState extends State<DetailEmployee> {
         .get();
 
     var all = [
-      ...ticketreal.docs.map((d) => {...d.data(), 'id': d.id, 'source': 'ticketreal'}),
-      ...bookingsSnap.docs.map((d) => {...d.data(), 'id': d.id, 'source': 'bookings'}),
+      ...ticketreal.docs
+          .map((d) => {...d.data(), 'id': d.id, 'source': 'ticketreal'}),
+      ...bookingsSnap.docs
+          .map((d) => {...d.data(), 'id': d.id, 'source': 'bookings'}),
     ].cast<Map<String, dynamic>>();
 
     // status filter
@@ -54,13 +58,15 @@ class _DetailEmployeeState extends State<DetailEmployee> {
       all = all.where((b) {
         final d = (b['timestamp'] as Timestamp).toDate();
         return d.isAfter(startOfWeek.subtract(const Duration(days: 1))) &&
-               d.isBefore(endOfWeek.add(const Duration(days: 1)));
+            d.isBefore(endOfWeek.add(const Duration(days: 1)));
       }).toList();
-    } else if (selectedDateFilter == 'Custom Range' && startDate != null && endDate != null) {
+    } else if (selectedDateFilter == 'Custom Range' &&
+        startDate != null &&
+        endDate != null) {
       all = all.where((b) {
         final d = (b['timestamp'] as Timestamp).toDate();
         return d.isAfter(startDate!.subtract(const Duration(days: 1))) &&
-               d.isBefore(endDate!.add(const Duration(days: 1)));
+            d.isBefore(endDate!.add(const Duration(days: 1)));
       }).toList();
     }
 
@@ -77,8 +83,9 @@ class _DetailEmployeeState extends State<DetailEmployee> {
     }
 
     // sort
-    all.sort((a, b) =>
-        (b['timestamp'] as Timestamp).toDate().compareTo((a['timestamp'] as Timestamp).toDate()));
+    all.sort((a, b) => (b['timestamp'] as Timestamp)
+        .toDate()
+        .compareTo((a['timestamp'] as Timestamp).toDate()));
 
     return all;
   }
@@ -89,73 +96,75 @@ class _DetailEmployeeState extends State<DetailEmployee> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-    if (picked != null) setState(() {
-      startDate = picked.start;
-      endDate = picked.end;
-    });
+    if (picked != null)
+      setState(() {
+        startDate = picked.start;
+        endDate = picked.end;
+      });
   }
 
   void showFilterSheet() {
     String tempStatus = selectedStatus;
     String tempDate = selectedDateFilter;
-    String tempPay   = selectedPaymentMethod;
+    String tempPay = selectedPaymentMethod;
 
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16))
-      ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.all(16),
         child: StatefulBuilder(
           builder: (c, setM) => Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Filters', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text('Filters',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
-              
-              _buildChoiceRow('Status', ['All','check-in','check-out'], tempStatus, (v){
-                setM(()=>tempStatus=v);
+              _buildChoiceRow(
+                  'Status', ['All', 'check-in', 'check-out'], tempStatus, (v) {
+                setM(() => tempStatus = v);
               }),
               const SizedBox(height: 12),
-
-              _buildChoiceRow('Date', ['All Day','Today','This Week','Custom Range'], tempDate, (v) async {
-                if (v=='Custom Range') await pickDateRange();
-                setM(()=>tempDate=v);
+              _buildChoiceRow(
+                  'Date',
+                  ['All Day', 'Today', 'This Week', 'Custom Range'],
+                  tempDate, (v) async {
+                if (v == 'Custom Range') await pickDateRange();
+                setM(() => tempDate = v);
               }),
               const SizedBox(height: 12),
-
-              _buildChoiceRow('Payment', ['All','cash','transfer','booking'], tempPay, (v){
-                setM(()=>tempPay=v);
+              _buildChoiceRow(
+                  'Payment', ['All', 'cash', 'transfer', 'booking'], tempPay,
+                  (v) {
+                setM(() => tempPay = v);
               }),
               const SizedBox(height: 20),
-
-             ElevatedButton(
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.blueAccent,
-    foregroundColor: Colors.white,
-    minimumSize: const Size.fromHeight(50),
-    elevation: 3,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-    padding: const EdgeInsets.symmetric(vertical: 14),
-    textStyle: const TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
-    ),
-  ),
-  onPressed: () {
-    setState(() {
-      selectedStatus = tempStatus;
-      selectedDateFilter = tempDate;
-      selectedPaymentMethod = tempPay;
-    });
-    Navigator.pop(ctx);
-  },
-  child: const Text('Apply Filters'),
-),
-
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(50),
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onPressed: () {
+                  setState(() {
+                    selectedStatus = tempStatus;
+                    selectedDateFilter = tempDate;
+                    selectedPaymentMethod = tempPay;
+                  });
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Apply Filters'),
+              ),
               const SizedBox(height: 8),
             ],
           ),
@@ -164,31 +173,31 @@ class _DetailEmployeeState extends State<DetailEmployee> {
     );
   }
 
-  Widget _buildChoiceRow(String label, List<String> options, String selected, ValueChanged<String> onTap) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children:[
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 8,
-          children: options.map((o) => ChoiceChip(
-            label: Text(o),
-            selected: selected==o,
-            onSelected: (_) => onTap(o),
-            selectedColor: Colors.blue.shade100,
-            backgroundColor: Colors.grey.shade200,
-          )).toList(),
-        )
-      ]
-    );
+  Widget _buildChoiceRow(String label, List<String> options, String selected,
+      ValueChanged<String> onTap) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+      const SizedBox(height: 6),
+      Wrap(
+        spacing: 8,
+        children: options
+            .map((o) => ChoiceChip(
+                  label: Text(o),
+                  selected: selected == o,
+                  onSelected: (_) => onTap(o),
+                  selectedColor: Colors.blue.shade100,
+                  backgroundColor: Colors.grey.shade200,
+                ))
+            .toList(),
+      )
+    ]);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Booking History'),
+        title: Text('Booking_History'.tr()),
         elevation: 2,
         actions: [
           IconButton(
@@ -200,7 +209,9 @@ class _DetailEmployeeState extends State<DetailEmployee> {
       body: Column(
         children: [
           // Active filters summary
-          if (selectedStatus!='All' || selectedDateFilter!='All Day' || selectedPaymentMethod!='All')
+          if (selectedStatus != 'All' ||
+              selectedDateFilter != 'All Day' ||
+              selectedPaymentMethod != 'All')
             Container(
               color: Colors.blue.shade50,
               width: double.infinity,
@@ -209,102 +220,130 @@ class _DetailEmployeeState extends State<DetailEmployee> {
                 spacing: 8,
                 runSpacing: 4,
                 children: [
-                  if (selectedStatus!='All') Chip(label: Text('Status: $selectedStatus')),
-                  if (selectedDateFilter!='All Day') Chip(label: Text('Date: $selectedDateFilter')),
-                  if (selectedPaymentMethod!='All') Chip(label: Text('Payment: $selectedPaymentMethod')),
+                  if (selectedStatus != 'All')
+                    Chip(label: Text('Status: $selectedStatus')),
+                  if (selectedDateFilter != 'All Day')
+                    Chip(label: Text('Date: $selectedDateFilter')),
+                  if (selectedPaymentMethod != 'All')
+                    Chip(label: Text('Payment: $selectedPaymentMethod')),
                 ],
               ),
             ),
-          
+
           Expanded(
-  child: FutureBuilder<List<Map<String, dynamic>>>(
-    future: fetchBookings(),
-    builder: (ctx, snap) {
-      if (snap.connectionState != ConnectionState.done) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      if (snap.hasError) {
-        return Center(child: Text('Error: ${snap.error}'));
-      }
-      final list = snap.data!;
-      if (list.isEmpty) {
-        return const Center(child: Text('No bookings found.'));
-      }
-
-      return ListView.builder(
-        itemCount: list.length,
-        itemBuilder: (context, index) {
-          final booking = list[index];
-          final timestamp = (booking['timestamp'] as Timestamp).toDate();
-          final status = (booking['Status'] ?? 'Pending').toLowerCase();
-
-          IconData statusIcon;
-          Color statusColor;
-
-          switch (status) {
-            case 'check-in':
-              statusIcon = Icons.login;
-              statusColor = Colors.green;
-              break;
-            case 'check-out':
-              statusIcon = Icons.logout;
-              statusColor = Colors.red;
-              break;
-            default:
-              statusIcon = Icons.pending;
-              statusColor = Colors.orange;
-          }
-
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            elevation: 4,
-            child: ListTile(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              onTap: () {
-                if (booking['source'] == 'ticketreal') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => RealTicket(ticketData: booking),
-                    ),
-                  );
-                } else {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => BuyTicket(bookingId: booking['id']),
-                    ),
-                  );
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: fetchBookings(),
+              builder: (ctx, snap) {
+                if (snap.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
                 }
-              },
-            
-              title: Text(
-                booking['source'] == 'ticketreal'
-                    ? (booking['empId'] ?? 'Unknown')
-                    : (booking['userName'] ?? 'Unknown User'),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 4),
-                  Text("Parking: ${booking['locationId'] ?? 'Unknown'}"),
-                  Text("Date: ${DateFormat('yyyy-MM-dd HH:mm').format(timestamp)}"),
-                  Text("Status: ${status[0].toUpperCase()}${status.substring(1)}"),
-                  Text("Payment Method: ${booking['paymentMethod'] ?? 'Booking'}"),
-                ],
-              ),
-              trailing: Icon(statusIcon, color: statusColor),
-            ),
-          );
-        },
-      );
-    },
-  ),
-)
+                if (snap.hasError) {
+                  return Center(child: Text('Error: ${snap.error}'));
+                }
+                final list = snap.data!;
+                if (list.isEmpty) {
+                  return const Center(child: Text('No bookings found.'));
+                }
 
+                return ListView.builder(
+                  itemCount: list.length,
+                  itemBuilder: (context, index) {
+                    final booking = list[index];
+                    final timestamp =
+                        (booking['timestamp'] as Timestamp).toDate();
+                    final status =
+                        (booking['Status'] ?? 'Pending').toLowerCase();
+
+                    IconData statusIcon;
+                    Color statusColor;
+
+                    switch (status) {
+                      case 'check-in':
+                        statusIcon = Icons.login;
+                        statusColor = Colors.green;
+                        break;
+                      case 'check-out':
+                        statusIcon = Icons.logout;
+                        statusColor = Colors.red;
+                        break;
+                      default:
+                        statusIcon = Icons.pending;
+                        statusColor = Colors.orange;
+                    }
+
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      elevation: 4,
+                      child: ListTile(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        onTap: () {
+                          if (booking['source'] == 'ticketreal') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    RealTicket(ticketData: booking),
+                              ),
+                            );
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    BuyTicket(bookingId: booking['id']),
+                              ),
+                            );
+                          }
+                        },
+                        title: Text(
+                          booking['source'] == 'ticketreal'
+                              ? (booking['empId'] ?? 'Unknown')
+                              : (booking['userName'] ?? 'Unknown User'),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Text(
+                              "Parking_Location_display".tr(namedArgs: {
+                                "locationId": booking['locationId'] ?? 'Unknown'
+                              }),
+                            ),
+                            Text(
+                              "Date_Time_display".tr(namedArgs: {
+                                "datetime": DateFormat('yyyy-MM-dd HH:mm')
+                                    .format(timestamp)
+                              }),
+                            ),
+                            Text(
+                              "Status_display".tr(namedArgs: {
+                                "status": status[0].toUpperCase() +
+                                    status.substring(1)
+                              }),
+                            ),
+                            Text(
+                              "Payment_Method_display".tr(namedArgs: {
+                                "paymentMethod":
+                                    booking['paymentMethod'] ?? 'Booking'
+                              }),
+                            ),
+                          ],
+                        ),
+                        trailing: Icon(statusIcon, color: statusColor),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          )
         ],
       ),
     );

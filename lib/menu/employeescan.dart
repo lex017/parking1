@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -153,8 +154,8 @@ class _EmployeeScanState extends State<EmployeeScan> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Employee Scan",
+        title:  Text(
+          "Employee_Scan".tr(),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -191,9 +192,9 @@ class _EmployeeScanState extends State<EmployeeScan> {
                 border: Border.all(color: Colors.blue, width: 4),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
-                  "Align QR code here",
+                  "Align_QR_code_here".tr(),
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,

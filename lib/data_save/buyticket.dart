@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -12,7 +13,10 @@ import 'package:http/http.dart' as http;
 class BuyTicket extends StatefulWidget {
   final String bookingId;
 
-  const BuyTicket({super.key, required this.bookingId, });
+  const BuyTicket({
+    super.key,
+    required this.bookingId,
+  });
 
   @override
   State<BuyTicket> createState() => _BuyTicketState();
@@ -283,8 +287,6 @@ class _BuyTicketState extends State<BuyTicket> {
     return "$minutes:${sec.toString().padLeft(2, '0')}";
   }
 
- 
-
   Future<void> _launchURL(String latitude, String longitude) async {
     try {
       final url =
@@ -338,6 +340,7 @@ class _BuyTicketState extends State<BuyTicket> {
               String transactionId = bookingData['paymentId'] ?? 'N/A';
               String locationId = bookingData['locationId'] ?? 'N/A';
               String parkingStatus = bookingData['Status'] ?? 'N/A';
+              String charplate = bookingData['charplate'] ?? 'N/A';
               String car = bookingData['vehicle'] ?? 'N/A';
               int amount = paymentData['amount'] ?? '0.00';
               GeoPoint location = bookingData['location'];
@@ -371,12 +374,12 @@ class _BuyTicketState extends State<BuyTicket> {
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
+                      children: [
                         Icon(Icons.local_parking,
                             size: 40, color: Colors.black87),
                         SizedBox(width: 10),
                         Text(
-                          "PARKING TICKET",
+                          "PARKING_TICKET".tr(),
                           style: TextStyle(
                               fontSize: 24, fontWeight: FontWeight.bold),
                         ),
@@ -395,7 +398,7 @@ class _BuyTicketState extends State<BuyTicket> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text("From:", style: TextStyle(fontSize: 16)),
+                            Text("From".tr(), style: TextStyle(fontSize: 16)),
                             Text(userName,
                                 style: const TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.bold)),
@@ -404,7 +407,7 @@ class _BuyTicketState extends State<BuyTicket> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            const Text("Time:", style: TextStyle(fontSize: 16)),
+                            Text("Time".tr(), style: TextStyle(fontSize: 16)),
                             Text(bookingTime,
                                 style: const TextStyle(
                                     fontSize: 16, fontWeight: FontWeight.bold)),
@@ -413,27 +416,45 @@ class _BuyTicketState extends State<BuyTicket> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Text("Location: $locationName",
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text(
+                      "location_display"
+                          .tr(namedArgs: {"locationName": locationName}),
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
-                    Text("PAID: $amount Kip",
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text(
+                      "paid_amount".tr(namedArgs: {
+                        "amount": amount.toString()
+                      }), // Ensure amount is a String
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
-                    Text("Status: $parkingStatus",
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w500)),
+                    Text(
+                      "status_display"
+                          .tr(namedArgs: {"parkingStatus": parkingStatus}),
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w500),
+                    ),
                     const SizedBox(height: 8),
-                    Text("Car: $car",
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w500)),
+                    Text(
+                      "car_display".tr(namedArgs: {"car": car}),
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w500),
+                    ),
                     const SizedBox(height: 4), // Add spacing
-                    Text("Plate: $numberplate",
-                        style: const TextStyle(
-                            fontSize: 16, color: Colors.black54)),
+                    Text(
+                      "plate_display"
+                          .tr(namedArgs: {"numberplate": numberplate}),
+                      style:
+                          const TextStyle(fontSize: 16, color: Colors.black54),
+                    ),
                     const SizedBox(height: 8),
-                    Text("Time Left: ${formatTime(remainingSeconds)}",
+                    Text(
+                        "time_left_display".tr(namedArgs: {
+                          "remainingTime": formatTime(remainingSeconds)
+                        }),
                         style: const TextStyle(
                             fontSize: 20,
                             color: Colors.red,
@@ -443,7 +464,7 @@ class _BuyTicketState extends State<BuyTicket> {
                       onPressed: () =>
                           _launchURL(latitude.toString(), longitude.toString()),
                       icon: const Icon(Icons.map),
-                      label: const Text("Navigate to Location"),
+                      label: Text("Navigate_to_Location").tr(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
@@ -464,7 +485,7 @@ class _BuyTicketState extends State<BuyTicket> {
                         );
                       },
                       icon: const Icon(Icons.home),
-                      label: const Text("Main Page"),
+                      label: Text("Main_Page".tr()),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.black,
                         foregroundColor: Colors.white,

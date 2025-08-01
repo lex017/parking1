@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -46,7 +47,8 @@ class _HistoryState extends State<history> {
 
       paymentIds = paymentIds.toSet().toList();
       Map<String, Map<String, dynamic>> paymentsMap = {};
-      List<QueryDocumentSnapshot> paymentsDocs = await fetchPaymentsInBatches(paymentIds);
+      List<QueryDocumentSnapshot> paymentsDocs =
+          await fetchPaymentsInBatches(paymentIds);
 
       for (var paymentDoc in paymentsDocs) {
         paymentsMap[paymentDoc.id] = paymentDoc.data() as Map<String, dynamic>;
@@ -68,12 +70,14 @@ class _HistoryState extends State<history> {
     });
   }
 
-  Future<List<QueryDocumentSnapshot>> fetchPaymentsInBatches(List<String> ids) async {
+  Future<List<QueryDocumentSnapshot>> fetchPaymentsInBatches(
+      List<String> ids) async {
     List<QueryDocumentSnapshot> results = [];
     const int batchSize = 10;
 
     for (int i = 0; i < ids.length; i += batchSize) {
-      var batchIds = ids.sublist(i, i + batchSize > ids.length ? ids.length : i + batchSize);
+      var batchIds = ids.sublist(
+          i, i + batchSize > ids.length ? ids.length : i + batchSize);
       var snapshot = await FirebaseFirestore.instance
           .collection('payments')
           .where(FieldPath.documentId, whereIn: batchIds)
@@ -88,7 +92,7 @@ class _HistoryState extends State<history> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("History"),
+        title: Text("History").tr(),
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: _historyStream,
@@ -127,8 +131,12 @@ class _HistoryState extends State<history> {
                   );
                 },
                 child: TicketWidget(
-                  title: 'Parking Ticket',
-                  subtitle: 'Location: ${bookingData['nameparking'] ?? 'N/A'}',
+                  title: 'Parking_Ticket'.tr(),
+                  subtitle: 'location_with_name'.tr(
+                    namedArgs: {
+                      "locationName": bookingData['nameparking'] ?? 'N/A'
+                    },
+                  ),
                   date: bookingData['bookingDate'] ?? 'N/A',
                   seat: bookingData['Status'] ?? 'N/A',
                 ),
@@ -216,7 +224,7 @@ class TicketWidget extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Date'),
+                        Text('Date'.tr()),
                         Text(
                           date,
                           style: const TextStyle(
@@ -229,7 +237,7 @@ class TicketWidget extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Status'),
+                        Text('Status'.tr()),
                         Text(
                           seat,
                           style: const TextStyle(

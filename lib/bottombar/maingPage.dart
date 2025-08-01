@@ -428,7 +428,7 @@ class _MainPageState extends State<mainPage> {
                             children: <Widget>[
                               Icon(Icons.manage_accounts, color: Colors.grey),
                               SizedBox(width: 10),
-                              Text('Owner'),
+                              Text('owner'.tr()),
                             ],
                           ),
                         ),
@@ -438,7 +438,7 @@ class _MainPageState extends State<mainPage> {
                             children: <Widget>[
                               Icon(Icons.emoji_people, color: Colors.grey),
                               SizedBox(width: 10),
-                              Text('Employee'),
+                             Text('employee'.tr()),
                             ],
                           ),
                         ),
@@ -476,7 +476,7 @@ class _MainPageState extends State<mainPage> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    'Status: user',
+                                    'Status: user'.tr(),
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Theme.of(context)

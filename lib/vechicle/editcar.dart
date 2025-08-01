@@ -1,6 +1,7 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart'; // Ensure this is imported for FilteringTextInputFormatter
 
 class EditCar extends StatefulWidget {
   final String documentId;
@@ -24,7 +25,6 @@ class _EditCarState extends State<EditCar> {
   late TextEditingController plateController;
   late TextEditingController nameController;
 
-  // เปลี่ยน province กับ typeplate ให้เป็นตัวแปร String ที่เก็บค่าเลือกใน dropdown
   late String selectedProvince;
   late String selectedTypeplate;
 
@@ -79,7 +79,6 @@ class _EditCarState extends State<EditCar> {
         TextEditingController(text: widget.carData["numberplate"]);
     nameController = TextEditingController(text: widget.carData["charplate"]);
 
-    // กำหนดค่าเริ่มต้น dropdown จากข้อมูลเดิม
     selectedProvince = widget.carData["province"] ?? cities[0];
     selectedTypeplate = widget.carData["typeplate"] ?? plateTypeList[0];
   }
@@ -111,7 +110,7 @@ class _EditCarState extends State<EditCar> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Details updated successfully!")),
+        SnackBar(content: Text("Details_updated_successfully".tr())), // Localized
       );
 
       Navigator.pop(context, {
@@ -125,9 +124,56 @@ class _EditCarState extends State<EditCar> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to update details")),
+        SnackBar(content: Text("Failed_to_update_details".tr())), // Localized
       );
       debugPrint("Error updating car: $e");
+    }
+  }
+
+  Future<void> _deleteCar() async {
+    // Show a confirmation dialog
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text("Confirm_Delete".tr()), // Localized
+          content: Text("Are_you_sure_you_want_to_delete_this_car".tr()), // Localized
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false), // Dismiss and return false
+              child: Text("Cancel".tr()), // Localized
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true), // Dismiss and return true
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: Text("Delete".tr(), style: const TextStyle(color: Colors.white)), // Localized
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('vehicles')
+            .doc(widget.documentId)
+            .delete();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Car_deleted_successfully".tr())), // Localized
+        );
+
+        // Pop twice: once to close EditCar screen, once to refresh previous list (assuming it navigates back to a list)
+        Navigator.pop(context); // Pop current screen
+        // Depending on your navigation flow, you might need to pop again
+        // Navigator.pop(context); // Example: If you need to go back past the list
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed_to_delete_car".tr())), // Localized
+        );
+        debugPrint("Error deleting car: $e");
+      }
     }
   }
 
@@ -152,8 +198,15 @@ class _EditCarState extends State<EditCar> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Edit Car Details"),
+        title: Text("Edit_Car_Details".tr()),
         backgroundColor: Colors.blueAccent,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_forever, color: Colors.white),
+            onPressed: _deleteCar,
+            tooltip: "Delete_Car".tr(), // Localized
+          ),
+        ],
       ),
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -172,10 +225,10 @@ class _EditCarState extends State<EditCar> {
                   child: TextFormField(
                     controller: brandController,
                     decoration:
-                        _buildDecoration("Brand Name", Icons.directions_car),
+                        _buildDecoration("Brand_Name".tr(), Icons.directions_car), // Localized
                     textInputAction: TextInputAction.next,
                     validator: (v) =>
-                        v == null || v.trim().isEmpty ? "Enter brand" : null,
+                        v == null || v.trim().isEmpty ? "Enter_brand".tr() : null, // Localized
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -187,10 +240,10 @@ class _EditCarState extends State<EditCar> {
                   borderRadius: BorderRadius.circular(12),
                   child: TextFormField(
                     controller: colorController,
-                    decoration: _buildDecoration("Color", Icons.color_lens),
+                    decoration: _buildDecoration("Color".tr(), Icons.color_lens), // Localized
                     textInputAction: TextInputAction.next,
                     validator: (v) =>
-                        v == null || v.trim().isEmpty ? "Enter color" : null,
+                        v == null || v.trim().isEmpty ? "Enter_color".tr() : null, // Localized
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -203,16 +256,16 @@ class _EditCarState extends State<EditCar> {
                   child: TextFormField(
                     controller: plateController,
                     decoration: _buildDecoration(
-                        "License Plate", Icons.format_list_numbered_sharp),
+                        "City_Plate".tr(), Icons.format_list_numbered_sharp),
                     textInputAction: TextInputAction.next,
                     keyboardType:
-                        TextInputType.number, // 👈 only numeric keyboard
+                        TextInputType.number,
                     inputFormatters: [
                       FilteringTextInputFormatter
-                          .digitsOnly, // 👈 allow digits only
+                          .digitsOnly,
                     ],
                     validator: (v) => v == null || v.trim().isEmpty
-                        ? "Enter plate number"
+                        ? "Enter_plate_number".tr()
                         : null,
                   ),
                 ),
@@ -227,7 +280,7 @@ class _EditCarState extends State<EditCar> {
                   child: DropdownButtonFormField<String>(
                     value: selectedProvince,
                     decoration:
-                        _buildDecoration("Province", Icons.location_city),
+                        _buildDecoration("Province".tr(), Icons.location_city),
                     items: cities
                         .map((city) => DropdownMenuItem(
                               value: city,
@@ -242,7 +295,7 @@ class _EditCarState extends State<EditCar> {
                       }
                     },
                     validator: (val) =>
-                        val == null || val.isEmpty ? "Select province" : null,
+                        val == null || val.isEmpty ? "Select_province".tr() : null,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -257,7 +310,7 @@ class _EditCarState extends State<EditCar> {
                     child: DropdownButtonFormField<String>(
                       isExpanded: true,
                       value: selectedTypeplate,
-                      decoration: _buildDecoration("Plate Type", Icons.style),
+                      decoration: _buildDecoration("Plate_Type".tr(), Icons.style),
                       items: plateTypeList
                           .map((type) => DropdownMenuItem(
                                 value: type,
@@ -272,7 +325,7 @@ class _EditCarState extends State<EditCar> {
                         }
                       },
                       validator: (val) => val == null || val.isEmpty
-                          ? "Select plate type"
+                          ? "Select_plate_type".tr()
                           : null,
                     ),
                   ),
@@ -288,10 +341,10 @@ class _EditCarState extends State<EditCar> {
                   child: TextFormField(
                     controller: nameController,
                     decoration:
-                        _buildDecoration("Character Plate", Icons.text_fields),
+                        _buildDecoration("Name_Plate".tr(), Icons.text_fields),
                     textInputAction: TextInputAction.done,
                     validator: (v) => v == null || v.trim().isEmpty
-                        ? "Enter plate character"
+                        ? "Enter_plate_character".tr()
                         : null,
                   ),
                 ),
@@ -301,7 +354,7 @@ class _EditCarState extends State<EditCar> {
                 ElevatedButton.icon(
                   onPressed: _updateCarDetails,
                   icon: const Icon(Icons.save),
-                  label: const Text("Save Changes"),
+                  label: Text("Save_Changes".tr()),
                   style: ElevatedButton.styleFrom(
                     elevation: 6,
                     shadowColor: Colors.blueGrey,

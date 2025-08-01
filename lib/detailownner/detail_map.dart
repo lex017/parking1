@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:parking1/detailownner/edit_map.dart';
 import 'package:parking1/detailownner/selectslot.dart';
@@ -129,8 +130,8 @@ class _DetailMapState extends State<DetailMap> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   const Text(
-                    "Ev support",
+                    Text(
+                    "Ev_support".tr(),
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
@@ -189,7 +190,7 @@ class _DetailMapState extends State<DetailMap> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        "Price: ",
+                        "Price".tr(),
                         style: TextStyle(
                           fontSize: 18,
                           color: Colors.grey[800],
@@ -213,7 +214,7 @@ class _DetailMapState extends State<DetailMap> {
                           color: Colors.green, size: 20),
                       const SizedBox(width: 6),
                       Text(
-                        "Open time: ",
+                        "Open_time".tr(),
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey[700],
@@ -236,7 +237,7 @@ class _DetailMapState extends State<DetailMap> {
                           color: Colors.redAccent, size: 20),
                       const SizedBox(width: 6),
                       Text(
-                        "Close time: ",
+                        "Close_time".tr(),
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey[700],
@@ -278,18 +279,18 @@ class _DetailMapState extends State<DetailMap> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Text(
-                  'Edit',
+                child:  Text(
+                  'Edit'.tr(),
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
             TextButton(
               onPressed: showDeleteConfirmationDialog,
-              child: const Text(
-                "Delete",
+              child:  Text(
+                "Delete".tr(),
                 style: TextStyle(
-                  color: Colors.red,
+                  color: const Color.fromARGB(255, 47, 41, 40),
                   fontSize: 16,
                   decoration: TextDecoration.underline,
                   decorationColor: Colors.red,

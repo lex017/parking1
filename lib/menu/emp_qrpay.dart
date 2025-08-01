@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:io';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -226,7 +227,7 @@ class _EmpGenerateState extends State<EmpQrpay> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Generate Ticket'),
+        title: Text('Generate_Ticket'.tr()),
         backgroundColor: Colors.white,
         centerTitle: true,
       ),
@@ -235,7 +236,7 @@ class _EmpGenerateState extends State<EmpQrpay> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Generate Ticket",
+             Text("Generate_Ticket".tr(),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             DropdownButtonFormField<String>(
               value: _selectedProvince,
@@ -248,7 +249,7 @@ class _EmpGenerateState extends State<EmpQrpay> {
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.location_on),
               ),
-              hint: const Text("Select Province"),
+              hint:  Text("Select_Province".tr()),
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
@@ -262,13 +263,13 @@ class _EmpGenerateState extends State<EmpQrpay> {
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.car_repair),
               ),
-              hint: const Text("Select Plate Type"),
+              hint:  Text("Select_Plate_Type".tr()),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: nameplateController,
               decoration: InputDecoration(
-                labelText: "NamePlate",
+                labelText: "NamePlate".tr(),
                 border:
                     OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -281,14 +282,14 @@ class _EmpGenerateState extends State<EmpQrpay> {
                 FilteringTextInputFormatter.digitsOnly, // Allow only digits
               ],
               decoration: InputDecoration(
-                labelText: "Plate",
+                labelText: "Plate".tr(),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
             ),
             const SizedBox(height: 20),
-            const Text("Upload Picture",
+             Text("Upload_Picture".tr(),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             GestureDetector(
@@ -338,8 +339,8 @@ class _EmpGenerateState extends State<EmpQrpay> {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text(
-                        "Generate",
+                    :  Text(
+                        "Generate".tr(),
                         style: TextStyle(
                           fontSize:
                               20, // Increased font size for better visibility

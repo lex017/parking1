@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:parking1/drawer.dart';
 import 'package:parking1/map_api/btnlocation.dart';
+import 'package:rxdart/rxdart.dart';
 
 class LocationPage extends StatefulWidget {
   const LocationPage({Key? key}) : super(key: key);
@@ -14,9 +15,9 @@ class LocationPage extends StatefulWidget {
 class _LocationPageState extends State<LocationPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String searchQuery = '';
-  String? selectedCategory = 'All';
+  String? selectedCategory = 'All'.tr();
 
-  final List<String> categories = ['All', 'EV'];
+  final List<String> categories = ['All'.tr(), 'EV'];
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +59,7 @@ class _LocationPageState extends State<LocationPage> {
                     selected: selectedCategory == category,
                     onSelected: (bool selected) {
                       setState(() {
-                        selectedCategory = selected ? category : 'All';
+                        selectedCategory = selected ? category : 'All'.tr();
                       });
                     },
                   );
@@ -75,7 +76,7 @@ class _LocationPageState extends State<LocationPage> {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator());  
                 }
 
                 if (snapshot.hasError) {
@@ -98,7 +99,7 @@ class _LocationPageState extends State<LocationPage> {
                   final category = location['tag'] ?? '';
 
                   bool matchesSearch = name.contains(searchQuery) || address.contains(searchQuery) || landmark.contains(searchQuery);
-                  bool matchesCategory = (selectedCategory == 'All') || (selectedCategory == 'EV' && category == 'EV');
+                  bool matchesCategory = (selectedCategory == 'All'.tr()) || (selectedCategory == 'EV' && category == 'EV');
 
                   return matchesSearch && matchesCategory;
                 }).toList();
@@ -182,32 +183,65 @@ class _LocationPageState extends State<LocationPage> {
                                         ],
                                       ),
                                     ),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                   
+                                   Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
                                       children: [
                                         StreamBuilder<int>(
-                                          stream: FirebaseFirestore.instance
-                                              .collection('bookings')
-                                              .where('locationId', isEqualTo: documentId)
-                                              .where('Status', whereIn: ['check-in', 'pending'])
-                                              .snapshots()
-                                              .map((snapshot) => snapshot.docs.length),
+                                          stream: Rx.combineLatest2(
+                                            FirebaseFirestore.instance
+                                                .collection('bookings')
+                                                .where('locationId',
+                                                    isEqualTo: documentId)
+                                                .where('Status', whereIn: [
+                                                  'check-in',
+                                                  'pending'
+                                                ])
+                                                .snapshots()
+                                                .map((snapshot) =>
+                                                    snapshot.docs.length),
+                                            FirebaseFirestore.instance
+                                                .collection('ticketreal')
+                                                .where('locationId',
+                                                    isEqualTo: documentId)
+                                                .where('Status',
+                                                    isEqualTo:
+                                                        'check-in') 
+                                                .snapshots()
+                                                .map((snapshot) =>
+                                                    snapshot.docs.length),
+                                            (int bookingCount,
+                                                    int ticketRealCount) =>
+                                                bookingCount + ticketRealCount,
+                                          ),
                                           builder: (context, snapshot) {
-                                            if (snapshot.connectionState == ConnectionState.waiting) {
-                                              return const Center(child: CircularProgressIndicator());
+                                            if (snapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return const Center(
+                                                  child:
+                                                      CircularProgressIndicator());
                                             }
 
                                             if (snapshot.hasError) {
-                                              return const Center(child: Text('Error fetching checked-in data'));
+                                              return const Center(
+                                                  child: Text(
+                                                      'Error fetching checked-in data'));
                                             }
 
-                                            final checkedInCount = snapshot.data ?? 0;
-                                            final totalSlots = location['car_slot'] ?? 0;
+                                            final checkedInCount =
+                                                snapshot.data ?? 0;
+                                            final totalSlots =
+                                                location['car_slot'] ?? 0;
 
                                             return Padding(
-                                              padding: const EdgeInsets.all(16.0),
+                                              padding:
+                                                  const EdgeInsets.all(16.0),
                                               child: Text(
-                                                "CAR: $checkedInCount/$totalSlots",
+                                                "car_count".tr(args: [
+                                                  "$checkedInCount",
+                                                  "$totalSlots"
+                                                ]),
                                                 style: const TextStyle(
                                                   fontSize: 16,
                                                   fontWeight: FontWeight.bold,

@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'dart:io';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -137,9 +138,9 @@ class _PayPageState extends State<PayPage> {
                         color: Colors.blueAccent, size: 40),
                   ),
                   const SizedBox(height: 10),
-                  const Center(
+                  Center(
                     child: Text(
-                      'Select Time',
+                      'SelectTime'.tr(),
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
@@ -176,9 +177,12 @@ class _PayPageState extends State<PayPage> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton.icon(
-                      icon: const Icon(Icons.check_circle_outline),
-                      label: const Text(
-                        'Confirm Time',
+                      icon: Icon(
+                        Icons.check_circle_outline,
+                        color: Colors.white,
+                      ),
+                      label: Text(
+                        'ConfirmTime'.tr(),
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
@@ -412,7 +416,7 @@ class _PayPageState extends State<PayPage> {
                 ),
                 title: Center(
                   child: Text(
-                    isVerified ? "Payment Successful" : "Payment Verification",
+                    isVerified ? "Payment Successful" : "Payment_Verification".tr(),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
@@ -452,7 +456,7 @@ class _PayPageState extends State<PayPage> {
                       Text(
                         isVerified
                             ? "Payment Verified Successfully!"
-                            : "Waiting for payment verification...",
+                            : "waiting_for_payment_verification".tr(),
                         style: const TextStyle(fontSize: 18),
                         textAlign: TextAlign.center,
                       ),
@@ -460,7 +464,7 @@ class _PayPageState extends State<PayPage> {
                       Text(
                         isVerified
                             ? "Thank you for your payment."
-                            : "Please do not close the app.",
+                            : "please_do_not_close_the_app".tr(),
                         style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                         textAlign: TextAlign.center,
                       ),
@@ -486,8 +490,8 @@ class _PayPageState extends State<PayPage> {
                               (route) => false,
                             );
                           },
-                          child: const Text(
-                            "Go to Main",
+                          child: Text(
+                            "Go_to_Main".tr(),
                             style: TextStyle(
                               fontSize: 16.0,
                               fontWeight: FontWeight.bold,
@@ -740,7 +744,7 @@ class _PayPageState extends State<PayPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Payment & Booking'),
+          title: Text('Payment&Booking'.tr()),
           backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
           centerTitle: true,
         ),
@@ -781,7 +785,8 @@ class _PayPageState extends State<PayPage> {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      "Amount: ${widget.pricePerHour}",
+                      'amountPerUnit'
+                          .tr(args: [widget.pricePerHour.toString()]),
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -817,7 +822,9 @@ class _PayPageState extends State<PayPage> {
                     const Icon(Icons.date_range, color: Colors.blue, size: 28),
                     const SizedBox(width: 10),
                     Text(
-                      "Date: ${DateFormat('yyyy-MM-dd').format(DateTime.now())}",
+                      'currentDate'.tr(args: [
+                        DateFormat('yyyy-MM-dd').format(DateTime.now())
+                      ]),
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -833,7 +840,7 @@ class _PayPageState extends State<PayPage> {
               TextFormField(
                 controller: timeController,
                 decoration: InputDecoration(
-                  labelText: "Select Time",
+                  labelText: "SelectTime".tr(),
                   hintText: "HH:MM AM/PM",
                   filled: true,
                   fillColor: Colors.grey.shade100,
@@ -851,8 +858,8 @@ class _PayPageState extends State<PayPage> {
               const SizedBox(height: 30),
 
               // Upload Picture Title
-              const Text(
-                "Upload Picture",
+              Text(
+                "UploadPicture".tr(),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
@@ -886,9 +893,9 @@ class _PayPageState extends State<PayPage> {
                                 width: double.infinity,
                               ),
                             )
-                          : const Center(
+                          : Center(
                               child: Text(
-                                "Tap to upload image",
+                                "Taptouploadimage".tr(),
                                 style: TextStyle(color: Colors.grey),
                               ),
                             ),
@@ -919,8 +926,8 @@ class _PayPageState extends State<PayPage> {
                             strokeWidth: 3,
                           ),
                         )
-                      : const Text(
-                          "Pay Now",
+                      : Text(
+                          "Pay_Now".tr(),
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.bold),
                         ),

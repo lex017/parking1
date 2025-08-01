@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -45,29 +46,28 @@ class _VehicleState extends State<Vechicle> {
 
   @override
   Widget build(BuildContext context) {
-    final User? user = _auth.currentUser ;
+    final User? user = _auth.currentUser;
 
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text("Vehicle Information")),
+        appBar: AppBar(title: Text("Vehicle_Information".tr())),
         body: const Center(child: Text("Please log in to see your vehicles.")),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-  title: const Text(
-    "Vehicle Information",
-    style: TextStyle(
-      color: Colors.white, // Change text color here
-      fontSize: 20, // Optional: Adjust font size
-      fontWeight: FontWeight.bold, // Optional: Adjust font weight
-    ),
-  ),
-  centerTitle: true,
-  backgroundColor: Colors.blueAccent,
-),
-
+        title: Text(
+          "Vehicle_Information".tr(),
+          style: TextStyle(
+            color: Colors.white, // Change text color here
+            fontSize: 20, // Optional: Adjust font size
+            fontWeight: FontWeight.bold, // Optional: Adjust font weight
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.blueAccent,
+      ),
       body: Container(
         color: Theme.of(context).cardColor, // Background color
         padding: const EdgeInsets.all(16.0),
@@ -107,14 +107,14 @@ class _VehicleState extends State<Vechicle> {
             }
 
             final vehicles = snapshot.data!.docs
-                .map((doc) => Vehicle.fromFirestore(doc as DocumentSnapshot<Map<String, dynamic>>))
+                .map((doc) => Vehicle.fromFirestore(
+                    doc as DocumentSnapshot<Map<String, dynamic>>))
                 .toList();
 
             return ListView.builder(
               itemCount: vehicles.length,
               itemBuilder: (context, index) {
                 final vehicle = vehicles[index];
-
                 return Card(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16.0),
@@ -139,7 +139,8 @@ class _VehicleState extends State<Vechicle> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.directions_car, color: Colors.blueAccent),
+                              Icon(Icons.directions_car,
+                                  color: Colors.blueAccent),
                               const SizedBox(width: 8.0),
                               Text(
                                 '${vehicle.brandName}',
@@ -156,7 +157,7 @@ class _VehicleState extends State<Vechicle> {
                               Icon(Icons.color_lens, color: Colors.blueAccent),
                               const SizedBox(width: 8.0),
                               Text(
-                                'Color: ${vehicle.color}',
+                                'vehicleColor'.tr(args: ['${vehicle.color}']),
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.grey[600],
@@ -167,10 +168,12 @@ class _VehicleState extends State<Vechicle> {
                           const SizedBox(height: 8.0),
                           Row(
                             children: [
-                              Icon(Icons.confirmation_number, color: Colors.blueAccent),
+                              Icon(Icons.confirmation_number,
+                                  color: Colors.blueAccent),
                               const SizedBox(width: 8.0),
                               Text(
-                                'License Plate: ${vehicle.plate}',
+                                'vehicleLicensePlate'
+                                    .tr(args: ['${vehicle.plate}']),
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.grey[600],

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:form_field_validator/form_field_validator.dart';
@@ -27,7 +28,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Widget showText() {
   return Text(
-    "Sign up",
+    "Sign up".tr(),
     style: TextStyle(
       fontSize: 35.0,
       fontWeight: FontWeight.bold,
@@ -39,7 +40,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
 Widget showText1() {
   return Text(
-    "Create a new account",
+    "Createanew_account".tr(),
     style: TextStyle(
       fontSize: 20.0,
       fontWeight: FontWeight.bold,
@@ -58,7 +59,7 @@ Widget userInput() {
       },
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please enter a username';
+          return 'Please_enter_a_username'.tr();
         }
         return null;
       },
@@ -66,7 +67,7 @@ Widget userInput() {
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30)
           ),
-        labelText: 'Username',
+        labelText: 'Username'.tr(),
         filled: true,
         fillColor: Theme.of(context).colorScheme.surface, // Background color based on theme
         prefixIcon: Icon(
@@ -94,7 +95,7 @@ Widget emailInput() {
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30)
           ),
-        labelText: 'Email',
+        labelText: 'Email'.tr(),
         filled: true,
         fillColor: Theme.of(context).colorScheme.surface, // Background color based on theme
         prefixIcon: Icon(
@@ -117,7 +118,7 @@ Widget passwordInput() {
       },
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please enter a password';
+          return 'Please_enter_a_password'.tr();
         }
         return null;
       },
@@ -125,7 +126,7 @@ Widget passwordInput() {
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30)
           ),
-        labelText: 'Password',
+        labelText: 'Password'.tr(),
         filled: true,
         fillColor: Theme.of(context).colorScheme.surface, // Background color based on theme
         prefixIcon: Icon(
@@ -154,7 +155,7 @@ Widget passConfirm() {
       },
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please confirm your password';
+          return 'Please_confirm_your_password'.tr();
         }
         return null;
       },
@@ -162,7 +163,7 @@ Widget passConfirm() {
         border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(30)
           ),
-        labelText: 'Confirm Password',
+        labelText: 'Confirm_Password'.tr(),
         filled: true,
         fillColor: Theme.of(context).colorScheme.surface, // Background color based on theme
         prefixIcon: Icon(
@@ -261,7 +262,7 @@ Widget signupButton(BuildContext context, GlobalKey<FormState> formkey, Userpark
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             )
           : Text(
-              "Sign Up",
+              "Sign_Up".tr(),
               style: TextStyle(
                 color: Colors.white, // Adjust icon color dynamically
                 fontWeight: FontWeight.bold,
@@ -281,7 +282,7 @@ Widget login() {
     children: [
       Flexible(
         child: Text(
-          "Already have an account?",
+          "Already_have_an_account?".tr(),
           style: TextStyle(
             fontSize: 16,
             color: Theme.of(context).iconTheme.color,
@@ -296,8 +297,8 @@ Widget login() {
             MaterialPageRoute(builder: (ctx) => const loginPage()),
           );
         },
-        child: const Text(
-          "Click here",
+        child: Text(
+          "Click_here".tr(),
           style: TextStyle(color: Colors.blue),
         ),
       ),

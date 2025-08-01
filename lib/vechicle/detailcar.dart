@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'editcar.dart';
@@ -127,7 +128,7 @@ class _DetailCarState extends State<DetailCar> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Car Details"),
+        title: Text("Car_Details".tr()),
         backgroundColor: Colors.blueAccent,
       ),
       body: SingleChildScrollView(
@@ -167,7 +168,6 @@ class _DetailCarState extends State<DetailCar> {
                         ),
                       ),
                       const SizedBox(height: 8), // Add spacing
-
                       Row(
                         mainAxisAlignment:
                             MainAxisAlignment.center, // Center align content
@@ -197,13 +197,13 @@ class _DetailCarState extends State<DetailCar> {
                   )),
             ),
             const SizedBox(height: 30),
-            _buildDetailRow("Brand", carData?["brandName"] ?? "Unknown"),
-            _buildDetailRow("Color", carData?["color"] ?? "Unknown"),
+            _buildDetailRow("Brand".tr(), carData?["brandName"] ?? "Unknown"),
+            _buildDetailRow("Color".tr(), carData?["color"] ?? "Unknown"),
             _buildDetailRow(
-                "License Plate", carData?["numberplate"] ?? "Unknown"),
-            _buildDetailRow("City Plate", carData?["province"] ?? "Unknown"),
-            _buildDetailRow("Plate Type", carData?["typeplate"] ?? "Unknown"),
-            _buildDetailRow("Name Plate", carData?["charplate"] ?? "Unknown"),
+                "License_Plate".tr(), carData?["numberplate"] ?? "Unknown"),
+            _buildDetailRow("City_Plate".tr(), carData?["province"] ?? "Unknown"),
+            _buildDetailRow("Plate_Type".tr(), carData?["typeplate"] ?? "Unknown"),
+            _buildDetailRow("Name_Plate".tr(), carData?["charplate"] ?? "Unknown"),
             const SizedBox(height: 30),
             Center(
               child: ElevatedButton.icon(
@@ -224,7 +224,7 @@ class _DetailCarState extends State<DetailCar> {
                   }
                 },
                 icon: const Icon(Icons.edit, size: 20),
-                label: const Text("Edit Car"),
+                label: Text("Edit_Car".tr()),
                 style: ElevatedButton.styleFrom(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 32, vertical: 16),

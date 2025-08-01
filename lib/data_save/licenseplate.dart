@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:parking1/data_save/platecolor.dart';
 
@@ -36,7 +37,7 @@ class _LicensePlateState extends State<LicensePlate> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Select province"),
+        title: Text("Select_province".tr()),
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         centerTitle: true,
       ),
